@@ -1,0 +1,10 @@
+**/.git
+**/.gradle
+**/build
+**/out
+**/.idea
+**/.vscode
+**/.env
+**/*.log
+**/.superpowers
+**/node_modules

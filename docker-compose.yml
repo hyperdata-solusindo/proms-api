@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-app_platform}
+      POSTGRES_USER: ${DB_USER:-platform_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-platform_password}
+    ports:
+      - "${DB_PORT:-5443}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-platform_user} -d ${DB_NAME:-app_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - erp-network
+
+  # Init Container: Menjalankan migrasi DDL via Liquibase sampai selesai (exit 0)
+  migration:
+    build:
+      context: ..
+      dockerfile: platform/docker/Dockerfile
+    container_name: erp-migration
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["db:migrate"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      LIQUIBASE_ENABLED: "true"
+      LIQUIBASE_CONTEXTS: ${LIQUIBASE_CONTEXTS:-}
+      LIQUIBASE_LABELS: ${LIQUIBASE_LABELS:-}
+      JAVA_OPTS: ${JAVA_OPTS:-}
+    networks:
+      - erp-network
+
+  # Application Server: Long-running backend service
+  app:
+    build:
+      context: ..
+      dockerfile: platform/docker/Dockerfile
+    container_name: erp-platform
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migration:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      LIQUIBASE_ENABLED: "false" # Nonaktifkan auto-migration pada container app
+      JAVA_OPTS: ${JAVA_OPTS:-}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    networks:
+      - erp-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  erp-network:
+    driver: bridge
