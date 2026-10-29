@@ -1,0 +1,14 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment & IDE
+.env
+.env.backup
+.env.production
+.idea/
+.vscode/
+
+# Dependencies
+/vendor/
+/node_modules/
