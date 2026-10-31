@@ -1,9 +1,13 @@
 package com.hyperdata.proms.module.sample.product.facade.internal;
 
+import com.hyperdata.proms.common.util.Lookups;
 import com.hyperdata.proms.module.sample.product.facade.ProductFacade;
 import com.hyperdata.proms.module.sample.product.facade.dto.ProductSummaryDto;
 import com.hyperdata.proms.module.sample.product.mapper.ProductMapper;
 import com.hyperdata.proms.module.sample.product.repository.ProductRepository;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +25,15 @@ public class DefaultProductFacade implements ProductFacade {
     @Transactional(readOnly = true)
     public Optional<ProductSummaryDto> findProductSummaryById(UUID id) {
         return productRepository.findById(id).map(productMapper::toSummaryDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductSummaryDto> findAllByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Lookups.map(productRepository.findAllById(ids), productMapper::toSummaryDto);
     }
 
     @Override
