@@ -25,7 +25,14 @@ Untuk menjamin konsistensi 100% di semua IDE (VS Code, Cursor, Antigravity, Inte
    - Terpasang otomatis via `./gradlew installGitHooks` (terkait ke `./gradlew check`).
    - Menjalankan Spotless secara otomatis sebelum setiap git commit.
 
-## 3. ArchUnit Architecture Guardrails
+## 3. Red Hat Java / Eclipse JDT Compiler Diagnostics ([`.vscode/org.eclipse.jdt.core.prefs`](../../.vscode/org.eclipse.jdt.core.prefs))
+
+Untuk mencegah peringatan palsu (*false positive warnings*) dari compiler internal Eclipse JDT yang tidak relevan dengan standar javac / Gradle:
+- Konfigurasi compiler diimpor secara otomatis melalui `"java.settings.url": ".vscode/org.eclipse.jdt.core.prefs"` di [`.vscode/settings.json`](../../.vscode/settings.json).
+- **Type Safety (`Java(16777748)`)**: Diabaikan (`org.eclipse.jdt.core.compiler.problem.uncheckedTypeOperation=ignore`) saat konversi unchecked type expression (misalnya `Specification` generic konversi ke `Specification<T>`).
+- **Null Type Safety (`Java(67109822)`)**: Diabaikan (`org.eclipse.jdt.core.compiler.problem.nullUncheckedConversion=ignore` dan `"java.compile.nullAnalysis.mode": "disabled"`) pada parameter method reference/descriptor (misalnya `BiFunction.apply` atau stream mapping).
+
+## 4. ArchUnit Architecture Guardrails
 Located in `src/test/java/com/hyperdata/proms/architecture/ArchitectureTest.java`.
 
 ArchUnit strictly enforces:

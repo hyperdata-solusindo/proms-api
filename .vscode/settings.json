@@ -1,5 +1,6 @@
 {
-  "java.compile.nullAnalysis.mode": "automatic",
+  "java.settings.url": ".vscode/org.eclipse.jdt.core.prefs",
+  "java.compile.nullAnalysis.mode": "disabled",
   "editor.formatOnSave": true,
   "editor.formatOnPaste": false,
   "files.eol": "\n",
