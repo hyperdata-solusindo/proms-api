@@ -1,0 +1,43 @@
+{
+  "java.compile.nullAnalysis.mode": "automatic",
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "[java]": {
+    "editor.defaultFormatter": "richardwillis.vscode-spotless-gradle",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "java.format.enabled": true,
+  "java.format.settings.url": ".vscode/eclipse-java-formatter.xml",
+  "java.format.settings.profile": "PromsJavaFormat",
+  "java.format.comments.enabled": true,
+  "java.format.onType.enabled": false,
+  "java.saveActions.organizeImports": true,
+  "java.sources.organizeImports.starThreshold": 99,
+  "java.sources.organizeImports.staticStarThreshold": 99,
+  "java.completion.importOrder": [
+    "#",
+    ""
+  ],
+  "java.codeGeneration.toString.codeStyle": "STRING_BUILDER",
+  "java.codeGeneration.hashCodeEquals.useJava7Objects": true,
+  "java.codeGeneration.useBlocks": true
+}
