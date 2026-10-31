@@ -15,7 +15,7 @@
 
 ---
 
-## 2. The 10 Golden Rules (Quick Summary)
+## 2. The 11 Golden Rules (Quick Summary)
 
 1. **2-Layer Modular Monolith**: Code resides in `com.hyperdata.proms.module.<domain>.<feature>`.
 2. **Inter-Module Facade Rule**: Module A calling Module B **MUST** use `facade/<Feature>Facade.java` (Interface). Never inject foreign `Service` or `Repository`.
@@ -26,7 +26,8 @@
 7. **YAVI Validation**: Use YAVI fluent builder (`Validator<T>`) inside Request records or validator factories.
 8. **MapStruct Mapping**: Use `@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)` in `mapper/`.
 9. **JPA 3-Level Query**: Derived (1-2 params), explicit `@Query` JPQL (>2 params/JOIN), or `JpaSpecificationExecutor` (dynamic filters).
-10. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`).
+10. **The Golden Stack (Anti-N+1 In-Memory Datatables)**: Datatables and cross-module enrichment **MUST** use the Golden Stack (L1 Cache + `Lookups` batch ID extraction & indexing + MapStruct assembly). Never write cross-module SQL joins or call facades inside loops.
+11. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`).
 
 ---
 
@@ -38,12 +39,13 @@ com.hyperdata.proms/
 ├── common/                                     # Cross-cutting concerns
 │   ├── exception/                              # BaseException, GlobalExceptionHandler, custom exceptions
 │   ├── response/                               # ApiResponse<T>, PageResponse<T>
+│   ├── util/                                   # Lookups (Anti-N+1 in-memory engine)
 │   └── validation/                             # YaviValidator helper
 └── module/
     └── <domain>/                               # e.g., inventory, sales, identity
         └── <feature>/                          # e.g., product, order, auth
             ├── controller/                     # REST API Controllers (for web/mobile clients)
-            ├── facade/                         # 👈 Public Contract for other modules
+            ├── facade/                         # 👉 Public Contract for other modules
             │   ├── <Feature>Facade.java        # Public Interface (ONLY contract exposed)
             │   ├── dto/                        # Public Record DTOs returned by Facade
             │   └── internal/                   # Hidden implementation (@Component Default<Feature>Facade)
@@ -70,6 +72,7 @@ Read the specific rule file before implementing features in that domain:
 - [08. Testing Standards & BDD @DisplayName](docs/rules/08-testing-and-verification.md)
 - [09. Automated Quality Gates (ArchUnit & Spotless)](docs/rules/09-tooling-and-quality.md)
 - [10. AI Behavior, Scope Lockdown & Definition of Done](docs/rules/10-ai-behavior-and-scope.md)
+- [11. The Golden Stack Pattern (Lookups, Anti-N+1, In-Memory Enrichment)](docs/rules/11-the-golden-stack.md)
 
 ---
 
@@ -103,6 +106,7 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Facade public contract uses interface in `facade/` and implementation in `facade/internal/`.
 - [ ] No JPA `@Entity` returned from Facade or Controller.
 - [ ] Cross-module calls only use foreign `*Facade`, not foreign `*Service` or `*Repository`.
+- [ ] Datatables / DTO enrichment across modules uses The Golden Stack (`Lookups` utility) without cross-module SQL joins or loop queries.
 - [ ] Validation implemented using YAVI.
 - [ ] MapStruct mappers configured with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.IGNORE`.
 - [ ] Unit tests written with BDD `@DisplayName` format.

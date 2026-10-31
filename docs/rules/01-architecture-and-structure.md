@@ -43,3 +43,4 @@ Inside each `<feature>` directory, strictly maintain this folder structure:
 3. **No Entity Leakage**: Facade dan Controller **DILARANG** mengembalikan JPA `@Entity`. Seluruh data yang keluar wajib dibungkus dalam Java 21 `record`.
 4. **Controller Boundary**: Controller hanya boleh memanggil Service (atau Facade jika relevan). Controller dilarang meng-inject Repository.
 5. **Transactional Boundary**: Anotasi `@Transactional` hanya boleh digunakan di layer Service atau Facade implementation, dilarang di Controller.
+6. **The Golden Stack for Cross-Module Enrichment**: Datatable atau listing queries **DILARANG** melakukan SQL `JOIN` lintas tabel modul lain. Wajib menerapkan **The Golden Stack** (L1 Cache + `Lookups` in-memory batch extraction/map + MapStruct DTO assembly). Lihat [Rule 11](11-the-golden-stack.md).

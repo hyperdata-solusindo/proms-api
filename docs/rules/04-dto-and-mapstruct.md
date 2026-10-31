@@ -37,3 +37,9 @@ public interface ProductMapper {
 
 ### Static Factory Alternative
 For simple records with 1–3 properties, writing `public static MyResponse fromEntity(MyEntity e)` inside the Record is permitted.
+
+## 4. Cross-Module DTO Enrichment (The Golden Stack)
+When building `*ListItemResponse` or `*DetailResponse` that contains data from other modules, use **The Golden Stack** (Pilar 3):
+- Pass resolved lookup maps into service mapper helper methods or MapStruct `@Context`.
+- Never execute SQL joins across module boundaries.
+- For complete pattern and templates, see [Rule 11: The Golden Stack Pattern](11-the-golden-stack.md).
