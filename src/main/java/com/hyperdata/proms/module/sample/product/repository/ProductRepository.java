@@ -9,8 +9,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ProductRepository
-        extends JpaRepository<Product, UUID>, JpaSpecificationExecutor<Product> {
+public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpecificationExecutor<Product> {
 
     // Level 1: Derived method (1 column)
     boolean existsBySku(String sku);

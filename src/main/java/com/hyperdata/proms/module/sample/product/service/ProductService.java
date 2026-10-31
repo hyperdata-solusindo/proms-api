@@ -25,8 +25,7 @@ public class ProductService {
         YaviValidator.validateAndThrow(CreateProductRequest.validator, request);
 
         if (productRepository.existsBySku(request.sku())) {
-            throw new DuplicateResourceException(
-                    String.format("Product with SKU [%s] already exists", request.sku()));
+            throw new DuplicateResourceException(String.format("Product with SKU [%s] already exists", request.sku()));
         }
 
         Product product = productMapper.toEntity(request);
@@ -37,9 +36,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductDetailResponse getProductById(UUID id) {
         Product product =
-                productRepository
-                        .findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+                productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product", id));
         return productMapper.toDetailResponse(product);
     }
 }

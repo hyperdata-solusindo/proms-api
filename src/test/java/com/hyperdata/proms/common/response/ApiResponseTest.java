@@ -23,12 +23,10 @@ class ApiResponseTest {
     }
 
     @Test
-    @DisplayName(
-            "Given error map, when calling error(), then return error envelope with status code")
+    @DisplayName("Given error map, when calling error(), then return error envelope with status code")
     void shouldCreateErrorResponse() {
         Map<String, String> errors = Map.of("email", "Format invalid");
-        ApiResponse<Void> response =
-                ApiResponse.error(HttpStatus.BAD_REQUEST, "Validation failed", errors);
+        ApiResponse<Void> response = ApiResponse.error(HttpStatus.BAD_REQUEST, "Validation failed", errors);
 
         assertFalse(response.success());
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.status());

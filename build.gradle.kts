@@ -66,11 +66,23 @@ dependencies {
 spotless {
     java {
         target("src/**/*.java")
-        googleJavaFormat().aosp().reflowLongStrings()
+        palantirJavaFormat()
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
     }
+}
+
+// Git Hook Configuration for Seamless Cross-IDE Formatting
+tasks.register<Exec>("installGitHooks") {
+    description = "Configures git to use project pre-commit hooks"
+    group = "verification"
+    commandLine("git", "config", "core.hooksPath", ".githooks")
+    onlyIf { file(".git").exists() }
+}
+
+tasks.named("check") {
+    dependsOn("installGitHooks")
 }
 
 tasks.withType<Test> {

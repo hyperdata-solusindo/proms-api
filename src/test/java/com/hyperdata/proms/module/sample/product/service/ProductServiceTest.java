@@ -25,38 +25,32 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
 
-    @Mock private ProductRepository productRepository;
+    @Mock
+    private ProductRepository productRepository;
 
-    @Mock private ProductMapper productMapper;
+    @Mock
+    private ProductMapper productMapper;
 
-    @InjectMocks private ProductService productService;
+    @InjectMocks
+    private ProductService productService;
 
     @Test
-    @DisplayName(
-            "Given valid request and new SKU, when createProduct, then successfully save and return"
-                    + " detail response")
+    @DisplayName("Given valid request and new SKU, when createProduct, then successfully save and return"
+            + " detail response")
     void shouldCreateProductSuccessfully() {
         CreateProductRequest request =
                 new CreateProductRequest("SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10);
-        Product product =
-                Product.builder()
-                        .id(UUID.randomUUID())
-                        .sku("SKU-100")
-                        .name("Laptop Pro")
-                        .price(new BigDecimal("15000000"))
-                        .stock(10)
-                        .active(true)
-                        .createdAt(Instant.now())
-                        .build();
-        ProductDetailResponse expected =
-                new ProductDetailResponse(
-                        product.getId(),
-                        "SKU-100",
-                        "Laptop Pro",
-                        new BigDecimal("15000000"),
-                        10,
-                        true,
-                        product.getCreatedAt());
+        Product product = Product.builder()
+                .id(UUID.randomUUID())
+                .sku("SKU-100")
+                .name("Laptop Pro")
+                .price(new BigDecimal("15000000"))
+                .stock(10)
+                .active(true)
+                .createdAt(Instant.now())
+                .build();
+        ProductDetailResponse expected = new ProductDetailResponse(
+                product.getId(), "SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10, true, product.getCreatedAt());
 
         when(productRepository.existsBySku("SKU-100")).thenReturn(false);
         when(productMapper.toEntity(request)).thenReturn(product);

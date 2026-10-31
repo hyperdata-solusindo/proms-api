@@ -12,13 +12,8 @@ public class ValidationException extends BaseException {
 
     public ValidationException(ConstraintViolations violations) {
         super("Validation failed", HttpStatus.BAD_REQUEST);
-        this.errors =
-                violations.stream()
-                        .collect(
-                                Collectors.toMap(
-                                        cv -> cv.name(),
-                                        cv -> cv.message(),
-                                        (existing, replacement) -> existing));
+        this.errors = violations.stream()
+                .collect(Collectors.toMap(cv -> cv.name(), cv -> cv.message(), (existing, replacement) -> existing));
     }
 
     public ValidationException(Map<String, String> errors) {

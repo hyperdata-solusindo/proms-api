@@ -1,7 +1,7 @@
 # Rule 09: Automated Quality Gates (ArchUnit & Spotless)
 
-## 1. Spotless Java Formatter
-Spotless enforces Google Java Format (AOSP 4-space indent) with import sorting and trailing whitespace cleanup.
+## 1. Spotless Java Formatter (Palantir Java Format)
+Spotless menggunakan **Palantir Java Format** (`palantirJavaFormat()`), yang dirancang khusus untuk memformat lambda, stream, dan fluent builder (seperti YAVI dan CriteriaBuilder) secara rapi dan linear tanpa nesting bertingkat (*staircase indentation*) yang terjadi pada Google Java Format biasa.
 
 Commands:
 - Apply formatting: `./gradlew spotlessApply`

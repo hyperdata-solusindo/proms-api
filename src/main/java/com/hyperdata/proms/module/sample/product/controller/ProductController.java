@@ -18,8 +18,7 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<ProductDetailResponse> createProduct(
-            @RequestBody CreateProductRequest request) {
+    public ApiResponse<ProductDetailResponse> createProduct(@RequestBody CreateProductRequest request) {
         ProductDetailResponse response = productService.createProduct(request);
         return ApiResponse.created(response, "Product created successfully");
     }

@@ -7,12 +7,7 @@ import org.springframework.http.HttpStatus;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(
-        boolean success,
-        int status,
-        String message,
-        T data,
-        Map<String, String> errors,
-        Instant timestamp) {
+        boolean success, int status, String message, T data, Map<String, String> errors, Instant timestamp) {
     public static <T> ApiResponse<T> ok(T data, String message) {
         return new ApiResponse<>(true, HttpStatus.OK.value(), message, data, null, Instant.now());
     }
@@ -22,12 +17,10 @@ public record ApiResponse<T>(
     }
 
     public static <T> ApiResponse<T> created(T data, String message) {
-        return new ApiResponse<>(
-                true, HttpStatus.CREATED.value(), message, data, null, Instant.now());
+        return new ApiResponse<>(true, HttpStatus.CREATED.value(), message, data, null, Instant.now());
     }
 
-    public static ApiResponse<Void> error(
-            HttpStatus status, String message, Map<String, String> errors) {
+    public static ApiResponse<Void> error(HttpStatus status, String message, Map<String, String> errors) {
         return new ApiResponse<>(false, status.value(), message, null, errors, Instant.now());
     }
 

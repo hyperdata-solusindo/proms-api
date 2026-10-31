@@ -8,8 +8,7 @@ public final class ProductSpecs {
     private ProductSpecs() {}
 
     public static Specification<Product> nameContains(String name) {
-        return (root, query, cb) ->
-                cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%");
+        return (root, query, cb) -> cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%");
     }
 
     public static Specification<Product> isActive() {

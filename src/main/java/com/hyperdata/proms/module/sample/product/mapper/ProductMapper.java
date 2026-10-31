@@ -10,9 +10,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 
-@Mapper(
-        componentModel = MappingConstants.ComponentModel.SPRING,
-        unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface ProductMapper {
 
     @Mapping(target = "id", ignore = true)
@@ -24,8 +22,6 @@ public interface ProductMapper {
 
     ProductListItemResponse toListItemResponse(Product product);
 
-    @Mapping(
-            target = "isAvailable",
-            expression = "java(product.isActive() && product.getStock() > 0)")
+    @Mapping(target = "isAvailable", expression = "java(product.isActive() && product.getStock() > 0)")
     ProductSummaryDto toSummaryDto(Product product);
 }
