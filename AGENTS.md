@@ -113,3 +113,11 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Targeted tests pass (`./gradlew test --tests "..."`).
 - [ ] Code formatted cleanly with `./gradlew spotlessApply`.
 - [ ] Architecture tests pass (`./gradlew test --tests "*ArchitectureTest*"`).
+
+---
+
+## 7. AI Agent Skills & Brainstorming Protocol
+
+When exploring new features, planning changes, or brainstorming architecture:
+- **Mandatory Skill**: Use `project-brainstorming` (`.agents/skills/project-brainstorming/SKILL.md`).
+- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 11 Golden Rules above and companion rules in `docs/rules/` before presenting designs or generating implementation plans.
