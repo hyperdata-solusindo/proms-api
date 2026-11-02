@@ -1,0 +1,20 @@
+# Build & Cache directories
+.gradle/
+build/
+bin/
+out/
+target/
+
+# Version control
+.git/
+
+# Dependencies & wrappers
+gradle/wrapper/gradle-wrapper.jar
+
+# Generated documentation
+build/generated-snippets/
+
+# Logs & temporary files
+*.log
+*.tmp
+.DS_Store

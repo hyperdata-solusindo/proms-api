@@ -1,0 +1,10 @@
+#!/bin/sh
+# Auto-format Java files with Spotless before committing
+echo "[Git Hook] Checking & applying Spotless code formatting..."
+
+./gradlew spotlessApply --daemon -q
+
+# Re-stage formatted files if any changed
+git update-index --again
+
+echo "[Git Hook] Code formatting verified cleanly."

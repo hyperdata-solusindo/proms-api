@@ -1,0 +1,18 @@
+eclipse.preferences.version=1
+
+# ------------------------------------------------------------------------------
+# Eclipse JDT / Red Hat Java Compiler Diagnostics Configuration
+# ------------------------------------------------------------------------------
+
+# 1. Type safety: The expression of type Specification needs unchecked conversion
+#    Problem: UnsafeTypeConversion / Java(16777748)
+org.eclipse.jdt.core.compiler.problem.uncheckedTypeOperation=ignore
+org.eclipse.jdt.core.compiler.problem.rawTypeReference=ignore
+
+# 2. Null type safety: Reference expression parameter nullity unchecked
+#    Problem: ReferenceExpressionParameterNullityUnchecked / Java(67109822)
+org.eclipse.jdt.core.compiler.problem.nullUncheckedConversion=ignore
+org.eclipse.jdt.core.compiler.problem.nullReference=ignore
+org.eclipse.jdt.core.compiler.problem.potentialNullReference=ignore
+org.eclipse.jdt.core.compiler.problem.nullSpecViolation=ignore
+org.eclipse.jdt.core.compiler.problem.nullAnnotationInferenceConflict=ignore

@@ -10,7 +10,8 @@ build/
 .classpath
 .factorypath
 .project
-.settings
+.settings/*
+!.settings/org.eclipse.jdt.core.prefs
 .springBeans
 .sts4-cache
 bin/
@@ -34,4 +35,8 @@ out/
 /.nb-gradle/
 
 ### VS Code ###
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/eclipse-java-formatter.xml
+!.vscode/org.eclipse.jdt.core.prefs
