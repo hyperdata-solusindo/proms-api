@@ -107,8 +107,9 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] No JPA `@Entity` returned from Facade or Controller.
 - [ ] Cross-module calls only use foreign `*Facade`, not foreign `*Service` or `*Repository`.
 - [ ] Datatables / DTO enrichment across modules uses The Golden Stack (`Lookups` utility) without cross-module SQL joins or loop queries.
+- [ ] Zero dead code: No unused variables, fields, methods, or unused injected dependencies.
 - [ ] Validation implemented using YAVI.
-- [ ] MapStruct mappers configured with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.IGNORE`.
+- [ ] MapStruct mappers configured with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.IGNORE``.
 - [ ] Unit tests written with BDD `@DisplayName` format.
 - [ ] Targeted tests pass (`./gradlew test --tests "..."`).
 - [ ] Code formatted cleanly with `./gradlew spotlessApply`.

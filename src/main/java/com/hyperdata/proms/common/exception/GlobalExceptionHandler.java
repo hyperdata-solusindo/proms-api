@@ -1,6 +1,7 @@
 package com.hyperdata.proms.common.exception;
 
 import com.hyperdata.proms.common.response.ApiResponse;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,9 +15,10 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationException(ValidationException ex) {
-        ApiResponse<Void> response = ApiResponse.error(HttpStatus.BAD_REQUEST, ex.getMessage(), ex.getErrors());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(ValidationException ex) {
+        ApiResponse<Map<String, String>> response =
+                ApiResponse.error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), ex.getErrors());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
     }
 
     @ExceptionHandler(BaseException.class)

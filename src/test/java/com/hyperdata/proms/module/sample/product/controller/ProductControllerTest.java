@@ -68,7 +68,7 @@ class ProductControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.statusCode").value(201))
                 .andExpect(jsonPath("$.data.id").value(id.toString()))
                 .andExpect(jsonPath("$.data.sku").value("SKU-1"));
     }
@@ -84,7 +84,7 @@ class ProductControllerTest {
 
         mockMvc.perform(get("/api/v1/products/{id}", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.statusCode").value(200))
                 .andExpect(jsonPath("$.data.id").value(id.toString()))
                 .andExpect(jsonPath("$.data.name").value("MacBook Pro"));
     }
@@ -97,7 +97,7 @@ class ProductControllerTest {
 
         mockMvc.perform(get("/api/v1/products/{id}", id))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.statusCode").value(404))
                 .andExpect(jsonPath("$.message").exists());
     }
 
@@ -137,7 +137,7 @@ class ProductControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.statusCode").value(200))
                 .andExpect(jsonPath("$.data.name").value("MacBook M3"));
     }
 
@@ -149,7 +149,7 @@ class ProductControllerTest {
 
         mockMvc.perform(delete("/api/v1/products/{id}", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.statusCode").value(200))
                 .andExpect(jsonPath("$.message").value("Product deleted successfully"));
     }
 }

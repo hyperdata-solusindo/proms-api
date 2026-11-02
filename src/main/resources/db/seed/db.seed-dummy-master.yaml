@@ -1,0 +1,3 @@
+databaseChangeLog:
+  - include:
+      file: db/seed/dummy/01-platform-test-users-seed.sql
