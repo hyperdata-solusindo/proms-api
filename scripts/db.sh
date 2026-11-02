@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# PROMS Liquibase Migration Helper Script
+# Usage:
+#   ./scripts/db.sh migrate                 # Apply pending migrations
+#   ./scripts/db.sh rollback [N]            # Rollback last N changesets (default: 1)
+#   ./scripts/db.sh rollback-to <tag>       # Rollback to specific tag
+#   ./scripts/db.sh tag <tag_name>          # Tag current state
+#   ./scripts/db.sh status                  # Check pending/applied status
+#   ./scripts/db.sh history                 # View deployment history
+#   ./scripts/db.sh fresh                   # Drop all & re-migrate (DEV ONLY)
+# ==============================================================================
+
+set -eo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Load .env if present
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "${PROJECT_ROOT}/.env"
+    set +a
+fi
+
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5443}"
+DB_NAME="${DB_NAME:-proms}"
+DB_USER="${DB_USER:-platform_user}"
+DB_PASSWORD="${DB_PASSWORD:-platform_password}"
+CHANGELOG_FILE="db/changelog/db.changelog-master.yaml"
+RESOURCES_DIR="${PROJECT_ROOT}/src/main/resources"
+LIQUIBASE_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+# Check docker or local liquibase availability
+USE_DOCKER=false
+if ! command -v liquibase &> /dev/null; then
+    if command -v docker &> /dev/null; then
+        USE_DOCKER=true
+    else
+        echo "[ERROR] Neither 'liquibase' CLI nor 'docker' is installed."
+        exit 1
+    fi
+fi
+
+run_liquibase() {
+    if [ "${USE_DOCKER}" = true ]; then
+        docker run --rm \
+            --network host \
+            -v "${RESOURCES_DIR}":/liquibase/resources:ro \
+            liquibase/liquibase:4.30-alpine \
+            --search-path=/liquibase/resources \
+            --changelog-file="${CHANGELOG_FILE}" \
+            --url="${LIQUIBASE_URL}" \
+            --username="${DB_USER}" \
+            --password="${DB_PASSWORD}" \
+            "$@"
+    else
+        liquibase \
+            --search-path="${RESOURCES_DIR}" \
+            --changelog-file="${CHANGELOG_FILE}" \
+            --url="${LIQUIBASE_URL}" \
+            --username="${DB_USER}" \
+            --password="${DB_PASSWORD}" \
+            "$@"
+    fi
+}
+
+print_banner() {
+    echo "============================================================"
+    echo "  PROMS Liquibase Migration Helper"
+    echo "  Target: ${LIQUIBASE_URL} (User: ${DB_USER})"
+    echo "============================================================"
+}
+
+COMMAND="${1:-status}"
+
+case "${COMMAND}" in
+    migrate|update)
+        print_banner
+        echo "[ACTION] Running database migration (update)..."
+        run_liquibase update
+        echo "[SUCCESS] Migration completed successfully."
+        ;;
+
+    rollback)
+        COUNT="${2:-1}"
+        print_banner
+        echo "[ACTION] Rolling back ${COUNT} changeset(s)..."
+        run_liquibase rollback-count --count="${COUNT}"
+        echo "[SUCCESS] Rollback of ${COUNT} changeset(s) completed."
+        ;;
+
+    rollback-to)
+        TAG="${2}"
+        if [ -z "${TAG}" ]; then
+            echo "[ERROR] Please specify a tag name. Example: ./scripts/db.sh rollback-to v1.0.0"
+            exit 1
+        fi
+        print_banner
+        echo "[ACTION] Rolling back to tag: ${TAG}...\""
+        run_liquibase rollback "${TAG}"
+        echo "[SUCCESS] Rollback to tag ${TAG} completed."
+        ;;
+
+    tag)
+        TAG="${2}"
+        if [ -z "${TAG}" ]; then
+            echo "[ERROR] Please specify a tag name. Example: ./scripts/db.sh tag v1.0.0"
+            exit 1
+        fi
+        print_banner
+        echo "[ACTION] Tagging database with: ${TAG}..."
+        run_liquibase tag "${TAG}"
+        echo "[SUCCESS] Tag ${TAG} created."
+        ;;
+
+    status)
+        print_banner
+        echo "[ACTION] Checking migration status..."
+        run_liquibase status --verbose
+        ;;
+
+    history)
+        print_banner
+        echo "[ACTION] Viewing migration history..."
+        run_liquibase history
+        ;;
+
+    fresh|refresh)
+        # Production Safety Guard
+        if [[ "${SPRING_PROFILES_ACTIVE}" =~ "prod" ]] || [[ "${ENVIRONMENT}" =~ "prod" ]]; then
+            echo "[FATAL] 'fresh' command is strictly forbidden in PRODUCTION!"
+            exit 1
+        fi
+
+        print_banner
+        echo "[WARNING] This will DROP ALL database objects in ${DB_NAME} and re-run all migrations!"
+        read -r -p "Are you sure you want to proceed? [y/N] " response
+        case "$response" in
+            [yY][eE][sS]|[yY])
+                echo "[ACTION] Dropping all database objects..."
+                run_liquibase dropAll --schemas=public,platform,proms
+                echo "[ACTION] Re-running all migrations..."
+                run_liquibase update
+                echo "[SUCCESS] Database has been refreshed cleanly."
+                ;;
+            *)
+                echo "[CANCELLED] Fresh migration aborted."
+                exit 0
+                ;;
+        esac
+        ;;
+
+    *)
+        echo "Usage: $0 {migrate|rollback [count]|rollback-to <tag>|tag <name>|status|history|fresh}"
+        exit 1
+        ;;
+esac
