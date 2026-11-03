@@ -88,6 +88,25 @@ APP_BASE_NAME=${0##*/}
 # Discard cd standard output in case $CDPATH is set (https://github.com/gradle/gradle/issues/25036)
 APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exit
 
+# Load environment variables from .env if present
+if [ -f "$APP_HOME/.env" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Ignore comments and empty lines
+        case "$line" in
+            \#*|"") continue ;;
+            JAVA_HOME=*)
+                val="${line#JAVA_HOME=}"
+                # Strip leading/trailing quotes if present
+                val="${val%\"}"
+                val="${val#\"}"
+                val="${val%\'}"
+                val="${val#\'}"
+                export JAVA_HOME="$val"
+                ;;
+        esac
+    done < "$APP_HOME/.env"
+fi
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 
