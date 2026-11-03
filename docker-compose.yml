@@ -37,6 +37,7 @@ services:
       DB_NAME: ${DB_NAME:-app_platform}
       DB_USER: ${DB_USER:-platform_user}
       DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-${DB_USER:-platform_user}}
       LIQUIBASE_ENABLED: "true"
       LIQUIBASE_CONTEXTS: ${LIQUIBASE_CONTEXTS:-}
       LIQUIBASE_LABELS: ${LIQUIBASE_LABELS:-}
@@ -62,6 +63,7 @@ services:
       DB_NAME: ${DB_NAME:-app_platform}
       DB_USER: ${DB_USER:-platform_user}
       DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-${DB_USER:-platform_user}}
       LIQUIBASE_ENABLED: "false" # Nonaktifkan auto-migration pada container app
       JAVA_OPTS: ${JAVA_OPTS:-}
     ports:

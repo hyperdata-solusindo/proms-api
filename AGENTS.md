@@ -15,7 +15,7 @@
 
 ---
 
-## 2. The 11 Golden Rules (Quick Summary)
+## 2. The 12 Golden Rules (Quick Summary)
 
 1. **2-Layer Modular Monolith**: Code resides in `com.hyperdata.proms.module.<domain>.<feature>`.
 2. **Inter-Module Facade Rule**: Module A calling Module B **MUST** use `facade/<Feature>Facade.java` (Interface). Never inject foreign `Service` or `Repository`.
@@ -28,6 +28,7 @@
 9. **JPA 3-Level Query**: Derived (1-2 params), explicit `@Query` JPQL (>2 params/JOIN), or `JpaSpecificationExecutor` (dynamic filters).
 10. **The Golden Stack (Anti-N+1 In-Memory Datatables)**: Datatables and cross-module enrichment **MUST** use the Golden Stack (L1 Cache + `Lookups` batch ID extraction & indexing + MapStruct assembly). Never write cross-module SQL joins or call facades inside loops.
 11. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`).
+12. **OpenAPI & Scalar Documentation**: All `@RestController` endpoints must have `@Tag`, `@Operation`, explicit `produces/consumes`, and `@ApiResponses`. All Request/Response `record` DTOs must have `@Schema` with descriptions and realistic `example` values.
 
 ---
 
@@ -73,6 +74,7 @@ Read the specific rule file before implementing features in that domain:
 - [09. Automated Quality Gates (ArchUnit & Spotless)](docs/rules/09-tooling-and-quality.md)
 - [10. AI Behavior, Scope Lockdown & Definition of Done](docs/rules/10-ai-behavior-and-scope.md)
 - [11. The Golden Stack Pattern (Lookups, Anti-N+1, In-Memory Enrichment)](docs/rules/11-the-golden-stack.md)
+- [12. OpenAPI & Scalar API Documentation Standards](docs/rules/12-openapi-and-scalar-documentation.md)
 
 ---
 
@@ -109,7 +111,8 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Datatables / DTO enrichment across modules uses The Golden Stack (`Lookups` utility) without cross-module SQL joins or loop queries.
 - [ ] Zero dead code: No unused variables, fields, methods, or unused injected dependencies.
 - [ ] Validation implemented using YAVI.
-- [ ] MapStruct mappers configured with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.IGNORE``.
+- [ ] MapStruct mappers configured with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.IGNORE`.
+- [ ] Endpoints and DTOs documented with OpenAPI `@Tag`, `@Operation`, and `@Schema` with realistic `example` values.
 - [ ] Unit tests written with BDD `@DisplayName` format.
 - [ ] Targeted tests pass (`./gradlew test --tests "..."`).
 - [ ] Code formatted cleanly with `./gradlew spotlessApply`.
@@ -121,4 +124,4 @@ Before finishing any task, every AI Agent MUST verify:
 
 When exploring new features, planning changes, or brainstorming architecture:
 - **Mandatory Skill**: Use `project-brainstorming` (`.agents/skills/project-brainstorming/SKILL.md`).
-- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 11 Golden Rules above and companion rules in `docs/rules/` before presenting designs or generating implementation plans.
+- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 12 Golden Rules above and companion rules in `docs/rules/` before presenting designs or generating implementation plans.

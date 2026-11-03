@@ -32,6 +32,7 @@ DB_PORT="${DB_PORT:-5443}"
 DB_NAME="${DB_NAME:-app_platform}"
 DB_USER="${DB_USER:-platform_user}"
 DB_PASSWORD="${DB_PASSWORD:-platform_password}"
+DB_APP_USER="${DB_APP_USER:-${DB_USER:-platform_user}}"
 CHANGELOG_FILE="db/changelog/db.changelog-master.yaml"
 SEED_CONFIG_FILE="db/seed/db.seed-config-master.yaml"
 SEED_DUMMY_FILE="db/seed/db.seed-dummy-master.yaml"
@@ -56,6 +57,7 @@ run_liquibase() {
     if [ "${USE_DOCKER}" = true ]; then
         docker run --rm \
             --network host \
+            -e JAVA_OPTS="-Dapp_user=${DB_APP_USER}" \
             -v "${RESOURCES_DIR}":/liquibase/resources:ro \
             liquibase/liquibase:4.30-alpine \
             --search-path=/liquibase/resources \
@@ -65,6 +67,7 @@ run_liquibase() {
             --password="${DB_PASSWORD}" \
             "$@"
     else
+        JAVA_OPTS="-Dapp_user=${DB_APP_USER} ${JAVA_OPTS}" \
         liquibase \
             --search-path="${RESOURCES_DIR}" \
             --changelog-file="${target_changelog}" \
@@ -78,7 +81,7 @@ run_liquibase() {
 print_banner() {
     echo "============================================================"
     echo "  PROMS Liquibase Migration Helper"
-    echo "  Target: ${LIQUIBASE_URL} (User: ${DB_USER})"
+    echo "  Target: ${LIQUIBASE_URL} (User: ${DB_USER}, App User: ${DB_APP_USER})"
     echo "============================================================"
 }
 
@@ -103,25 +106,25 @@ case "${COMMAND}" in
     rollback-to)
         TAG="${2}"
         if [ -z "${TAG}" ]; then
-            echo "[ERROR] Please specify a tag name. Example: ./scripts/db.sh rollback-to v1.0.0"
+            echo "[ERROR] Target tag must be specified: ./scripts/db.sh rollback-to <tag>"
             exit 1
         fi
         print_banner
-        echo "[ACTION] Rolling back to tag: ${TAG}...\""
-        run_liquibase "${CHANGELOG_FILE}" rollback "${TAG}"
-        echo "[SUCCESS] Rollback to tag ${TAG} completed."
+        echo "[ACTION] Rolling back to tag '${TAG}'..."
+        run_liquibase "${CHANGELOG_FILE}" rollback --tag="${TAG}"
+        echo "[SUCCESS] Rollback to tag '${TAG}' completed."
         ;;
 
     tag)
         TAG="${2}"
         if [ -z "${TAG}" ]; then
-            echo "[ERROR] Please specify a tag name. Example: ./scripts/db.sh tag v1.0.0"
+            echo "[ERROR] Tag name must be specified: ./scripts/db.sh tag <tag_name>"
             exit 1
         fi
         print_banner
-        echo "[ACTION] Tagging database with: ${TAG}..."
-        run_liquibase "${CHANGELOG_FILE}" tag "${TAG}"
-        echo "[SUCCESS] Tag ${TAG} created."
+        echo "[ACTION] Tagging current database state with '${TAG}'..."
+        run_liquibase "${CHANGELOG_FILE}" tag --tag="${TAG}"
+        echo "[SUCCESS] Database tagged with '${TAG}'."
         ;;
 
     status)
@@ -132,37 +135,51 @@ case "${COMMAND}" in
 
     history)
         print_banner
-        echo "[ACTION] Viewing migration history..."
+        echo "[ACTION] Fetching deployment history..."
         run_liquibase "${CHANGELOG_FILE}" history
+        ;;
+
+    fresh)
+        print_banner
+        echo "[WARNING] You are about to drop all database objects in '${DB_NAME}'!"
+        if [ "${SPRING_PROFILES_ACTIVE}" = "prod" ] || [ "${SPRING_PROFILES_ACTIVE}" = "production" ]; then
+            echo "[FORBIDDEN] Cannot run 'fresh' on production environment!"
+            exit 1
+        fi
+
+        echo "[ACTION] Dropping all database objects..."
+        run_liquibase "${CHANGELOG_FILE}" drop-all
+
+        echo "[ACTION] Re-running migration from scratch..."
+        run_liquibase "${CHANGELOG_FILE}" update
+
+        echo "[SUCCESS] Database freshly recreated and migrated."
         ;;
 
     seed-config)
         print_banner
-        echo "[ACTION] Running system configuration seeder (dev, staging, prod)..."
+        echo "[ACTION] Seeding system configurations..."
         run_liquibase "${SEED_CONFIG_FILE}" update
-        echo "[SUCCESS] Configuration seed completed."
+        echo "[SUCCESS] Configuration seed completed successfully."
         ;;
 
     seed-dummy)
-        # Production Safety Guard
-        if [[ "${SPRING_PROFILES_ACTIVE}" =~ "prod" ]] || [[ "${ENVIRONMENT}" =~ "prod" ]]; then
-            echo "[FATAL] 'seed-dummy' is strictly forbidden in PRODUCTION!"
+        print_banner
+        if [ "${SPRING_PROFILES_ACTIVE}" = "prod" ] || [ "${SPRING_PROFILES_ACTIVE}" = "production" ]; then
+            echo "[FORBIDDEN] Cannot seed dummy data on production environment!"
             exit 1
         fi
-        print_banner
-        echo "[ACTION] Running test dummy data seeder (dev, staging only)..."
+        echo "[ACTION] Seeding test dummy data..."
         run_liquibase "${SEED_DUMMY_FILE}" update
-        echo "[SUCCESS] Dummy data seed completed."
+        echo "[SUCCESS] Test dummy seed completed successfully."
         ;;
 
     seed)
-        # Production Safety Guard
-        if [[ "${SPRING_PROFILES_ACTIVE}" =~ "prod" ]] || [[ "${ENVIRONMENT}" =~ "prod" ]]; then
-            echo "[FATAL] 'seed' (all) contains dummy data and is strictly forbidden in PRODUCTION!"
-            echo "Use './scripts/db.sh seed-config' for production initial master data."
+        print_banner
+        if [ "${SPRING_PROFILES_ACTIVE}" = "prod" ] || [ "${SPRING_PROFILES_ACTIVE}" = "production" ]; then
+            echo "[FORBIDDEN] Cannot seed dummy data on production environment!"
             exit 1
         fi
-        print_banner
         echo "[ACTION] 1/2: Seeding system configurations..."
         run_liquibase "${SEED_CONFIG_FILE}" update
         echo "[ACTION] 2/2: Seeding test dummy data..."
@@ -170,33 +187,8 @@ case "${COMMAND}" in
         echo "[SUCCESS] All seeders completed successfully."
         ;;
 
-    fresh|refresh)
-        # Production Safety Guard
-        if [[ "${SPRING_PROFILES_ACTIVE}" =~ "prod" ]] || [[ "${ENVIRONMENT}" =~ "prod" ]]; then
-            echo "[FATAL] 'fresh' command is strictly forbidden in PRODUCTION!"
-            exit 1
-        fi
-
-        print_banner
-        echo "[WARNING] This will DROP ALL database objects in ${DB_NAME} and re-run all migrations!"
-        read -r -p "Are you sure you want to proceed? [y/N] " response
-        case "$response" in
-            [yY][eE][sS]|[yY])
-                echo "[ACTION] Dropping all database objects..."
-                run_liquibase "${CHANGELOG_FILE}" dropAll --schemas=public,platform,proms
-                echo "[ACTION] Re-running all migrations..."
-                run_liquibase "${CHANGELOG_FILE}" update
-                echo "[SUCCESS] Database has been refreshed cleanly."
-                ;;
-            *)
-                echo "[CANCELLED] Fresh migration aborted."
-                exit 0
-                ;;
-        esac
-        ;;
-
     *)
-        echo "Usage: $0 {migrate|rollback [count]|rollback-to <tag>|tag <name>|status|history|fresh|seed-config|seed-dummy|seed}"
+        echo "Usage: $0 {migrate|rollback|rollback-to|tag|status|history|fresh|seed-config|seed-dummy|seed}"
         exit 1
         ;;
 esac
