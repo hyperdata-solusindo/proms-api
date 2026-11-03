@@ -76,12 +76,13 @@ public record UserProfileResponse(
 ```java
 package com.hyperdata.proms.module.identity.auth.controller;
 
-import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
 import com.hyperdata.proms.module.identity.auth.dto.LoginResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -95,28 +96,28 @@ public interface AuthApi {
         summary = "Login Pengguna",
         description = "Memverifikasi email dan kata sandi, lalu menerbitkan personal access token.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login berhasil, token diterbitkan"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(responseCode = "200", description = "Login berhasil, token diterbitkan"),
+        @ApiResponse(
             responseCode = "401",
             description = "Email atau kata sandi salah",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            content = @Content(schema = @Schema(implementation = RestResponse.class)))
     })
     @SecurityRequirements
     @PostMapping("/auth/login")
-    ApiResponse<LoginResponse> login(@RequestBody LoginRequest request);
+    RestResponse<LoginResponse> login(@RequestBody LoginRequest request);
 
     @Operation(
         summary = "Logout Pengguna",
         description = "Mencabut personal access token sesi aktif saat ini.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Berhasil logout, sesi dinonaktifkan"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(responseCode = "200", description = "Berhasil logout, sesi dinonaktifkan"),
+        @ApiResponse(
             responseCode = "401",
             description = "Tidak terautentikasi atau token tidak valid",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            content = @Content(schema = @Schema(implementation = RestResponse.class)))
     })
     @PostMapping("/auth/logout")
-    ApiResponse<Void> logout();
+    RestResponse<Void> logout();
 }
 ```
 
@@ -126,7 +127,7 @@ public interface AuthApi {
 ```java
 package com.hyperdata.proms.module.identity.auth.controller;
 
-import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.common.security.SecurityContextHelper;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
 import com.hyperdata.proms.module.identity.auth.dto.LoginResponse;
@@ -141,16 +142,16 @@ public class AuthController implements AuthApi {
     private final AuthService authService;
 
     @Override
-    public ApiResponse<LoginResponse> login(LoginRequest request) {
+    public RestResponse<LoginResponse> login(LoginRequest request) {
         LoginResponse response = authService.login(request);
-        return ApiResponse.ok(response, "Berhasil login");
+        return RestResponse.ok(response, "Berhasil login");
     }
 
     @Override
-    public ApiResponse<Void> logout() {
+    public RestResponse<Void> logout() {
         var currentUser = SecurityContextHelper.getRequiredCurrentUser();
         authService.logout(currentUser.tokenId());
-        return ApiResponse.ok(null, "Berhasil logout");
+        return RestResponse.ok(null, "Berhasil logout");
     }
 }
 ```
@@ -166,7 +167,7 @@ package com.hyperdata.proms.common.docs;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -174,6 +175,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
@@ -214,13 +216,13 @@ public class OpenApiConfig {
                 operation.setResponses(responses);
             }
 
-            var apiResponseSchema = new Schema<ApiResponse<?>>()
+            var apiResponseSchema = new Schema<RestResponse<?>>()
                 .description("Envelope standar respon API");
 
             if (!responses.containsKey("400")) {
                 responses.addApiResponse(
                     "400",
-                    new io.swagger.v3.oas.models.responses.ApiResponse()
+                    new ApiResponse()
                         .description("Format request tidak valid / validasi YAVI gagal")
                         .content(new Content().addMediaType(
                             APPLICATION_JSON_VALUE,
@@ -230,7 +232,7 @@ public class OpenApiConfig {
             if (!responses.containsKey("500")) {
                 responses.addApiResponse(
                     "500",
-                    new io.swagger.v3.oas.models.responses.ApiResponse()
+                    new ApiResponse()
                         .description("Kesalahan internal server")
                         .content(new Content().addMediaType(
                             APPLICATION_JSON_VALUE,
@@ -249,7 +251,7 @@ public class OpenApiConfig {
 
 1. ❌ **JANGAN menuliskan anotasi OpenAPI langsung di dalam `@RestController`**: Selalu deklarasikan pada interface `<Feature>Api`.
 2. ❌ **JANGAN menduplikasi deklarasi respon 400 dan 500 secara manual**: Gunakan konfigurasi otomatis `OperationCustomizer` di `OpenApiConfig`.
-3. ❌ **JANGAN menuliskan FQCN di dalam kode**: Selalu impor kelas secara eksplisit (misal `ApiResponse.class` bukan `com.hyperdata.proms.common.response.ApiResponse.class`).
+3. ❌ **JANGAN menuliskan FQCN di dalam kode**: Selalu impor kelas secara eksplisit (misal `@ApiResponse` dari Swagger dan `RestResponse` dari common response).
 4. ❌ **JANGAN menambahkan `consumes = MediaType.APPLICATION_JSON_VALUE` dan `produces = MediaType.APPLICATION_JSON_VALUE` berlebihan**: Spring Boot dan Springdoc menangani JSON secara default.
 5. ❌ **JANGAN biarkan field DTO tanpa atribut `example`**: Menyebabkan Scalar hanya menampilkan placeholder kosong (`""` atau `0`) yang tidak informatif.
 6. ❌ **JANGAN letakkan anotasi OpenAPI di JPA Entity**: Anotasi `@Schema` hanya milik DTO (`record`). Entity tidak boleh terekspos ke layer dokumentasi API.

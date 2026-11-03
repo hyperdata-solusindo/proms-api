@@ -1,6 +1,6 @@
 package com.hyperdata.proms.module.identity.auth.controller;
 
-import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.security.SecurityContextHelper;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
@@ -16,15 +16,15 @@ public class AuthController implements AuthApi {
     private final AuthService authService;
 
     @Override
-    public ApiResponse<LoginResponse> login(LoginRequest request) {
+    public RestResponse<LoginResponse> login(LoginRequest request) {
         LoginResponse response = authService.login(request);
-        return ApiResponse.ok(response, "Berhasil login");
+        return RestResponse.ok(response, "Berhasil login");
     }
 
     @Override
-    public ApiResponse<Void> logout() {
+    public RestResponse<Void> logout() {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
         authService.logout(currentUser.tokenId());
-        return ApiResponse.ok(null, "Berhasil logout");
+        return RestResponse.ok(null, "Berhasil logout");
     }
 }

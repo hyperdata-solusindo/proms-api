@@ -2,7 +2,7 @@ package com.hyperdata.proms.common.docs;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
@@ -50,13 +51,13 @@ public class OpenApiConfig {
                 operation.setResponses(responses);
             }
 
-            var apiResponseSchema = new Schema<ApiResponse<?>>()
+            var apiResponseSchema = new Schema<RestResponse<?>>()
                 .description("Envelope standar respon API");
 
             if (!responses.containsKey("400")) {
                 responses.addApiResponse(
                     "400",
-                    new io.swagger.v3.oas.models.responses.ApiResponse()
+                    new ApiResponse()
                         .description("Format request tidak valid / validasi YAVI gagal")
                         .content(new Content().addMediaType(
                             APPLICATION_JSON_VALUE,
@@ -66,7 +67,7 @@ public class OpenApiConfig {
             if (!responses.containsKey("500")) {
                 responses.addApiResponse(
                     "500",
-                    new io.swagger.v3.oas.models.responses.ApiResponse()
+                    new ApiResponse()
                         .description("Kesalahan internal server")
                         .content(new Content().addMediaType(
                             APPLICATION_JSON_VALUE,

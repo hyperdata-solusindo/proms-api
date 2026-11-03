@@ -1,7 +1,7 @@
 package com.hyperdata.proms.module.sample.product.controller;
 
-import com.hyperdata.proms.common.response.ApiResponse;
 import com.hyperdata.proms.common.response.PageResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.module.sample.product.dto.CreateProductRequest;
 import com.hyperdata.proms.module.sample.product.dto.ProductDetailResponse;
 import com.hyperdata.proms.module.sample.product.dto.ProductFilter;
@@ -20,15 +20,15 @@ public class ProductController implements ProductApi {
     private final ProductService productService;
 
     @Override
-    public ApiResponse<ProductDetailResponse> createProduct(CreateProductRequest request) {
+    public RestResponse<ProductDetailResponse> createProduct(CreateProductRequest request) {
         ProductDetailResponse response = productService.createProduct(request);
-        return ApiResponse.created(response, "Product created successfully");
+        return RestResponse.created(response, "Product created successfully");
     }
 
     @Override
-    public ApiResponse<ProductDetailResponse> getProductById(UUID id) {
+    public RestResponse<ProductDetailResponse> getProductById(UUID id) {
         ProductDetailResponse response = productService.getProductById(id);
-        return ApiResponse.ok(response, "Product retrieved successfully");
+        return RestResponse.ok(response, "Product retrieved successfully");
     }
 
     @Override
@@ -39,16 +39,16 @@ public class ProductController implements ProductApi {
     }
 
     @Override
-    public ApiResponse<ProductDetailResponse> updateProduct(
+    public RestResponse<ProductDetailResponse> updateProduct(
         UUID id,
         UpdateProductRequest request) {
         ProductDetailResponse response = productService.updateProduct(id, request);
-        return ApiResponse.ok(response, "Product updated successfully");
+        return RestResponse.ok(response, "Product updated successfully");
     }
 
     @Override
-    public ApiResponse<Void> deleteProduct(UUID id) {
+    public RestResponse<Void> deleteProduct(UUID id) {
         productService.deleteProduct(id);
-        return ApiResponse.ok(null, "Product deleted successfully");
+        return RestResponse.ok(null, "Product deleted successfully");
     }
 }

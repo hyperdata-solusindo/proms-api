@@ -1,7 +1,7 @@
 package com.hyperdata.proms.module.sample.product.controller;
 
-import com.hyperdata.proms.common.response.ApiResponse;
 import com.hyperdata.proms.common.response.PageResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.module.sample.product.dto.CreateProductRequest;
 import com.hyperdata.proms.module.sample.product.dto.ProductDetailResponse;
 import com.hyperdata.proms.module.sample.product.dto.ProductFilter;
@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.UUID;
@@ -34,29 +35,25 @@ public interface ProductApi {
         summary = "Tambah Produk Baru",
         description = "Membuat produk baru di dalam sistem.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "201",
-            description = "Produk berhasil dibuat")
+        @ApiResponse(responseCode = "201", description = "Produk berhasil dibuat")
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    ApiResponse<ProductDetailResponse> createProduct(@RequestBody
+    RestResponse<ProductDetailResponse> createProduct(@RequestBody
     CreateProductRequest request);
 
     @Operation(
         summary = "Ambil Detail Produk",
         description = "Mengambil data lengkap produk berdasarkan UUID spesifik.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Data produk ditemukan"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(responseCode = "200", description = "Data produk ditemukan"),
+        @ApiResponse(
             responseCode = "404",
             description = "Produk tidak ditemukan",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            content = @Content(schema = @Schema(implementation = RestResponse.class)))
     })
     @GetMapping("/{id}")
-    ApiResponse<ProductDetailResponse> getProductById(
+    RestResponse<ProductDetailResponse> getProductById(
         @Parameter(description = "ID unik produk", example = "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", required = true)
         @PathVariable
         UUID id);
@@ -65,9 +62,7 @@ public interface ProductApi {
         summary = "Daftar Produk",
         description = "Mengambil daftar produk dengan pagination dan filter.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Daftar produk berhasil diambil")
+        @ApiResponse(responseCode = "200", description = "Daftar produk berhasil diambil")
     })
     @GetMapping
     PageResponse<ProductListItemResponse> getProducts(
@@ -79,16 +74,14 @@ public interface ProductApi {
         summary = "Perbarui Produk",
         description = "Memperbarui data produk berdasarkan ID spesifik.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Produk berhasil diperbarui"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(responseCode = "200", description = "Produk berhasil diperbarui"),
+        @ApiResponse(
             responseCode = "404",
             description = "Produk tidak ditemukan",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            content = @Content(schema = @Schema(implementation = RestResponse.class)))
     })
     @PutMapping("/{id}")
-    ApiResponse<ProductDetailResponse> updateProduct(
+    RestResponse<ProductDetailResponse> updateProduct(
         @Parameter(description = "ID unik produk", example = "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", required = true)
         @PathVariable
         UUID id,
@@ -99,16 +92,14 @@ public interface ProductApi {
         summary = "Hapus Produk",
         description = "Menghapus produk dari sistem berdasarkan ID spesifik.")
     @ApiResponses({
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
-            responseCode = "200",
-            description = "Produk berhasil dihapus"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+        @ApiResponse(responseCode = "200", description = "Produk berhasil dihapus"),
+        @ApiResponse(
             responseCode = "404",
             description = "Produk tidak ditemukan",
-            content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+            content = @Content(schema = @Schema(implementation = RestResponse.class)))
     })
     @DeleteMapping("/{id}")
-    ApiResponse<Void> deleteProduct(
+    RestResponse<Void> deleteProduct(
         @Parameter(description = "ID unik produk", example = "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", required = true)
         @PathVariable
         UUID id);

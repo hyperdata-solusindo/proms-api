@@ -45,7 +45,7 @@ Inside each `<feature>` directory, strictly maintain this folder structure:
 4. **Controller Boundary & Contract Interface Pattern**:
    - Seluruh REST controller wajib mengimplementasikan interface kontraknya (`<Feature>Controller implements <Feature>Api`).
    - Rute HTTP (`@GetMapping`, `@PostMapping`, dll.) serta seluruh metadata dokumentasi OpenAPI (`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`, `@SecurityRequirements`) wajib dideklarasikan pada interface `<Feature>Api`.
-   - Class `<Feature>Controller` murni bertindak sebagai implementasi bersih: hanya beranotasi `@RestController` dan `@RequiredArgsConstructor`, menginjeksi Service/Facade, memanggil logika bisnis, dan mengembalikan `ApiResponse<T>`.
+   - Class `<Feature>Controller` murni bertindak sebagai implementasi bersih: hanya beranotasi `@RestController` dan `@RequiredArgsConstructor`, menginjeksi Service/Facade, memanggil logika bisnis, dan mengembalikan `RestResponse<T>`.
    - Controller dilarang meng-inject Repository.
 5. **Transactional Boundary**: Anotasi `@Transactional` hanya boleh digunakan di layer Service atau Facade implementation, dilarang di Controller.
 6. **The Golden Stack for Cross-Module Enrichment**: Datatable atau listing queries **DILARANG** melakukan SQL `JOIN` lintas tabel modul lain. Wajib menerapkan **The Golden Stack** (L1 Cache + `Lookups` in-memory batch extraction/map + MapStruct DTO assembly). Lihat [Rule 11](11-the-golden-stack.md).

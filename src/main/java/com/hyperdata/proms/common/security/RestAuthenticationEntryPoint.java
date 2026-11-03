@@ -1,7 +1,7 @@
 package com.hyperdata.proms.common.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -23,8 +23,8 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-        ApiResponse<Void> apiResponse = ApiResponse.error(HttpStatus.UNAUTHORIZED,
-            "Autentikasi diperlukan untuk mengakses endpoint ini");
-        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+        RestResponse<Void> restResponse = RestResponse.error(
+            HttpStatus.UNAUTHORIZED, "Autentikasi diperlukan untuk mengakses endpoint ini");
+        response.getWriter().write(objectMapper.writeValueAsString(restResponse));
     }
 }

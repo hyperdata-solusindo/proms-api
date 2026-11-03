@@ -39,7 +39,7 @@ com.hyperdata.proms/
 ├── ApiApplication.java                         # Main application runner
 ├── common/                                     # Cross-cutting concerns
 │   ├── exception/                              # BaseException, GlobalExceptionHandler, custom exceptions
-│   ├── response/                               # ApiResponse<T>, PageResponse<T>
+│   ├── response/                               # RestResponse<T>, PageResponse<T>
 │   ├── util/                                   # Lookups (Anti-N+1 in-memory engine)
 │   └── validation/                             # YaviValidator helper
 └── module/
