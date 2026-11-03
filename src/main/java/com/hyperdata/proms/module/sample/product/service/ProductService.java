@@ -45,8 +45,8 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public ProductDetailResponse getProductById(UUID id) {
-        Product product =
-                productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product", id));
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product", id));
         return productMapper.toDetailResponse(product);
     }
 
@@ -67,8 +67,8 @@ public class ProductService {
     public ProductDetailResponse updateProduct(UUID id, UpdateProductRequest request) {
         YaviValidator.validateAndThrow(UpdateProductRequest.validator, request);
 
-        Product product =
-                productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product", id));
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product", id));
 
         product.setName(request.name());
         product.setPrice(request.price());

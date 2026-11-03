@@ -6,7 +6,8 @@ import com.hyperdata.proms.common.exception.ValidationException;
 
 public final class YaviValidator {
 
-    private YaviValidator() {}
+    private YaviValidator() {
+    }
 
     public static <T> void validateAndThrow(Validator<T> validator, T target) {
         ConstraintViolations violations = validator.validate(target);

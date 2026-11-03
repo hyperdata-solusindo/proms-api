@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ProductFacade {
+
     Optional<ProductSummaryDto> findProductSummaryById(UUID id);
 
     List<ProductSummaryDto> findAllByIds(Collection<UUID> ids);

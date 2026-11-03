@@ -3,6 +3,7 @@
 ## 1. Scope Lockdown (Strict Guardrails)
 - **NO ROGUE REFACTORING**: Do NOT rename methods, touch logic, or reformat files outside your assigned feature module without explicit user instruction.
 - **NO UNNECESSARY DEPENDENCIES**: Do NOT add new dependencies to `build.gradle.kts` unless explicitly asked.
+- **ZERO DEAD / UNUSED CODE**: Do NOT declare unused fields, variables, methods, parameters, or imports. Do NOT inject dependencies (repositories, services, facades) that are not actively used by the class.
 - **YAGNI (You Aren't Gonna Need It)**: Do NOT create premature abstractions, empty interfaces for internal services, or generic base classes with only one implementation. Use concrete service classes directly. Interfaces are strictly reserved for cross-module `Facade`.
 
 ## 2. Conventional Commits

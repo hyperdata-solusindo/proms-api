@@ -34,6 +34,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
 
+    // Spring Security
+    implementation("org.springframework.boot:spring-boot-starter-security")
+
     // Validation (YAVI)
     implementation("am.ik.yavi:yavi:$yaviVersion")
 
@@ -54,6 +57,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-liquibase-test")
     testImplementation("org.springframework.boot:spring-boot-starter-restdocs")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("com.h2database:h2")
@@ -62,11 +66,11 @@ dependencies {
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
 }
 
-// Spotless Code Formatter Configuration
+// Spotless Code Formatter Configuration (Aligned with Eclipse / Red Hat Java)
 spotless {
     java {
         target("src/**/*.java")
-        palantirJavaFormat()
+        eclipse().configFile(".vscode/eclipse-java-formatter.xml")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

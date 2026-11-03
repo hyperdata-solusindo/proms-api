@@ -46,22 +46,21 @@ class ProductServiceTest {
     private ProductService productService;
 
     @Test
-    @DisplayName(
-            "Given valid request and new SKU, when createProduct, then successfully save and return detail response")
+    @DisplayName("Given valid request and new SKU, when createProduct, then successfully save and return detail response")
     void shouldCreateProductSuccessfully() {
-        CreateProductRequest request =
-                new CreateProductRequest("SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10);
+        CreateProductRequest request = new CreateProductRequest("SKU-100", "Laptop Pro", new BigDecimal("15000000"),
+            10);
         Product product = Product.builder()
-                .id(UUID.randomUUID())
-                .sku("SKU-100")
-                .name("Laptop Pro")
-                .price(new BigDecimal("15000000"))
-                .stock(10)
-                .active(true)
-                .createdAt(Instant.now())
-                .build();
+            .id(UUID.randomUUID())
+            .sku("SKU-100")
+            .name("Laptop Pro")
+            .price(new BigDecimal("15000000"))
+            .stock(10)
+            .active(true)
+            .createdAt(Instant.now())
+            .build();
         ProductDetailResponse expected = new ProductDetailResponse(
-                product.getId(), "SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10, true, product.getCreatedAt());
+            product.getId(), "SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10, true, product.getCreatedAt());
 
         when(productRepository.existsBySku("SKU-100")).thenReturn(false);
         when(productMapper.toEntity(request)).thenReturn(product);
@@ -78,8 +77,8 @@ class ProductServiceTest {
     @Test
     @DisplayName("Given existing SKU, when createProduct, then throw DuplicateResourceException")
     void shouldThrowWhenSkuExists() {
-        CreateProductRequest request =
-                new CreateProductRequest("SKU-DUP", "Laptop Pro", new BigDecimal("15000000"), 10);
+        CreateProductRequest request = new CreateProductRequest("SKU-DUP", "Laptop Pro", new BigDecimal("15000000"),
+            10);
         when(productRepository.existsBySku("SKU-DUP")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> productService.createProduct(request));
@@ -91,16 +90,16 @@ class ProductServiceTest {
     void shouldReturnProductWhenFound() {
         UUID id = UUID.randomUUID();
         Product product = Product.builder()
-                .id(id)
-                .sku("SKU-100")
-                .name("Laptop Pro")
-                .price(new BigDecimal("15000000"))
-                .stock(10)
-                .active(true)
-                .createdAt(Instant.now())
-                .build();
+            .id(id)
+            .sku("SKU-100")
+            .name("Laptop Pro")
+            .price(new BigDecimal("15000000"))
+            .stock(10)
+            .active(true)
+            .createdAt(Instant.now())
+            .build();
         ProductDetailResponse expected = new ProductDetailResponse(
-                id, "SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10, true, product.getCreatedAt());
+            id, "SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10, true, product.getCreatedAt());
 
         when(productRepository.findById(id)).thenReturn(Optional.of(product));
         when(productMapper.toDetailResponse(product)).thenReturn(expected);
@@ -127,17 +126,17 @@ class ProductServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         Product product = Product.builder()
-                .id(UUID.randomUUID())
-                .sku("SKU-100")
-                .name("Laptop Pro")
-                .price(new BigDecimal("15000000"))
-                .stock(10)
-                .active(true)
-                .createdAt(Instant.now())
-                .build();
+            .id(UUID.randomUUID())
+            .sku("SKU-100")
+            .name("Laptop Pro")
+            .price(new BigDecimal("15000000"))
+            .stock(10)
+            .active(true)
+            .createdAt(Instant.now())
+            .build();
         Page<Product> page = new PageImpl<>(List.of(product), pageable, 1);
-        ProductListItemResponse itemResponse =
-                new ProductListItemResponse(product.getId(), "SKU-100", "Laptop Pro", new BigDecimal("15000000"), 10);
+        ProductListItemResponse itemResponse = new ProductListItemResponse(product.getId(), "SKU-100", "Laptop Pro",
+            new BigDecimal("15000000"), 10);
 
         when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
         when(productMapper.toListItemResponse(product)).thenReturn(itemResponse);
@@ -170,19 +169,19 @@ class ProductServiceTest {
     @DisplayName("Given existing ID and valid update request, when updateProduct, then update and return detail")
     void shouldUpdateProductSuccessfully() {
         UUID id = UUID.randomUUID();
-        UpdateProductRequest request =
-                new UpdateProductRequest("Laptop Pro 2026", new BigDecimal("16000000"), 15, true);
+        UpdateProductRequest request = new UpdateProductRequest("Laptop Pro 2026", new BigDecimal("16000000"), 15,
+            true);
         Product product = Product.builder()
-                .id(id)
-                .sku("SKU-100")
-                .name("Laptop Pro")
-                .price(new BigDecimal("15000000"))
-                .stock(10)
-                .active(true)
-                .createdAt(Instant.now())
-                .build();
+            .id(id)
+            .sku("SKU-100")
+            .name("Laptop Pro")
+            .price(new BigDecimal("15000000"))
+            .stock(10)
+            .active(true)
+            .createdAt(Instant.now())
+            .build();
         ProductDetailResponse expected = new ProductDetailResponse(
-                id, "SKU-100", "Laptop Pro 2026", new BigDecimal("16000000"), 15, true, product.getCreatedAt());
+            id, "SKU-100", "Laptop Pro 2026", new BigDecimal("16000000"), 15, true, product.getCreatedAt());
 
         when(productRepository.findById(id)).thenReturn(Optional.of(product));
         when(productRepository.save(product)).thenReturn(product);
@@ -201,8 +200,8 @@ class ProductServiceTest {
     @DisplayName("Given nonexistent ID, when updateProduct, then throw ResourceNotFoundException")
     void shouldThrowWhenUpdateNotFound() {
         UUID id = UUID.randomUUID();
-        UpdateProductRequest request =
-                new UpdateProductRequest("Laptop Pro 2026", new BigDecimal("16000000"), 15, true);
+        UpdateProductRequest request = new UpdateProductRequest("Laptop Pro 2026", new BigDecimal("16000000"), 15,
+            true);
         when(productRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> productService.updateProduct(id, request));

@@ -17,12 +17,12 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
     Optional<Product> findBySku(String sku);
 
     // Level 2: Explicit @Query JPQL (complex criteria)
-    @Query(
-            """
-                SELECT p FROM Product p
-                WHERE p.active = true
-                  AND p.stock >= :minStock
-                ORDER BY p.name ASC
-            """)
-    List<Product> findActiveAvailableProducts(@Param("minStock") int minStock);
+    @Query("""
+            SELECT p FROM Product p
+            WHERE p.active = true
+              AND p.stock >= :minStock
+            ORDER BY p.name ASC
+        """)
+    List<Product> findActiveAvailableProducts(@Param("minStock")
+    int minStock);
 }

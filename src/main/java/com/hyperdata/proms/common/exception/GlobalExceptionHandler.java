@@ -1,6 +1,7 @@
 package com.hyperdata.proms.common.exception;
 
-import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.response.RestResponse;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,22 +15,23 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ApiResponse<Void>> handleValidationException(ValidationException ex) {
-        ApiResponse<Void> response = ApiResponse.error(HttpStatus.BAD_REQUEST, ex.getMessage(), ex.getErrors());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    public ResponseEntity<RestResponse<Map<String, String>>> handleValidationException(ValidationException ex) {
+        RestResponse<Map<String, String>> response = RestResponse.error(
+            HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), ex.getErrors());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
     }
 
     @ExceptionHandler(BaseException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBaseException(BaseException ex) {
-        ApiResponse<Void> response = ApiResponse.error(ex.getHttpStatus(), ex.getMessage());
+    public ResponseEntity<RestResponse<Void>> handleBaseException(BaseException ex) {
+        RestResponse<Void> response = RestResponse.error(ex.getHttpStatus(), ex.getMessage());
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+    public ResponseEntity<RestResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unhandled internal server error: ", ex);
-        ApiResponse<Void> response =
-                ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal server error occurred");
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal server error occurred");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

@@ -1,4 +1,7 @@
 databaseChangeLog:
+  - property:
+      name: app_user
+      value: platform_user
   - include:
       file: db/changelog/changes/01-extensions-and-schemas.sql
   - include:

@@ -1,0 +1,3 @@
+databaseChangeLog:
+  - include:
+      file: db/seed/config/01-platform-plans-seed.sql

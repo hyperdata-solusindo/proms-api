@@ -1,8 +1,8 @@
 # Rule 06: API Contract, Envelopes & Error Handling
 
-All REST endpoints return responses wrapped in `ApiResponse<T>` or `PageResponse<T>`.
+All REST endpoints return responses wrapped in `RestResponse<T>` or `PageResponse<T>`.
 
-## 1. Success Envelope (`ApiResponse.ok` / `ApiResponse.created`)
+## 1. Success Envelope (`RestResponse.ok` / `RestResponse.created`)
 ```json
 {
   "success": true,
