@@ -1,6 +1,6 @@
 # Rule 12: OpenAPI & Scalar API Documentation Standards
 
-> **CORE PRINCIPLE**: Seluruh REST API endpoint, Request DTO, dan Response DTO wajib terdokumentasi secara mandiri (*self-documenting*) di Scalar (`/docs`). Dokumentasi harus kaya konteks: grup yang teratur (`@Tag`), maksud aksi yang jelas (`@Operation`), media type eksplisit, skenario error lengkap (`@ApiResponses`), serta nilai contoh realistis (`@Schema(example = "...")`) agar form interaktif Scalar langsung terisi dan siap diuji.
+> **CORE PRINCIPLE**: Seluruh REST API endpoint, Request DTO, dan Response DTO wajib terdokumentasi secara mandiri (*self-documenting*) di Scalar (`/docs`). Proyek mengadopsi **Contract Interface Pattern** (`<Feature>Api.java`) untuk memisahkan metadata dokumentasi dan rute HTTP dari logika implementasi controller. Respon error standar (`400 Bad Request` dan `500 Internal Server Error`) ditangani secara otomatis dan global oleh `OperationCustomizer`, sehingga controller/interface hanya mendokumentasikan respon sukses (`200/201`) dan error spesifik domain (seperti `401 Unauthorized` atau `404 Not Found`).
 
 ---
 
@@ -8,12 +8,12 @@
 
 | Target | Wajib Ada | Atribut Kunci | Fungsi di UI Scalar |
 | :--- | :--- | :--- | :--- |
-| **Controller Class** | `@Tag` | `name`, `description` | Folder/kategori grup di sidebar navigasi. |
+| **API Contract Interface** | `@Tag` | `name`, `description` | Folder/kategori grup di sidebar navigasi. |
 | **Endpoint Method** | `@Operation` | `summary` (≤7 kata), `description` | Judul endpoint pada baris URL & penjelasan detail. |
-| **Endpoint Status** | `@ApiResponses` | `responseCode`, `description`, `content` | Menampilkan skema balasan sukses & envelope error [Rule 06](06-api-and-error-handling.md). |
-| **Content-Type** | Mapping Params | `produces`, `consumes` = `application/json` | Mencegah fallback liar `*/*`. |
-| **Path / Query Param**| `@Parameter` | `description`, `example`, `required` | Form input parameter pada panel *Try It*. |
-| **Public Endpoint** | `@SecurityRequirements` | *kosongkan parameter* (`@SecurityRequirements()`) | Melepas icon gembok otorisasi pada endpoint publik. |
+| **Domain-specific Status** | `@ApiResponses` | `responseCode`, `description`, `content` | Menampilkan skema respon sukses & error spesifik domain. |
+| **Global Error Status** | *Dikelola otomatis* | Via `OpenApiConfig` `OperationCustomizer` | Respon `400` dan `500` terpasang otomatis ke seluruh endpoint. |
+| **Path / Query Param** | `@Parameter` | `description`, `example`, `required` | Form input parameter pada panel *Try It*. |
+| **Public Endpoint** | `@SecurityRequirements` | Kosong (`@SecurityRequirements`) | Melepas icon gembok otorisasi pada endpoint publik. |
 | **DTO Record Class** | `@Schema` | `description` | Judul model pada tab Schemas/Models. |
 | **DTO Record Field** | `@Schema` | `description`, `example`, `requiredMode`, `format` | Mengisi otomatis form body request & contoh response. |
 
@@ -70,77 +70,114 @@ public record UserProfileResponse(
 ) {}
 ```
 
-### Pattern 3: Controller Endpoint (POST / Action & Public Endpoint)
-> Gunakan `@SecurityRequirements()` untuk endpoint publik, dan daftarkan response code `200/201`, `400`, `401`.
+### Pattern 3: Contract Interface Pattern (`<Feature>Api.java`)
+> Seluruh anotasi routing Spring (`@PostMapping`, `@GetMapping`, dll.) dan OpenAPI (`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`, `@SecurityRequirements`) ditempatkan pada **Java Interface** kontrak fitur. Gunakan penutupan kurung rapat (`)))`) untuk keterbacaan yang ringkas. Respon `400` dan `500` tidak perlu dideklarasikan manual karena sudah diinjeksi oleh global customizer.
 
 ```java
-@Tag(name = "Authentication", description = "Manajemen autentikasi, token sesi, dan keamanan akun")
-@RestController
-@RequiredArgsConstructor
-public class AuthController {
+package com.hyperdata.proms.module.identity.auth.controller;
 
-    private final AuthService authService;
+import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
+import com.hyperdata.proms.module.identity.auth.dto.LoginResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+@Tag(name = "Authentication", description = "Manajemen autentikasi, token sesi, dan keamanan akun")
+public interface AuthApi {
 
     @Operation(
         summary = "Login Pengguna",
-        description = "Memverifikasi email dan kata sandi, lalu menerbitkan JWT access token beserta ringkasan tenant aktif."
-    )
+        description = "Memverifikasi email dan kata sandi, lalu menerbitkan personal access token.")
     @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Login berhasil, token diterbitkan"),
-        @ApiResponse(responseCode = "400", description = "Format request tidak valid / validasi YAVI gagal",
-            content = @Content(schema = @Schema(implementation = com.hyperdata.proms.common.response.ApiResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Email atau kata sandi salah",
-            content = @Content(schema = @Schema(implementation = com.hyperdata.proms.common.response.ApiResponse.class)))
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login berhasil, token diterbitkan"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "Email atau kata sandi salah",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class)))
     })
-    @SecurityRequirements() // Menonaktifkan kebutuhan Bearer Token untuk endpoint publik
-    @PostMapping(
-        value = "/auth/login",
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ApiResponse<LoginResponse> login(@RequestBody LoginRequest request) {
-        return ApiResponse.ok(authService.login(request), "Berhasil login");
-    }
+    @SecurityRequirements
+    @PostMapping("/auth/login")
+    ApiResponse<LoginResponse> login(@RequestBody LoginRequest request);
+
+    @Operation(
+        summary = "Logout Pengguna",
+        description = "Mencabut personal access token sesi aktif saat ini.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Berhasil logout, sesi dinonaktifkan"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "Tidak terautentikasi atau token tidak valid",
+            content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
+    @PostMapping("/auth/logout")
+    ApiResponse<Void> logout();
 }
 ```
 
-### Pattern 4: Controller Endpoint dengan Parameter (GET / Detail & Filter)
-> Gunakan `@Parameter` pada `@PathVariable` dan `@RequestParam` agar kolom isian di Scalar memiliki penjelasan dan nilai default/contoh.
+### Pattern 4: Clean Controller Implementation (`<Feature>Controller.java`)
+> Class controller mengimplementasikan interface kontrak, bebas dari seluruh anotasi metadata OpenAPI dan HTTP routing redundan.
 
 ```java
-@Operation(
-    summary = "Ambil Detail Produk",
-    description = "Mengambil data lengkap produk berdasarkan UUID spesifik."
-)
-@ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Data produk ditemukan"),
-    @ApiResponse(responseCode = "404", description = "Produk tidak ditemukan",
-        content = @Content(schema = @Schema(implementation = com.hyperdata.proms.common.response.ApiResponse.class)))
-})
-@GetMapping(value = "/products/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-public ApiResponse<ProductDetailResponse> getProductById(
-        @Parameter(description = "ID unik produk", example = "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", required = true)
-        @PathVariable UUID id
-) {
-    return ApiResponse.ok(productService.getById(id));
+package com.hyperdata.proms.module.identity.auth.controller;
+
+import com.hyperdata.proms.common.response.ApiResponse;
+import com.hyperdata.proms.common.security.SecurityContextHelper;
+import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
+import com.hyperdata.proms.module.identity.auth.dto.LoginResponse;
+import com.hyperdata.proms.module.identity.auth.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequiredArgsConstructor
+public class AuthController implements AuthApi {
+
+    private final AuthService authService;
+
+    @Override
+    public ApiResponse<LoginResponse> login(LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ApiResponse.ok(response, "Berhasil login");
+    }
+
+    @Override
+    public ApiResponse<Void> logout() {
+        var currentUser = SecurityContextHelper.getRequiredCurrentUser();
+        authService.logout(currentUser.tokenId());
+        return ApiResponse.ok(null, "Berhasil logout");
+    }
 }
 ```
 
 ---
 
-## 3. Global Bearer Security Configuration (`OpenApiConfig`)
+## 3. Global Bearer Security & Error Response Configuration (`OpenApiConfig`)
 
-Untuk mengaktifkan tombol **Authorize** (Bearer JWT) di seluruh Scalar UI:
+[`OpenApiConfig.java`](../../src/main/java/com/hyperdata/proms/common/docs/OpenApiConfig.java) mengonfigurasi autentikasi Bearer JWT global dan secara otomatis melampirkan envelope error standar (`400 Bad Request` dan `500 Internal Server Error`) ke seluruh endpoint via `OperationCustomizer`:
 
 ```java
 package com.hyperdata.proms.common.docs;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
+import com.hyperdata.proms.common.response.ApiResponse;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -152,19 +189,56 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
-                .info(new Info()
-                        .title("Proms ERP API Reference")
-                        .version("1.0.0")
-                        .description("Spesifikasi REST API Enterprise Proms ERP")
-                        .contact(new Contact().name("Hyperdata Solusindo").email("support@hyperdata.co.id")))
-                .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH))
-                .components(new Components()
-                        .addSecuritySchemes(BEARER_AUTH,
-                                new SecurityScheme()
-                                        .name(BEARER_AUTH)
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")));
+            .info(new Info()
+                .title("Proms ERP API Reference")
+                .version("1.0.0")
+                .description("Spesifikasi REST API Enterprise Proms ERP")
+                .contact(new Contact().name("Hyperdata Solusindo").email("support@hyperdata.co.id")))
+            .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH))
+            .components(new Components()
+                .addSecuritySchemes(
+                    BEARER_AUTH,
+                    new SecurityScheme()
+                        .name(BEARER_AUTH)
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT")));
+    }
+
+    @Bean
+    public OperationCustomizer globalErrorResponsesCustomizer() {
+        return (operation, handlerMethod) -> {
+            ApiResponses responses = operation.getResponses();
+            if (responses == null) {
+                responses = new ApiResponses();
+                operation.setResponses(responses);
+            }
+
+            var apiResponseSchema = new Schema<ApiResponse<?>>()
+                .description("Envelope standar respon API");
+
+            if (!responses.containsKey("400")) {
+                responses.addApiResponse(
+                    "400",
+                    new io.swagger.v3.oas.models.responses.ApiResponse()
+                        .description("Format request tidak valid / validasi YAVI gagal")
+                        .content(new Content().addMediaType(
+                            APPLICATION_JSON_VALUE,
+                            new MediaType().schema(apiResponseSchema))));
+            }
+
+            if (!responses.containsKey("500")) {
+                responses.addApiResponse(
+                    "500",
+                    new io.swagger.v3.oas.models.responses.ApiResponse()
+                        .description("Kesalahan internal server")
+                        .content(new Content().addMediaType(
+                            APPLICATION_JSON_VALUE,
+                            new MediaType().schema(apiResponseSchema))));
+            }
+
+            return operation;
+        };
     }
 }
 ```
@@ -173,20 +247,25 @@ public class OpenApiConfig {
 
 ## 4. Prohibited Anti-Patterns (❌ NEVER DO)
 
-1. ❌ **JANGAN biarkan field DTO tanpa atribut `example`**: Menyebabkan Scalar hanya menampilkan placeholder kosong (`""` atau `0`) yang tidak informatif.
-2. ❌ **JANGAN biarkan mapping menghasilkan `*/*`**: Selalu deklarasikan `produces = MediaType.APPLICATION_JSON_VALUE` (dan `consumes` untuk request body).
-3. ❌ **JANGAN letakkan anotasi OpenAPI di JPA Entity**: Anotasi `@Schema` hanya milik DTO (`record`). Entity tidak boleh terekspos ke layer dokumentasi API.
-4. ❌ **JANGAN gunakan `@SecurityRequirement` manual di tiap method berulang kali**: Gunakan konfigurasi global `OpenApiConfig`. Hanya gunakan `@SecurityRequirements()` (kosong) saat mengecualikan endpoint publik.
-5. ❌ **JANGAN buat summary `@Operation` terlalu panjang**: `summary` harus singkat (≤7 kata). Gunakan atribut `description` untuk penjelasan panjang/markdown.
+1. ❌ **JANGAN menuliskan anotasi OpenAPI langsung di dalam `@RestController`**: Selalu deklarasikan pada interface `<Feature>Api`.
+2. ❌ **JANGAN menduplikasi deklarasi respon 400 dan 500 secara manual**: Gunakan konfigurasi otomatis `OperationCustomizer` di `OpenApiConfig`.
+3. ❌ **JANGAN menuliskan FQCN di dalam kode**: Selalu impor kelas secara eksplisit (misal `ApiResponse.class` bukan `com.hyperdata.proms.common.response.ApiResponse.class`).
+4. ❌ **JANGAN menambahkan `consumes = MediaType.APPLICATION_JSON_VALUE` dan `produces = MediaType.APPLICATION_JSON_VALUE` berlebihan**: Spring Boot dan Springdoc menangani JSON secara default.
+5. ❌ **JANGAN biarkan field DTO tanpa atribut `example`**: Menyebabkan Scalar hanya menampilkan placeholder kosong (`""` atau `0`) yang tidak informatif.
+6. ❌ **JANGAN letakkan anotasi OpenAPI di JPA Entity**: Anotasi `@Schema` hanya milik DTO (`record`). Entity tidak boleh terekspos ke layer dokumentasi API.
+7. ❌ **JANGAN gunakan `@SecurityRequirement` manual di tiap method berulang kali**: Gunakan konfigurasi global `OpenApiConfig`. Hanya gunakan `@SecurityRequirements` (kosong) saat mengecualikan endpoint publik.
+8. ❌ **JANGAN buat summary `@Operation` terlalu panjang**: `summary` harus singkat (≤7 kata). Gunakan atribut `description` untuk penjelasan panjang/markdown.
 
 ---
 
 ## 5. Verification Checklist (Definition of Done)
 
-- [ ] Class controller memiliki anotasi `@Tag(name = "...", description = "...")`.
-- [ ] Semua method endpoint memiliki `@Operation(summary = "...", description = "...")`.
-- [ ] Explicit media type dideklarasikan pada `@GetMapping`, `@PostMapping`, dll.
+- [ ] Interface `<Feature>Api` memiliki anotasi `@Tag(name = "...", description = "...")`.
+- [ ] Controller class mengimplementasikan `<Feature>Api` dan beranotasi `@RestController`.
+- [ ] Semua method endpoint di interface memiliki `@Operation(summary = "...", description = "...")`.
 - [ ] Parameter URL (`@PathVariable`, `@RequestParam`) dianotasi `@Parameter(example = "...")`.
-- [ ] Status HTTP utama (`200/201`, `400`, `401`, `404`) didaftarkan di `@ApiResponses`.
+- [ ] Status HTTP sukses (`200/201`) dan error domain spesifik (`401`, `404`) didaftarkan di interface.
+- [ ] Respon 400 dan 500 tidak diduplikasi secara manual di method.
 - [ ] Semua record DTO Request & Response memiliki `@Schema` dengan atribut `example` realistis di setiap field.
-- [ ] Endpoint publik diberi anotasi `@SecurityRequirements()` agar tidak meminta token di UI Scalar.
+- [ ] Endpoint publik diberi anotasi `@SecurityRequirements` agar tidak meminta token di UI Scalar.
+- [ ] Tidak ada FQCN di seluruh layer controller, interface, dan DTO.

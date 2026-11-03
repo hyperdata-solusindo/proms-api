@@ -44,3 +44,8 @@ public class Customer {
 - Setiap field `private final` yang diinjeksi via `@RequiredArgsConstructor` **wajib** digunakan secara nyata di dalam method class.
 - ❌ **DILARANG menginjeksi dependensi spekulatif** (*"untuk jaga-jaga di masa depan"*). Tambahkan dependensi (seperti `Repository`, `Service`, atau `Facade`) hanya saat fiturnya benar-benar diimplementasikan.
 - Pastikan kode bersih dari compiler/IDE warning (seperti `The value of the field ... is not used` atau `The method ... is never used locally`).
+
+## 6. Strict Explicit Imports & Strict No-FQCN Rule
+- ❌ **DILARANG KERAS menuliskan Fully Qualified Class Name (FQCN)** di dalam kode Java (misal: `com.hyperdata.proms.common.response.ApiResponse.class` atau `java.util.UUID`).
+- Seluruh kelas dari library atau paket lain **WAJIB di-import secara eksplisit** di header file (`import ...;`).
+- **Pengecualian Tunggal**: FQCN hanya diizinkan jika terjadi *class name collision* (konflik nama kelas yang identik) dari dua package berbeda dalam file yang sama (misalnya `java.util.Date` vs `java.sql.Date`, atau `com.hyperdata.proms.common.response.ApiResponse` vs `io.swagger.v3.oas.annotations.responses.ApiResponse` / `io.swagger.v3.oas.models.responses.ApiResponse`). Di luar kasus tabrakan nama tersebut, FQCN dianggap sebagai pelanggaran standar kode (*code smell*).

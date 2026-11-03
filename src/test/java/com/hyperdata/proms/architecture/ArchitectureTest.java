@@ -48,8 +48,18 @@ public class ArchitectureTest {
     @ArchTest
     static final ArchRule controllers_must_be_annotated_with_rest_controller = classes().that()
         .resideInAPackage("..controller..")
+        .and()
+        .areNotInterfaces()
         .should()
         .beAnnotatedWith(RestController.class);
+
+    @ArchTest
+    static final ArchRule controllers_must_implement_api_interface = classes().that()
+        .resideInAPackage("com.hyperdata.proms.module..controller..")
+        .and()
+        .areNotInterfaces()
+        .should()
+        .implement(resideInAPackage("com.hyperdata.proms.module..controller.."));
 
     @ArchTest
     static final ArchRule services_must_be_annotated_with_service = classes().that()

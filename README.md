@@ -4,16 +4,66 @@ Spring Boot backend service untuk platform ERP.
 
 ---
 
+## Konfigurasi IDE & Editor (VS Code / Antigravity)
+
+Project ini telah dikonfigurasi agar ramah bagi developer yang menggunakan **VS Code** atau **Antigravity** dengan integrasi pemformatan kode (_code formatter_) otomatis yang selaras antara editor lokal dan build pipeline.
+
+### Ekstensi yang Direkomendasikan
+
+Buka menu Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`) dan pasang ekstensi resmi berikut:
+
+- **Language Support for Java(TM) by Red Hat** (`redhat.java`) — _Language Server, IntelliSense, navigasi kode, dan default Java formatter_.
+- **Extension Pack for Java** (`vscjava.vscode-java-pack`) — _Dukungan debugging & test runner_.
+
+### Sinkronisasi Formatter Red Hat Java & Spotless
+
+Proyek ini menggunakan profil Eclipse Formatter yang selaras dengan task `./gradlew spotlessCheck`:
+
+- **File Profil**: [`.vscode/eclipse-java-formatter.xml`](.vscode/eclipse-java-formatter.xml)
+- **Nama Profil**: `PromsJavaFormat`
+- **Spesifikasi Standar**:
+  - Batas lebar baris (_maximum line width_): **120 karakter**
+  - Ukuran tabulasi & indentasi: **4 spasi**
+  - Kelanjutan baris (_continuation indent_): **1 level (+4 spasi)**
+  - Dukungan Fluent API / Builder pattern (misal: YAVI `ValidatorBuilder`)
+  - Standar tanda kurung: Egyptian Braces / 1TBS (`end_of_line`)
+
+Pengaturan workspace di [`.vscode/settings.json`](.vscode/settings.json) telah otomatis mengaktifkan:
+
+```json
+{
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+  "editor.formatOnSave": true,
+  "java.format.enabled": true,
+  "java.format.settings.url": ".vscode/eclipse-java-formatter.xml",
+  "java.format.settings.profile": "PromsJavaFormat"
+}
+```
+
+> 💡 **Verifikasi Settings di Editor**:
+> Jika Anda mengubah pengaturan formatter di UI VS Code / Antigravity (`Ctrl+,`), pastikan nilainya sesuai:
+>
+> - **`Java > Format > Settings: Url`**: `.vscode/eclipse-java-formatter.xml`
+> - **`Java > Format > Settings: Profile`**: `PromsJavaFormat`
+>
+> Dengan konfigurasi ini, setiap kali Anda menyimpan file (`Ctrl+S`), Red Hat Java akan otomatis merapikan kode dengan format yang **100% lolos uji `./gradlew spotlessCheck`**.
+
+---
+
 ## Prasyarat & Panduan Instalasi (Prerequisites & Installation)
 
 Berikut kebutuhan sistem (tools & dependencies) yang perlu diinstal sebelum menjalankan project ini:
 
-| Requirement | Versi Rekomendasi | Keterangan |
-| :--- | :--- | :--- |
-| **Java Development Kit (JDK)** | **OpenJDK 21** / Eclipse Temurin 21 | Wajib untuk build & run lokal (`build.gradle.kts` menargetkan Java 21) |
-| **Gradle** | Wrapper (`./gradlew`) | Tidak perlu diinstal manual, sudah disertakan dalam repositori |
-| **Docker & Docker Compose** | Versi terbaru | Direkomendasikan untuk menjalankan database PostgreSQL & kontainerisasi |
-| **Git** | Versi terbaru | Version control system |
+| Requirement                    | Versi Rekomendasi                   | Keterangan                                                              |
+| :----------------------------- | :---------------------------------- | :---------------------------------------------------------------------- |
+| **Java Development Kit (JDK)** | **OpenJDK 21** / Eclipse Temurin 21 | Wajib untuk build & run lokal (`build.gradle.kts` menargetkan Java 21)  |
+| **Gradle**                     | Wrapper (`./gradlew`)               | Tidak perlu diinstal manual, sudah disertakan dalam repositori          |
+| **Docker & Docker Compose**    | Versi terbaru                       | Direkomendasikan untuk menjalankan database PostgreSQL & kontainerisasi |
+| **Git**                        | Versi terbaru                       | Version control system                                                  |
 
 ---
 
@@ -26,11 +76,14 @@ Pilih salah satu metode instalasi sesuai OS yang Anda gunakan:
 ##### Opsi A: Menggunakan Package Manager Sistem
 
 - **Ubuntu / Debian**:
+
   ```bash
   sudo apt update
   sudo apt install -y openjdk-21-jdk
   ```
+
   Verifikasi instalasi dan lokasi instalasi:
+
   ```bash
   java -version
   # Cek letak JAVA_HOME:
@@ -39,10 +92,13 @@ Pilih salah satu metode instalasi sesuai OS yang Anda gunakan:
   ```
 
 - **macOS (via Homebrew)**:
+
   ```bash
   brew install openjdk@21
   ```
+
   Symlink agar sistem mendeteksi JDK:
+
   ```bash
   sudo ln -sfn /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-21.jdk
   ```
@@ -54,7 +110,9 @@ Pilih salah satu metode instalasi sesuai OS yang Anda gunakan:
   ```
 
 ##### Opsi B: Menggunakan SDKMAN! (Multi-platform: Linux, macOS, WSL)
+
 SDKMAN adalah manajer versi JDK yang sangat mudah digunakan:
+
 ```bash
 # 1. Install SDKMAN
 curl -s "https://get.sdkman.io" | bash
@@ -85,6 +143,7 @@ Docker dibutuhkan jika Anda ingin menjalankan PostgreSQL atau service aplikasi d
   Unduh dan pasang [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 Verifikasi instalasi Docker:
+
 ```bash
 docker --version
 docker compose version
@@ -93,9 +152,11 @@ docker compose version
 ---
 
 #### 3. Gradle (Wrapper)
+
 Project ini menggunakan **Gradle Wrapper** (`./gradlew` di Linux/macOS atau `gradlew.bat` di Windows). Anda **tidak perlu menginstal Gradle secara manual**.
 
 Pastikan file wrapper memiliki izin eksekusi (Linux/macOS):
+
 ```bash
 chmod +x ./gradlew
 ```
@@ -139,11 +200,13 @@ Buka file `.env` dan pastikan direktori `JAVA_HOME` sesuai dengan instalasi JDK 
 
 ### 3. Konfigurasi Token & Sliding Expiration (Mobile-Friendly)
 
-PAT (*Personal Access Token*) dilengkapi dengan fitur **Sliding Expiration (Rolling Session)** yang sangat ramah pengguna mobile:
+PAT (_Personal Access Token_) dilengkapi dengan fitur **Sliding Expiration (Rolling Session)** yang sangat ramah pengguna mobile:
+
 ```env
 AUTH_TOKEN_TTL_DAYS=30
 AUTH_TOKEN_SLIDING_WINDOW_DAYS=7
 ```
+
 - **TTL Awal**: 30 hari sejak pengguna login.
 - **Sliding Renewal**: Setiap kali token digunakan untuk mengakses API, sistem mengecek sisa masa berlaku. Jika sisa masa berlaku **kurang dari 7 hari**, server otomatis memperpanjang tanggal kadaluwarsa token (`expiresAt`) menjadi **+30 hari lagi**. Pengguna mobile yang rutin membuka aplikasi tidak akan pernah ter-logout mendadak.
 
@@ -151,19 +214,26 @@ AUTH_TOKEN_SLIDING_WINDOW_DAYS=7
 
 ## Panduan Menjalankan Project
 
-Anda dapat memilih antara **Pengembangan Lokal (Recommended untuk Developer)** atau **Full Docker Stack**.\n\n### Metode 1: Pengembangan Lokal (Recommended untuk Development)
+Anda dapat memilih antara **Pengembangan Lokal (Recommended untuk Developer)** atau **Full Docker Stack**.
+
+### Metode 1: Pengembangan Lokal (Recommended untuk Development)
 
 Metode ini paling cepat untuk siklus coding harian:
 
 #### 1. Jalankan PostgreSQL
+
 Nyalakan service database di latar belakang:
+
 ```bash
 docker compose up -d postgres
 ```
+
 Database PostgreSQL akan berjalan di port `5443` (sesuai konfigurasi `.env`).
 
 #### 2. Jalankan Migrasi Skema & Seeder
+
 Gunakan script pembantu [`scripts/db.sh`](file:///home/kholifan/html/project-promps/api/scripts/db.sh):
+
 ```bash
 # 1. Jalankan migrasi DDL skema database
 ./scripts/db.sh migrate
@@ -173,9 +243,11 @@ Gunakan script pembantu [`scripts/db.sh`](file:///home/kholifan/html/project-pro
 ```
 
 #### 3. Jalankan Aplikasi Spring Boot
+
 ```bash
 ./gradlew bootRun
 ```
+
 Aplikasi akan aktif di **`http://localhost:8080`**.
 
 ---
@@ -202,16 +274,17 @@ docker compose down
 
 Sesuai arsitektur enterprise [Rule 07](file:///home/kholifan/html/project-promps/api/docs/rules/07-database-and-liquibase.md), migrasi skema (DDL) dan pengisian data seeder (DML) dipisahkan secara ketat:
 
-| Perintah | Deskripsi | Target Environment |
-| :--- | :--- | :--- |
-| `./scripts/db.sh migrate` | Menjalankan migrasi DDL skema database saja (tanpa data). | Dev, Staging, Production |
-| `./scripts/db.sh seed-config` | Menjalankan seeder konfigurasi awal/paket langganan (`platform.plans`). | Dev, Staging, Production |
-| `./scripts/db.sh seed-dummy` | Menjalankan seeder akun & data mock untuk keperluan testing. | **Hanya Dev & Staging** *(Auto-abort jika di Prod)* |
-| `./scripts/db.sh seed` | Menjalankan `seed-config` dan `seed-dummy` berurutan. | **Hanya Dev & Staging** |
-| `./scripts/db.sh status` | Memeriksa riwayat changeset yang sudah / belum diaplikasikan. | Semua Environment |
-| `./scripts/db.sh fresh` | Drop seluruh schema & migrasi ulang dari awal (Hanya Mesin Lokal). | **DEV ONLY** |
+| Perintah                      | Deskripsi                                                               | Target Environment                                  |
+| :---------------------------- | :---------------------------------------------------------------------- | :-------------------------------------------------- |
+| `./scripts/db.sh migrate`     | Menjalankan migrasi DDL skema database saja (tanpa data).               | Dev, Staging, Production                            |
+| `./scripts/db.sh seed-config` | Menjalankan seeder konfigurasi awal/paket langganan (`platform.plans`). | Dev, Staging, Production                            |
+| `./scripts/db.sh seed-dummy`  | Menjalankan seeder akun & data mock untuk keperluan testing.            | **Hanya Dev & Staging** _(Auto-abort jika di Prod)_ |
+| `./scripts/db.sh seed`        | Menjalankan `seed-config` dan `seed-dummy` berurutan.                   | **Hanya Dev & Staging**                             |
+| `./scripts/db.sh status`      | Memeriksa riwayat changeset yang sudah / belum diaplikasikan.           | Semua Environment                                   |
+| `./scripts/db.sh fresh`       | Drop seluruh schema & migrasi ulang dari awal (Hanya Mesin Lokal).      | **DEV ONLY**                                        |
 
 ### Contoh Proses Eksekusi Seeder:
+
 ```bash
 $ ./scripts/db.sh seed
 ============================================================
@@ -251,15 +324,16 @@ Setelah menjalankan `./scripts/db.sh seed`, database terisi dengan data uji mult
 
 ### Daftar Dummy User & Tenant Siap Pakai:
 
-| No | Tenant Name | Tenant Slug | Email | Password | Full Name | Role di Tenant | Status Akun |
-| :---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | PT Hyperdata Solusindo | **`hyperdata`** | **`admin@hyperdata.id`** | `password123` | Hyperdata Admin | **`owner`** | `active` |
-| **2** | PT Hyperdata Solusindo | **`hyperdata`** | **`user@hyperdata.id`** | `password123` | Regular Member | **`member`** | `active` |
-| **3** | Acme Corporation | **`acme`** | **`admin@hyperdata.id`** | `password123` | Hyperdata Admin | **`admin`** | `active` |
+|  No   | Tenant Name            | Tenant Slug     | Email                    | Password      | Full Name       | Role di Tenant | Status Akun |
+| :---: | :--------------------- | :-------------- | :----------------------- | :------------ | :-------------- | :------------- | :---------- |
+| **1** | PT Hyperdata Solusindo | **`hyperdata`** | **`admin@hyperdata.id`** | `password123` | Hyperdata Admin | **`owner`**    | `active`    |
+| **2** | PT Hyperdata Solusindo | **`hyperdata`** | **`user@hyperdata.id`**  | `password123` | Regular Member  | **`member`**   | `active`    |
+| **3** | Acme Corporation       | **`acme`**      | **`admin@hyperdata.id`** | `password123` | Hyperdata Admin | **`admin`**    | `active`    |
 
 > 📌 **Fitur Multi-Tenancy**: Akun `admin@hyperdata.id` terdaftar di dua tenant sekaligus (`hyperdata` sebagai **owner** dan `acme` sebagai **admin**). Workspace aktif pertama akan dipilih otomatis, dan daftar workspace lain tersedia di properti `otherTenants` pada endpoint `/me`.
 
 ### 1. Test Login (Mendapatkan Token PAT)
+
 ```bash
 curl -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
@@ -268,7 +342,9 @@ curl -X POST http://localhost:8080/auth/login \
     "password": "password123"
   }'
 ```
+
 Contoh respon berhasil (`200 OK`):
+
 ```json
 {
   "statusCode": 200,
@@ -294,11 +370,14 @@ Contoh respon berhasil (`200 OK`):
 ```
 
 ### 2. Test Mengambil Data Profil (`/me`)
+
 ```bash
 curl -X GET http://localhost:8080/me \
   -H "Authorization: Bearer <TOKEN_PAT_DARI_LOGIN>"
 ```
+
 Contoh respon berhasil (`200 OK`):
+
 ```json
 {
   "statusCode": 200,
@@ -332,6 +411,7 @@ Contoh respon berhasil (`200 OK`):
 ```
 
 ### 3. Test Logout (Mencabut Token)
+
 ```bash
 curl -X POST http://localhost:8080/auth/logout \
   -H "Authorization: Bearer <TOKEN_PAT_DARI_LOGIN>"
