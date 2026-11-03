@@ -10,19 +10,23 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface TenantMemberRepository
-        extends JpaRepository<TenantMember, UUID>, JpaSpecificationExecutor<TenantMember> {
+    extends
+        JpaRepository<TenantMember, UUID>,
+        JpaSpecificationExecutor<TenantMember> {
 
     // Level 1: Derived query (2 simple fields)
     List<TenantMember> findByUserIdAndStatus(UUID userId, String status);
 
     // Level 2: Explicit @Query JPQL (> 2 parameters & clear business meaning)
-    @Query(
-            """
-                SELECT tm FROM TenantMember tm
-                WHERE tm.userId = :userId
-                  AND tm.tenantId = :tenantId
-                  AND tm.status = :status
-            """)
+    @Query("""
+            SELECT tm FROM TenantMember tm
+            WHERE tm.userId = :userId
+              AND tm.tenantId = :tenantId
+              AND tm.status = :status
+        """)
     Optional<TenantMember> findMembership(
-            @Param("userId") UUID userId, @Param("tenantId") UUID tenantId, @Param("status") String status);
+        @Param("userId")
+        UUID userId, @Param("tenantId")
+        UUID tenantId, @Param("status")
+        String status);
 }

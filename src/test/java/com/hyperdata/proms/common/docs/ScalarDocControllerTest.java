@@ -32,9 +32,9 @@ class ScalarDocControllerTest {
     @DisplayName("GIVEN GET /docs WHEN requested THEN returns 200 with HTML containing scalar script")
     void givenDocsEndpoint_whenGet_thenReturnsScalarHtml() throws Exception {
         mockMvc.perform(get("/docs"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-                .andExpect(content().string(containsString("api-reference")))
-                .andExpect(content().string(containsString("@scalar/api-reference")));
+            .andExpect(status().isOk())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+            .andExpect(content().string(containsString("api-reference")))
+            .andExpect(content().string(containsString("@scalar/api-reference")));
     }
 }

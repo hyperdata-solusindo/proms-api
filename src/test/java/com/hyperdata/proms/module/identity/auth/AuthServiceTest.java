@@ -50,14 +50,14 @@ class AuthServiceTest {
     void givenInvalidPassword_whenLogin_thenThrows401() {
         LoginRequest request = new LoginRequest("test@hyperdata.co.id", "WrongPass!");
         UserAuthDto userDto = new UserAuthDto(
-                UUID.randomUUID(), "test@hyperdata.co.id", "$2a$10$hashed", "Fariz", "id", "Asia/Jakarta", true);
+            UUID.randomUUID(), "test@hyperdata.co.id", "$2a$10$hashed", "Fariz", "id", "Asia/Jakarta", true);
 
         given(userFacade.findByEmailForAuth("test@hyperdata.co.id")).willReturn(Optional.of(userDto));
         given(passwordEncoder.matches("WrongPass!", "$2a$10$hashed")).willReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage("Email atau kata sandi tidak sesuai");
+            .isInstanceOf(BusinessException.class)
+            .hasMessage("Email atau kata sandi tidak sesuai");
     }
 
     @Test
@@ -66,8 +66,8 @@ class AuthServiceTest {
         LoginRequest request = new LoginRequest("test@hyperdata.co.id", "Secret123!");
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        UserAuthDto userDto =
-                new UserAuthDto(userId, "test@hyperdata.co.id", "$2a$10$hashed", "Fariz", "id", "Asia/Jakarta", true);
+        UserAuthDto userDto = new UserAuthDto(userId, "test@hyperdata.co.id", "$2a$10$hashed", "Fariz", "id",
+            "Asia/Jakarta", true);
         UserMembershipDto membership = new UserMembershipDto(tenantId, "member");
         TenantSummaryDto tenantSummary = new TenantSummaryDto(tenantId, "hyperdata", "Hyperdata");
 

@@ -9,6 +9,7 @@ import org.mapstruct.ReportingPolicy;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface TenantMapper {
+
     TenantDetailDto toDetailDto(Tenant tenant);
 
     TenantSummaryDto toSummaryDto(Tenant tenant);

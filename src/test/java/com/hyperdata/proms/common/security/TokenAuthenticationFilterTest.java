@@ -62,8 +62,8 @@ class TokenAuthenticationFilterTest {
         pat.setAbilities("tenant:" + tenantId);
         pat.setExpiresAt(Instant.now().plusSeconds(3600));
 
-        UserAuthDto user =
-                new UserAuthDto(userId, "user@hyperdata.co.id", "hashed", "User Test", "id", "Asia/Jakarta", true);
+        UserAuthDto user = new UserAuthDto(userId, "user@hyperdata.co.id", "hashed", "User Test", "id", "Asia/Jakarta",
+            true);
         UserMembershipDto membership = new UserMembershipDto(tenantId, "admin");
 
         given(tokenService.verifyToken(1L, "validPlainToken")).willReturn(Optional.of(pat));
@@ -73,8 +73,7 @@ class TokenAuthenticationFilterTest {
         filter.doFilterInternal(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
-        CurrentUser principal = (CurrentUser)
-                SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        CurrentUser principal = (CurrentUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         assertThat(principal.email()).isEqualTo("user@hyperdata.co.id");
         assertThat(principal.workspaceRole()).isEqualTo("admin");
         assertThat(principal.tokenId()).isEqualTo(1L);

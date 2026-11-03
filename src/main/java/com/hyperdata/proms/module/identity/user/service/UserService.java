@@ -36,31 +36,31 @@ public class UserService {
         UUID currentTenantId = currentUser.activeTenantId();
 
         var user = userRepository
-                .findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
 
         TenantDetailDto tenantDetail = tenantFacade
-                .getTenantDetail(currentTenantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Tenant tidak ditemukan"));
+            .getTenantDetail(currentTenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Tenant tidak ditemukan"));
 
         var features = tenantFacade.getTenantFeatures(currentTenantId);
 
         List<TenantMember> allMemberships = tenantMemberRepository.findByUserIdAndStatus(userId, "active");
         List<TenantMember> otherMemberships = allMemberships.stream()
-                .filter(m -> !m.getTenantId().equals(currentTenantId))
-                .toList();
+            .filter(m -> !m.getTenantId().equals(currentTenantId))
+            .toList();
 
         Set<UUID> otherTenantIds = Lookups.extractIds(otherMemberships, TenantMember::getTenantId);
-        Map<UUID, TenantSummaryDto> tenantSummaryMap =
-                Lookups.loadMap(otherTenantIds, tenantFacade::getTenantSummaries, TenantSummaryDto::id);
+        Map<UUID, TenantSummaryDto> tenantSummaryMap = Lookups.loadMap(otherTenantIds, tenantFacade::getTenantSummaries,
+            TenantSummaryDto::id);
 
         List<OtherTenantDto> otherTenants = otherMemberships.stream()
-                .map(m -> tenantSummaryMap.get(m.getTenantId()))
-                .filter(Objects::nonNull)
-                .map(summary -> new OtherTenantDto(summary.slug(), summary.name()))
-                .toList();
+            .map(m -> tenantSummaryMap.get(m.getTenantId()))
+            .filter(Objects::nonNull)
+            .map(summary -> new OtherTenantDto(summary.slug(), summary.name()))
+            .toList();
 
         return new MeResponse(
-                userMapper.toProfileDto(user), tenantDetail, currentUser.workspaceRole(), features, otherTenants);
+            userMapper.toProfileDto(user), tenantDetail, currentUser.workspaceRole(), features, otherTenants);
     }
 }

@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TenantFacade {
+
     Optional<TenantDetailDto> getTenantDetail(UUID tenantId);
 
     Optional<TenantSummaryDto> getTenantSummary(UUID tenantId);

@@ -29,27 +29,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-                .cors(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
-                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/auth/login")
-                        .permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/api-docs/**",
-                                "/docs",
-                                "/docs/**",
-                                "/error")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/logout")
-                        .authenticated()
-                        .requestMatchers(HttpMethod.GET, "/me")
-                        .authenticated()
-                        .anyRequest()
-                        .permitAll())
-                .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .cors(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
+            .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/auth/login")
+                .permitAll()
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                    "/api-docs/**",
+                    "/docs",
+                    "/docs/**",
+                    "/error")
+                .permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/logout")
+                .authenticated()
+                .requestMatchers(HttpMethod.GET, "/me")
+                .authenticated()
+                .anyRequest()
+                .permitAll())
+            .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

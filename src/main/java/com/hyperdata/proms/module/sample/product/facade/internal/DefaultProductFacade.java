@@ -40,8 +40,8 @@ public class DefaultProductFacade implements ProductFacade {
     @Transactional(readOnly = true)
     public boolean isStockAvailable(UUID id, int quantity) {
         return productRepository
-                .findById(id)
-                .map(p -> p.isActive() && p.getStock() >= quantity)
-                .orElse(false);
+            .findById(id)
+            .map(p -> p.isActive() && p.getStock() >= quantity)
+            .orElse(false);
     }
 }

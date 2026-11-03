@@ -44,8 +44,8 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(userController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
     }
 
     @AfterEach
@@ -61,29 +61,29 @@ class UserControllerTest {
         CurrentUser currentUser = new CurrentUser(userId, "fariz@hyperdata.co.id", tenantId, "member", 42L);
 
         var auth = new UsernamePasswordAuthenticationToken(
-                currentUser, null, List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
+            currentUser, null, List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         UserProfileDto userProfile = new UserProfileDto(userId, "Fariz Keren", "fariz@hyperdata.co.id");
-        TenantDetailDto tenantDetail =
-                new TenantDetailDto(tenantId, "hyperdata", "Hyperdata", "active", "Asia/Jakarta");
+        TenantDetailDto tenantDetail = new TenantDetailDto(tenantId, "hyperdata", "Hyperdata", "active",
+            "Asia/Jakarta");
         MeResponse meResponse = new MeResponse(
-                userProfile,
-                tenantDetail,
-                "member",
-                Map.of("points", true, "standup", true),
-                List.of(new OtherTenantDto("telemedis", "Telemedis")));
+            userProfile,
+            tenantDetail,
+            "member",
+            Map.of("points", true, "standup", true),
+            List.of(new OtherTenantDto("telemedis", "Telemedis")));
 
         given(userService.getMe(any(CurrentUser.class))).willReturn(meResponse);
 
         mockMvc.perform(get("/me"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value(200))
-                .andExpect(jsonPath("$.message").value("Berhasil"))
-                .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"))
-                .andExpect(jsonPath("$.data.tenant.slug").value("hyperdata"))
-                .andExpect(jsonPath("$.data.workspaceRole").value("member"))
-                .andExpect(jsonPath("$.data.features.points").value(true))
-                .andExpect(jsonPath("$.data.otherTenants[0].slug").value("telemedis"));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.message").value("Berhasil"))
+            .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"))
+            .andExpect(jsonPath("$.data.tenant.slug").value("hyperdata"))
+            .andExpect(jsonPath("$.data.workspaceRole").value("member"))
+            .andExpect(jsonPath("$.data.features.points").value(true))
+            .andExpect(jsonPath("$.data.otherTenants[0].slug").value("telemedis"));
     }
 }

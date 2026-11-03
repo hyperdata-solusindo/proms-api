@@ -24,32 +24,38 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<ProductDetailResponse> createProduct(@RequestBody CreateProductRequest request) {
+    public ApiResponse<ProductDetailResponse> createProduct(@RequestBody
+    CreateProductRequest request) {
         ProductDetailResponse response = productService.createProduct(request);
         return ApiResponse.created(response, "Product created successfully");
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ProductDetailResponse> getProductById(@PathVariable UUID id) {
+    public ApiResponse<ProductDetailResponse> getProductById(@PathVariable
+    UUID id) {
         ProductDetailResponse response = productService.getProductById(id);
         return ApiResponse.ok(response, "Product retrieved successfully");
     }
 
     @GetMapping
     public PageResponse<ProductListItemResponse> getProducts(
-            ProductFilter filter, @PageableDefault(size = 20) Pageable pageable) {
+        ProductFilter filter, @PageableDefault(size = 20)
+        Pageable pageable) {
         return productService.getProducts(filter, pageable);
     }
 
     @PutMapping("/{id}")
     public ApiResponse<ProductDetailResponse> updateProduct(
-            @PathVariable UUID id, @RequestBody UpdateProductRequest request) {
+        @PathVariable
+        UUID id, @RequestBody
+        UpdateProductRequest request) {
         ProductDetailResponse response = productService.updateProduct(id, request);
         return ApiResponse.ok(response, "Product updated successfully");
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> deleteProduct(@PathVariable UUID id) {
+    public ApiResponse<Void> deleteProduct(@PathVariable
+    UUID id) {
         productService.deleteProduct(id);
         return ApiResponse.ok(null, "Product deleted successfully");
     }

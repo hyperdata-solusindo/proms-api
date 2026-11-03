@@ -10,6 +10,7 @@ import org.mapstruct.ReportingPolicy;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface UserMapper {
+
     UserProfileDto toProfileDto(User user);
 
     @Mapping(target = "isActive", source = "active")

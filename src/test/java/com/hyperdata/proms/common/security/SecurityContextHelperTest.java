@@ -25,8 +25,8 @@ class SecurityContextHelperTest {
         UUID tenantId = UUID.randomUUID();
         CurrentUser user = new CurrentUser(userId, "test@hyperdata.co.id", tenantId, "member", 1L);
 
-        var auth =
-                new UsernamePasswordAuthenticationToken(user, null, List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
+        var auth = new UsernamePasswordAuthenticationToken(user, null,
+            List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         var result = SecurityContextHelper.getCurrentUser();

@@ -27,7 +27,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
 
         if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
@@ -61,8 +61,8 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                                 }
                             }
 
-                            CurrentUser currentUser =
-                                    new CurrentUser(user.id(), user.email(), tenantId, role, pat.getId());
+                            CurrentUser currentUser = new CurrentUser(user.id(), user.email(), tenantId, role,
+                                pat.getId());
                             var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
                             var auth = new UsernamePasswordAuthenticationToken(currentUser, null, authorities);
                             SecurityContextHolder.getContext().setAuthentication(auth);

@@ -16,8 +16,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(ValidationException ex) {
-        ApiResponse<Map<String, String>> response =
-                ApiResponse.error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), ex.getErrors());
+        ApiResponse<Map<String, String>> response = ApiResponse.error(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(),
+            ex.getErrors());
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
     }
 
@@ -30,8 +30,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unhandled internal server error: ", ex);
-        ApiResponse<Void> response =
-                ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal server error occurred");
+        ApiResponse<Void> response = ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,
+            "An unexpected internal server error occurred");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

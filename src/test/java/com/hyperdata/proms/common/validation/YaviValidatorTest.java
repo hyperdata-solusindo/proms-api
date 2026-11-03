@@ -10,19 +10,20 @@ import org.junit.jupiter.api.Test;
 
 class YaviValidatorTest {
 
-    record SampleRequest(String name) {}
+    record SampleRequest(String name) {
+    }
 
     static final Validator<SampleRequest> validator = ValidatorBuilder.<SampleRequest>of()
-            .constraint(SampleRequest::name, "name", c -> c.notBlank().message("Name is mandatory"))
-            .build();
+        .constraint(SampleRequest::name, "name", c -> c.notBlank().message("Name is mandatory"))
+        .build();
 
     @Test
     @DisplayName("Given invalid request, when validateAndThrow is called, then throw" + " ValidationException")
     void shouldThrowWhenInvalid() {
         SampleRequest invalid = new SampleRequest("");
 
-        ValidationException ex =
-                assertThrows(ValidationException.class, () -> YaviValidator.validateAndThrow(validator, invalid));
+        ValidationException ex = assertThrows(ValidationException.class,
+            () -> YaviValidator.validateAndThrow(validator, invalid));
 
         assertTrue(ex.getErrors().containsKey("name"));
         assertEquals("Name is mandatory", ex.getErrors().get("name"));

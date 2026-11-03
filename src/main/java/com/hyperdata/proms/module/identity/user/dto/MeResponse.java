@@ -5,8 +5,9 @@ import java.util.List;
 import java.util.Map;
 
 public record MeResponse(
-        UserProfileDto user,
-        TenantDetailDto tenant,
-        String workspaceRole,
-        Map<String, Boolean> features,
-        List<OtherTenantDto> otherTenants) {}
+    UserProfileDto user,
+    TenantDetailDto tenant,
+    String workspaceRole,
+    Map<String, Boolean> features,
+    List<OtherTenantDto> otherTenants) {
+}

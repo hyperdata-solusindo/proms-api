@@ -48,8 +48,8 @@ class AuthControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(authController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .build();
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
     }
 
     @AfterEach
@@ -71,16 +71,16 @@ class AuthControllerTest {
         given(authService.login(any(LoginRequest.class))).willReturn(response);
 
         mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value(200))
-                .andExpect(jsonPath("$.message").value("Berhasil login"))
-                .andExpect(jsonPath("$.data.token").value("12|Xk9Token"))
-                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"))
-                .andExpect(jsonPath("$.data.tenant.slug").value("hyperdata"))
-                .andExpect(jsonPath("$.data.workspaceRole").value("member"));
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.message").value("Berhasil login"))
+            .andExpect(jsonPath("$.data.token").value("12|Xk9Token"))
+            .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+            .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"))
+            .andExpect(jsonPath("$.data.tenant.slug").value("hyperdata"))
+            .andExpect(jsonPath("$.data.workspaceRole").value("member"));
     }
 
     @Test
@@ -91,14 +91,14 @@ class AuthControllerTest {
         CurrentUser currentUser = new CurrentUser(userId, "fariz@hyperdata.co.id", tenantId, "member", 42L);
 
         var auth = new UsernamePasswordAuthenticationToken(
-                currentUser, null, List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
+            currentUser, null, List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         mockMvc.perform(post("/auth/logout"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value(200))
-                .andExpect(jsonPath("$.message").value("Berhasil logout"))
-                .andExpect(jsonPath("$.data").doesNotExist());
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.message").value("Berhasil logout"))
+            .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(authService).logout(42L);
     }

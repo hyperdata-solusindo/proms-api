@@ -35,8 +35,8 @@ public class DefaultUserFacade implements UserFacade {
     public Optional<UserMembershipDto> resolveUserMembership(UUID userId, Optional<UUID> preferredTenantId) {
         if (preferredTenantId.isPresent()) {
             return tenantMemberRepository
-                    .findMembership(userId, preferredTenantId.get(), "active")
-                    .map(m -> new UserMembershipDto(m.getTenantId(), m.getRole()));
+                .findMembership(userId, preferredTenantId.get(), "active")
+                .map(m -> new UserMembershipDto(m.getTenantId(), m.getRole()));
         }
         var activeMemberships = tenantMemberRepository.findByUserIdAndStatus(userId, "active");
         if (activeMemberships.isEmpty()) {

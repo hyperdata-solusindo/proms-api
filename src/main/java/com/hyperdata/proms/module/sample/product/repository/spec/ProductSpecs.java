@@ -6,7 +6,8 @@ import org.springframework.data.jpa.domain.Specification;
 
 public final class ProductSpecs {
 
-    private ProductSpecs() {}
+    private ProductSpecs() {
+    }
 
     public static Specification<Product> of(ProductFilter filter) {
         Specification<Product> spec = (root, query, cb) -> cb.conjunction();

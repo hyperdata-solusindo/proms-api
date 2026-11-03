@@ -26,9 +26,11 @@ public class TokenService {
 
     @Autowired
     public TokenService(
-            PersonalAccessTokenRepository tokenRepository,
-            @Value("${app.security.token.ttl-days:30}") int tokenTtlDays,
-            @Value("${app.security.token.sliding-window-days:7}") int slidingWindowDays) {
+        PersonalAccessTokenRepository tokenRepository,
+        @Value("${app.security.token.ttl-days:30}")
+        int tokenTtlDays,
+        @Value("${app.security.token.sliding-window-days:7}")
+        int slidingWindowDays) {
         this.tokenRepository = tokenRepository;
         this.tokenTtlDays = tokenTtlDays;
         this.slidingWindowDays = slidingWindowDays;
@@ -61,8 +63,8 @@ public class TokenService {
     public Optional<PersonalAccessToken> verifyToken(Long tokenId, String plainToken) {
         String hashed = hashToken(plainToken);
         return tokenRepository
-                .findByIdAndToken(tokenId, hashed)
-                .filter(pat -> pat.getExpiresAt() == null || pat.getExpiresAt().isAfter(Instant.now()));
+            .findByIdAndToken(tokenId, hashed)
+            .filter(pat -> pat.getExpiresAt() == null || pat.getExpiresAt().isAfter(Instant.now()));
     }
 
     @Transactional

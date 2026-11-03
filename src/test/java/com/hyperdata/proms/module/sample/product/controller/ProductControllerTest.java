@@ -49,9 +49,9 @@ class ProductControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(productController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
-                .build();
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+            .build();
     }
 
     @Test
@@ -60,17 +60,17 @@ class ProductControllerTest {
         CreateProductRequest request = new CreateProductRequest("SKU-1", "MacBook Pro", new BigDecimal("25000000"), 5);
         UUID id = UUID.randomUUID();
         ProductDetailResponse response = new ProductDetailResponse(
-                id, "SKU-1", "MacBook Pro", new BigDecimal("25000000"), 5, true, Instant.now());
+            id, "SKU-1", "MacBook Pro", new BigDecimal("25000000"), 5, true, Instant.now());
 
         when(productService.createProduct(any(CreateProductRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.statusCode").value(201))
-                .andExpect(jsonPath("$.data.id").value(id.toString()))
-                .andExpect(jsonPath("$.data.sku").value("SKU-1"));
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.statusCode").value(201))
+            .andExpect(jsonPath("$.data.id").value(id.toString()))
+            .andExpect(jsonPath("$.data.sku").value("SKU-1"));
     }
 
     @Test
@@ -78,15 +78,15 @@ class ProductControllerTest {
     void shouldGetProductById() throws Exception {
         UUID id = UUID.randomUUID();
         ProductDetailResponse response = new ProductDetailResponse(
-                id, "SKU-1", "MacBook Pro", new BigDecimal("25000000"), 5, true, Instant.now());
+            id, "SKU-1", "MacBook Pro", new BigDecimal("25000000"), 5, true, Instant.now());
 
         when(productService.getProductById(id)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/products/{id}", id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value(200))
-                .andExpect(jsonPath("$.data.id").value(id.toString()))
-                .andExpect(jsonPath("$.data.name").value("MacBook Pro"));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.id").value(id.toString()))
+            .andExpect(jsonPath("$.data.name").value("MacBook Pro"));
     }
 
     @Test
@@ -96,30 +96,30 @@ class ProductControllerTest {
         when(productService.getProductById(id)).thenThrow(new ResourceNotFoundException("Product", id));
 
         mockMvc.perform(get("/api/v1/products/{id}", id))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.statusCode").value(404))
-                .andExpect(jsonPath("$.message").exists());
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.statusCode").value(404))
+            .andExpect(jsonPath("$.message").exists());
     }
 
     @Test
     @DisplayName("Given pageable and filter, when GET /api/v1/products, then return PageResponse")
     void shouldGetProductsPage() throws Exception {
         UUID id = UUID.randomUUID();
-        ProductListItemResponse item =
-                new ProductListItemResponse(id, "SKU-1", "MacBook Pro", new BigDecimal("25000000"), 5);
+        ProductListItemResponse item = new ProductListItemResponse(id, "SKU-1", "MacBook Pro",
+            new BigDecimal("25000000"), 5);
         PageResponse<ProductListItemResponse> pageResponse = new PageResponse<>(List.of(item), 0, 20, 1, 1, true, true);
 
         when(productService.getProducts(any(ProductFilter.class), any(Pageable.class)))
-                .thenReturn(pageResponse);
+            .thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/v1/products")
-                        .param("name", "MacBook")
-                        .param("page", "0")
-                        .param("size", "20"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].id").value(id.toString()))
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.page").value(0));
+            .param("name", "MacBook")
+            .param("page", "0")
+            .param("size", "20"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.items[0].id").value(id.toString()))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.page").value(0));
     }
 
     @Test
@@ -128,17 +128,17 @@ class ProductControllerTest {
         UUID id = UUID.randomUUID();
         UpdateProductRequest request = new UpdateProductRequest("MacBook M3", new BigDecimal("27000000"), 8, true);
         ProductDetailResponse response = new ProductDetailResponse(
-                id, "SKU-1", "MacBook M3", new BigDecimal("27000000"), 8, true, Instant.now());
+            id, "SKU-1", "MacBook M3", new BigDecimal("27000000"), 8, true, Instant.now());
 
         when(productService.updateProduct(eq(id), any(UpdateProductRequest.class)))
-                .thenReturn(response);
+            .thenReturn(response);
 
         mockMvc.perform(put("/api/v1/products/{id}", id)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value(200))
-                .andExpect(jsonPath("$.data.name").value("MacBook M3"));
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.name").value("MacBook M3"));
     }
 
     @Test
@@ -148,8 +148,8 @@ class ProductControllerTest {
         doNothing().when(productService).deleteProduct(id);
 
         mockMvc.perform(delete("/api/v1/products/{id}", id))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value(200))
-                .andExpect(jsonPath("$.message").value("Product deleted successfully"));
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.message").value("Product deleted successfully"));
     }
 }

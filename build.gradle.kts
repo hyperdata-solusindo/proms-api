@@ -66,11 +66,11 @@ dependencies {
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
 }
 
-// Spotless Code Formatter Configuration
+// Spotless Code Formatter Configuration (Aligned with Eclipse / Red Hat Java)
 spotless {
     java {
         target("src/**/*.java")
-        palantirJavaFormat()
+        eclipse().configFile(".vscode/eclipse-java-formatter.xml")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

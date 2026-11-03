@@ -31,28 +31,28 @@ public class AuthService {
         YaviValidator.validateAndThrow(LoginRequest.VALIDATOR, request);
 
         var user = userFacade
-                .findByEmailForAuth(request.email())
-                .filter(u -> passwordEncoder.matches(request.password(), u.password()))
-                .orElseThrow(
-                        () -> new BusinessException("Email atau kata sandi tidak sesuai", HttpStatus.UNAUTHORIZED));
+            .findByEmailForAuth(request.email())
+            .filter(u -> passwordEncoder.matches(request.password(), u.password()))
+            .orElseThrow(
+                () -> new BusinessException("Email atau kata sandi tidak sesuai", HttpStatus.UNAUTHORIZED));
 
         if (!user.isActive()) {
             throw new BusinessException("Akun Anda telah dinonaktifkan", HttpStatus.FORBIDDEN);
         }
 
         var membership = userFacade
-                .resolveUserMembership(user.id(), Optional.empty())
-                .orElseThrow(() ->
-                        new BusinessException("Pengguna tidak memiliki workspace/tenant aktif", HttpStatus.FORBIDDEN));
+            .resolveUserMembership(user.id(), Optional.empty())
+            .orElseThrow(() -> new BusinessException("Pengguna tidak memiliki workspace/tenant aktif",
+                HttpStatus.FORBIDDEN));
 
         TenantSummaryDto tenant = tenantFacade
-                .getTenantSummary(membership.tenantId())
-                .orElseThrow(() -> new BusinessException("Tenant tidak ditemukan", HttpStatus.NOT_FOUND));
+            .getTenantSummary(membership.tenantId())
+            .orElseThrow(() -> new BusinessException("Tenant tidak ditemukan", HttpStatus.NOT_FOUND));
 
         String token = tokenService.createToken(user.id(), membership.tenantId());
 
-        AuthUserDto authUser =
-                new AuthUserDto(user.id(), user.fullName(), user.email(), user.locale(), user.timezone());
+        AuthUserDto authUser = new AuthUserDto(user.id(), user.fullName(), user.email(), user.locale(),
+            user.timezone());
 
         return new LoginResponse(token, "Bearer", authUser, tenant, membership.role());
     }

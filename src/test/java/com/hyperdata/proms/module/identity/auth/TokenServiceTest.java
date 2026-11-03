@@ -115,7 +115,7 @@ class TokenServiceTest {
         pat.setExpiresAt(Instant.now().minus(1, ChronoUnit.DAYS)); // sudah lewat
 
         given(tokenRepository.findByIdAndToken(1L, service.hashToken("secret-token")))
-                .willReturn(Optional.of(pat));
+            .willReturn(Optional.of(pat));
 
         Optional<PersonalAccessToken> result = service.verifyToken(1L, "secret-token");
 

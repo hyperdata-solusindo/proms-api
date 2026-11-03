@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserFacade {
+
     Optional<UserAuthDto> findByEmailForAuth(String email);
 
     Optional<UserAuthDto> findByIdForAuth(UUID userId);

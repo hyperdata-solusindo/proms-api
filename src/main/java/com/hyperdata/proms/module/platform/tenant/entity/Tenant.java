@@ -12,6 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 public class Tenant {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

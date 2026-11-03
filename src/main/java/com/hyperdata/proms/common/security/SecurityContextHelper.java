@@ -5,7 +5,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 public final class SecurityContextHelper {
-    private SecurityContextHelper() {}
+
+    private SecurityContextHelper() {
+    }
 
     public static Optional<CurrentUser> getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -17,6 +19,6 @@ public final class SecurityContextHelper {
 
     public static CurrentUser getRequiredCurrentUser() {
         return getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("No authenticated user found in security context"));
+            .orElseThrow(() -> new IllegalStateException("No authenticated user found in security context"));
     }
 }

@@ -18,9 +18,11 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Lookups Utility Tests")
 class LookupsTest {
 
-    record SampleItem(String id, String category, String name, BigDecimal price, String status) {}
+    record SampleItem(String id, String category, String name, BigDecimal price, String status) {
+    }
 
     static class SampleAuditable {
+
         private final String id;
         private final boolean deleted;
         private final Instant deletedAt;
@@ -50,7 +52,8 @@ class LookupsTest {
         }
     }
 
-    record RelatedDetail(String id, String label) {}
+    record RelatedDetail(String id, String label) {
+    }
 
     @Nested
     @DisplayName("Extraction Tests (extractIds & extractList)")
@@ -60,12 +63,12 @@ class LookupsTest {
         @DisplayName("Should filter nulls and blanks, and preserve discovery order in LinkedHashSet")
         void extractIds_shouldFilterNullsAndBlanks_andPreserveOrder() {
             List<SampleItem> items = List.of(
-                    new SampleItem("A", "cat1", "Item A", BigDecimal.ONE, "active"),
-                    new SampleItem("B", "cat1", "Item B", BigDecimal.ONE, "active"),
-                    new SampleItem("", "cat1", "Item Blank", BigDecimal.ONE, "active"),
-                    new SampleItem("   ", "cat1", "Item Spaces", BigDecimal.ONE, "active"),
-                    new SampleItem("A", "cat1", "Item A Duplicate", BigDecimal.ONE, "active"),
-                    new SampleItem("C", "cat1", "Item C", BigDecimal.ONE, "active"));
+                new SampleItem("A", "cat1", "Item A", BigDecimal.ONE, "active"),
+                new SampleItem("B", "cat1", "Item B", BigDecimal.ONE, "active"),
+                new SampleItem("", "cat1", "Item Blank", BigDecimal.ONE, "active"),
+                new SampleItem("   ", "cat1", "Item Spaces", BigDecimal.ONE, "active"),
+                new SampleItem("A", "cat1", "Item A Duplicate", BigDecimal.ONE, "active"),
+                new SampleItem("C", "cat1", "Item C", BigDecimal.ONE, "active"));
 
             Set<String> ids = Lookups.extractIds(items, SampleItem::id);
 
@@ -77,13 +80,14 @@ class LookupsTest {
         void extractIds_shouldReturnEmptySet_whenInputNullOrEmpty() {
             assertThat(Lookups.extractIds(null, SampleItem::id)).isEmpty();
             assertThat(Lookups.extractIds(Collections.emptyList(), SampleItem::id))
-                    .isEmpty();
+                .isEmpty();
         }
 
         @Test
         @DisplayName("Should aggregate IDs across multiple extractors")
         void extractAllIds_shouldCombineMultipleExtractors() {
-            record Pair(String id1, String id2) {}
+            record Pair(String id1, String id2) {
+            }
             List<Pair> pairs = List.of(new Pair("1", "2"), new Pair("2", "3"), new Pair("", null));
 
             Set<String> ids = Lookups.extractAllIds(pairs, Pair::id1, Pair::id2);
@@ -102,8 +106,8 @@ class LookupsTest {
         @DisplayName("Should extract ordered list preserving collection sequence")
         void extractList_shouldPreserveSequence() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "cat1", "First", BigDecimal.TEN, "active"),
-                    new SampleItem("2", "cat1", "Second", BigDecimal.ONE, "active"));
+                new SampleItem("1", "cat1", "First", BigDecimal.TEN, "active"),
+                new SampleItem("2", "cat1", "Second", BigDecimal.ONE, "active"));
 
             List<String> names = Lookups.extractList(items, SampleItem::name);
             assertThat(names).containsExactly("First", "Second");
@@ -118,9 +122,9 @@ class LookupsTest {
         @DisplayName("Should deduplicate items by key preserving first occurrence order")
         void distinctBy_shouldKeepFirstOccurrence() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "electronics", "Laptop", BigDecimal.TEN, "active"),
-                    new SampleItem("2", "clothing", "Shirt", BigDecimal.ONE, "active"),
-                    new SampleItem("3", "electronics", "Phone", BigDecimal.TEN, "active"));
+                new SampleItem("1", "electronics", "Laptop", BigDecimal.TEN, "active"),
+                new SampleItem("2", "clothing", "Shirt", BigDecimal.ONE, "active"),
+                new SampleItem("3", "electronics", "Phone", BigDecimal.TEN, "active"));
 
             List<SampleItem> distinct = Lookups.distinctBy(items, SampleItem::category);
 
@@ -138,9 +142,9 @@ class LookupsTest {
         @DisplayName("Should index items into LinkedHashMap and safely handle duplicate keys")
         void toMap_shouldPreserveFirstOccurrenceOnDuplicateKeys() {
             List<SampleItem> items = List.of(
-                    new SampleItem("K1", "c1", "FirstVal", BigDecimal.ONE, "active"),
-                    new SampleItem("K1", "c1", "SecondVal", BigDecimal.TEN, "active"),
-                    new SampleItem("K2", "c2", "ThirdVal", BigDecimal.ONE, "active"));
+                new SampleItem("K1", "c1", "FirstVal", BigDecimal.ONE, "active"),
+                new SampleItem("K1", "c1", "SecondVal", BigDecimal.TEN, "active"),
+                new SampleItem("K2", "c2", "ThirdVal", BigDecimal.ONE, "active"));
 
             Map<String, SampleItem> map = Lookups.toMap(items, SampleItem::id);
 
@@ -153,8 +157,8 @@ class LookupsTest {
         @DisplayName("Should index with custom key and value extractors")
         void toMap_withCustomKeyValueExtractors() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "c1", "Alpha", BigDecimal.ONE, "active"),
-                    new SampleItem("2", "c2", "Beta", BigDecimal.TEN, "active"));
+                new SampleItem("1", "c1", "Alpha", BigDecimal.ONE, "active"),
+                new SampleItem("2", "c2", "Beta", BigDecimal.TEN, "active"));
 
             Map<String, String> map = Lookups.toMap(items, SampleItem::id, SampleItem::name);
 
@@ -170,9 +174,9 @@ class LookupsTest {
         @DisplayName("Should group items by key preserving insertion order")
         void groupingBy_shouldGroupIntoLists() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "catA", "Item 1", BigDecimal.ONE, "active"),
-                    new SampleItem("2", "catB", "Item 2", BigDecimal.TEN, "active"),
-                    new SampleItem("3", "catA", "Item 3", BigDecimal.TEN, "active"));
+                new SampleItem("1", "catA", "Item 1", BigDecimal.ONE, "active"),
+                new SampleItem("2", "catB", "Item 2", BigDecimal.TEN, "active"),
+                new SampleItem("3", "catA", "Item 3", BigDecimal.TEN, "active"));
 
             Map<String, List<SampleItem>> grouped = Lookups.groupingBy(items, SampleItem::category);
 
@@ -190,9 +194,9 @@ class LookupsTest {
         @DisplayName("Should sum BigDecimals accurately without precision loss")
         void summingBy_shouldSumBigDecimals() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "catA", "A", new BigDecimal("10.50"), "active"),
-                    new SampleItem("2", "catA", "B", new BigDecimal("5.25"), "active"),
-                    new SampleItem("3", "catB", "C", new BigDecimal("100.00"), "active"));
+                new SampleItem("1", "catA", "A", new BigDecimal("10.50"), "active"),
+                new SampleItem("2", "catA", "B", new BigDecimal("5.25"), "active"),
+                new SampleItem("3", "catB", "C", new BigDecimal("100.00"), "active"));
 
             Map<String, BigDecimal> sumMap = Lookups.summingBy(items, SampleItem::category, SampleItem::price);
 
@@ -204,9 +208,9 @@ class LookupsTest {
         @DisplayName("Should count elements by key")
         void countingBy_shouldCountElements() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "catA", "A", BigDecimal.ONE, "active"),
-                    new SampleItem("2", "catA", "B", BigDecimal.ONE, "active"),
-                    new SampleItem("3", "catB", "C", BigDecimal.ONE, "active"));
+                new SampleItem("1", "catA", "A", BigDecimal.ONE, "active"),
+                new SampleItem("2", "catA", "B", BigDecimal.ONE, "active"),
+                new SampleItem("3", "catB", "C", BigDecimal.ONE, "active"));
 
             Map<String, Long> countMap = Lookups.countingBy(items, SampleItem::category);
 
@@ -217,18 +221,18 @@ class LookupsTest {
         @DisplayName("Should partition items into true and false buckets")
         void partitionBy_shouldSeparateLists() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "c", "Active Item", BigDecimal.ONE, "active"),
-                    new SampleItem("2", "c", "Inactive Item", BigDecimal.ONE, "inactive"));
+                new SampleItem("1", "c", "Active Item", BigDecimal.ONE, "active"),
+                new SampleItem("2", "c", "Inactive Item", BigDecimal.ONE, "inactive"));
 
-            Map<Boolean, List<SampleItem>> partitioned =
-                    Lookups.partitionBy(items, item -> "active".equals(item.status()));
+            Map<Boolean, List<SampleItem>> partitioned = Lookups.partitionBy(items,
+                item -> "active".equals(item.status()));
 
             assertThat(partitioned.get(Boolean.TRUE))
-                    .extracting(SampleItem::name)
-                    .containsExactly("Active Item");
+                .extracting(SampleItem::name)
+                .containsExactly("Active Item");
             assertThat(partitioned.get(Boolean.FALSE))
-                    .extracting(SampleItem::name)
-                    .containsExactly("Inactive Item");
+                .extracting(SampleItem::name)
+                .containsExactly("Inactive Item");
         }
 
         @Test
@@ -248,10 +252,10 @@ class LookupsTest {
         @DisplayName("Should filter out soft-deleted items via reflection")
         void notDeleted_shouldFilterSoftDeleted() {
             List<SampleAuditable> list = List.of(
-                    new SampleAuditable("1", false, null, true),
-                    new SampleAuditable("2", true, null, true),
-                    new SampleAuditable("3", false, Instant.now(), true),
-                    new SampleAuditable("4", false, null, true));
+                new SampleAuditable("1", false, null, true),
+                new SampleAuditable("2", true, null, true),
+                new SampleAuditable("3", false, Instant.now(), true),
+                new SampleAuditable("4", false, null, true));
 
             List<SampleAuditable> result = Lookups.notDeleted(list);
 
@@ -262,9 +266,9 @@ class LookupsTest {
         @DisplayName("Should filter active items via status string or boolean")
         void activeOnly_shouldFilterActive() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "c", "A", BigDecimal.ONE, "active"),
-                    new SampleItem("2", "c", "B", BigDecimal.ONE, "inactive"),
-                    new SampleItem("3", "c", "C", BigDecimal.ONE, "ACTIVE"));
+                new SampleItem("1", "c", "A", BigDecimal.ONE, "active"),
+                new SampleItem("2", "c", "B", BigDecimal.ONE, "inactive"),
+                new SampleItem("3", "c", "C", BigDecimal.ONE, "ACTIVE"));
 
             List<SampleItem> activeItems = Lookups.activeOnly(items, SampleItem::status);
 
@@ -306,10 +310,10 @@ class LookupsTest {
             Map<String, RelatedDetail> detailMap = Map.of("c1", new RelatedDetail("c1", "Electronics Category"));
 
             List<String> combined = Lookups.map(
-                    items,
-                    SampleItem::category,
-                    detailMap,
-                    (item, detail) -> item.name() + " -> " + (detail != null ? detail.label() : "Unknown"));
+                items,
+                SampleItem::category,
+                detailMap,
+                (item, detail) -> item.name() + " -> " + (detail != null ? detail.label() : "Unknown"));
 
             assertThat(combined).containsExactly("Laptop -> Electronics Category");
         }
@@ -323,17 +327,18 @@ class LookupsTest {
         @DisplayName("Should execute fluent chain: extractIds -> loadMap -> toMap")
         void fluentPipeline_shouldWorkSeamlessly() {
             List<SampleItem> items = List.of(
-                    new SampleItem("1", "c1", "A", BigDecimal.ONE, "active"),
-                    new SampleItem("2", "c2", "B", BigDecimal.ONE, "active"),
-                    new SampleItem("3", "c1", "C", BigDecimal.ONE, "active"));
+                new SampleItem("1", "c1", "A", BigDecimal.ONE, "active"),
+                new SampleItem("2", "c2", "B", BigDecimal.ONE, "active"),
+                new SampleItem("3", "c1", "C", BigDecimal.ONE, "active"));
 
             // Mock external batch loader
             Function<Collection<String>, Collection<RelatedDetail>> batchLoader = ids -> ids.stream()
-                    .map(id -> new RelatedDetail(id, "Label: " + id))
-                    .toList();
+                .map(id -> new RelatedDetail(id, "Label: " + id))
+                .toList();
 
-            Map<String, RelatedDetail> detailMap =
-                    Lookups.of(items).extractIds(SampleItem::category).loadMap(batchLoader, RelatedDetail::id);
+            Map<String, RelatedDetail> detailMap = Lookups.of(items)
+                .extractIds(SampleItem::category)
+                .loadMap(batchLoader, RelatedDetail::id);
 
             assertThat(detailMap).containsOnlyKeys("c1", "c2");
             assertThat(detailMap.get("c1").label()).isEqualTo("Label: c1");

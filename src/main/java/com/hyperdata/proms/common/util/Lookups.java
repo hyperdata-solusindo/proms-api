@@ -24,13 +24,14 @@ import java.util.stream.Collectors;
  * <p>
  * Core engine for <b>The Golden Stack Pattern</b> (Caffeine Cache + Lookups + MapStruct):
  * <ul>
- *     <li><b>Static 1-Liners:</b> {@code Lookups.extractIds(...)}, {@code Lookups.toMap(...)}, {@code Lookups.groupingBy(...)}</li>
- *     <li><b>Fluent Chaining:</b> {@code Lookups.of(items).distinctBy(...).groupingBy(...)}</li>
+ * <li><b>Static 1-Liners:</b> {@code Lookups.extractIds(...)}, {@code Lookups.toMap(...)},
+ * {@code Lookups.groupingBy(...)}</li>
+ * <li><b>Fluent Chaining:</b> {@code Lookups.of(items).distinctBy(...).groupingBy(...)}</li>
  * </ul>
  * <p>
- * Guarantees insertion order preservation via {@link LinkedHashMap} and {@link LinkedHashSet},
- * handles null collections and empty states gracefully, prevents duplicate key collisions,
- * and eliminates N+1 latency across modular monolith boundaries.
+ * Guarantees insertion order preservation via {@link LinkedHashMap} and {@link LinkedHashSet}, handles null collections
+ * and empty states gracefully, prevents duplicate key collisions, and eliminates N+1 latency across modular monolith
+ * boundaries.
  */
 public final class Lookups {
 
@@ -48,8 +49,10 @@ public final class Lookups {
     /**
      * Wrap a collection in a fluent {@link LookupChain} for chaining operations.
      *
-     * @param items source collection (null-safe)
-     * @param <T>   element type
+     * @param items
+     *        source collection (null-safe)
+     * @param <T>
+     *        element type
      * @return fluent chain instance
      */
     public static <T> LookupChain<T> of(Collection<T> items) {
@@ -61,13 +64,17 @@ public final class Lookups {
     // =========================================================================
 
     /**
-     * Extracts a {@link Set} of unique IDs/keys, discarding nulls and blank strings.
-     * Preserves discovery order using {@link LinkedHashSet}.
+     * Extracts a {@link Set} of unique IDs/keys, discarding nulls and blank strings. Preserves discovery order using
+     * {@link LinkedHashSet}.
      *
-     * @param items       source collection
-     * @param idExtractor function extracting the ID
-     * @param <T>         source element type
-     * @param <ID>        extracted ID type
+     * @param items
+     *        source collection
+     * @param idExtractor
+     *        function extracting the ID
+     * @param <T>
+     *        source element type
+     * @param <ID>
+     *        extracted ID type
      * @return non-null LinkedHashSet of unique IDs
      */
     public static <T, ID> Set<ID> extractIds(Collection<T> items, Function<T, ID> idExtractor) {
@@ -75,21 +82,25 @@ public final class Lookups {
             return Collections.emptySet();
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .map(idExtractor)
-                .filter(Objects::nonNull)
-                .filter(id -> !(id instanceof String s) || !s.isBlank())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+            .filter(Objects::nonNull)
+            .map(idExtractor)
+            .filter(Objects::nonNull)
+            .filter(id -> !(id instanceof String s) || !s.isBlank())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
      * Extracts and aggregates a {@link Set} of unique IDs/keys from multiple extractors across a single collection,
      * discarding nulls and blank strings. Preserves discovery order using {@link LinkedHashSet}.
      *
-     * @param items        source collection
-     * @param idExtractors varargs functions extracting IDs
-     * @param <T>          source element type
-     * @param <ID>         extracted ID type
+     * @param items
+     *        source collection
+     * @param idExtractors
+     *        varargs functions extracting IDs
+     * @param <T>
+     *        source element type
+     * @param <ID>
+     *        extracted ID type
      * @return non-null LinkedHashSet of aggregated unique IDs
      */
     @SafeVarargs
@@ -114,11 +125,13 @@ public final class Lookups {
     }
 
     /**
-     * Combines multiple collections of IDs into a single deduplicated {@link Set},
-     * discarding nulls and blank strings. Preserves discovery order using {@link LinkedHashSet}.
+     * Combines multiple collections of IDs into a single deduplicated {@link Set}, discarding nulls and blank strings.
+     * Preserves discovery order using {@link LinkedHashSet}.
      *
-     * @param idCollections varargs or array of ID collections
-     * @param <ID>          extracted ID type
+     * @param idCollections
+     *        varargs or array of ID collections
+     * @param <ID>
+     *        extracted ID type
      * @return non-null LinkedHashSet of combined unique IDs
      */
     @SafeVarargs
@@ -140,13 +153,17 @@ public final class Lookups {
     }
 
     /**
-     * Extracts an ordered {@link List} of values, discarding nulls and blank strings.
-     * Preserves exact source order from the collection / database pagination.
+     * Extracts an ordered {@link List} of values, discarding nulls and blank strings. Preserves exact source order from
+     * the collection / database pagination.
      *
-     * @param items     source collection
-     * @param extractor function extracting the value
-     * @param <T>       source element type
-     * @param <R>       extracted value type
+     * @param items
+     *        source collection
+     * @param extractor
+     *        function extracting the value
+     * @param <T>
+     *        source element type
+     * @param <R>
+     *        extracted value type
      * @return non-null List of extracted values
      */
     public static <T, R> List<R> extractList(Collection<T> items, Function<T, R> extractor) {
@@ -154,20 +171,24 @@ public final class Lookups {
             return Collections.emptyList();
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .map(extractor)
-                .filter(Objects::nonNull)
-                .filter(val -> !(val instanceof String s) || !s.isBlank())
-                .collect(Collectors.toCollection(ArrayList::new));
+            .filter(Objects::nonNull)
+            .map(extractor)
+            .filter(Objects::nonNull)
+            .filter(val -> !(val instanceof String s) || !s.isBlank())
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
      * Filters unique items by a specific key/property, preserving first occurrence order.
      *
-     * @param items        source collection
-     * @param keyExtractor function extracting the key to determine uniqueness
-     * @param <T>          element type
-     * @param <K>          key type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting the key to determine uniqueness
+     * @param <T>
+     *        element type
+     * @param <K>
+     *        key type
      * @return non-null List of distinct items
      */
     public static <T, K> List<T> distinctBy(Collection<T> items, Function<T, K> keyExtractor) {
@@ -176,12 +197,12 @@ public final class Lookups {
         }
         Set<K> seen = new HashSet<>();
         return items.stream()
-                .filter(Objects::nonNull)
-                .filter(item -> {
-                    K key = keyExtractor.apply(item);
-                    return key != null && seen.add(key);
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
+            .filter(Objects::nonNull)
+            .filter(item -> {
+                K key = keyExtractor.apply(item);
+                return key != null && seen.add(key);
+            })
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     // =========================================================================
@@ -189,14 +210,17 @@ public final class Lookups {
     // =========================================================================
 
     /**
-     * Indexes elements into a {@link Map} keyed by an extracted property.
-     * Preserves order using {@link LinkedHashMap}.
+     * Indexes elements into a {@link Map} keyed by an extracted property. Preserves order using {@link LinkedHashMap}.
      * Duplicate keys will safely keep the first element encountered without throwing exceptions.
      *
-     * @param items        source collection
-     * @param keyExtractor function extracting the map key
-     * @param <K>          key type
-     * @param <V>          value/element type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting the map key
+     * @param <K>
+     *        key type
+     * @param <V>
+     *        value/element type
      * @return non-null LinkedHashMap
      */
     public static <K, V> Map<K, V> toMap(Collection<V> items, Function<V, K> keyExtractor) {
@@ -204,19 +228,25 @@ public final class Lookups {
     }
 
     /**
-     * Indexes elements into a {@link Map} with custom key and value extractors.
-     * Preserves order using {@link LinkedHashMap} and avoids duplicate key collisions.
+     * Indexes elements into a {@link Map} with custom key and value extractors. Preserves order using
+     * {@link LinkedHashMap} and avoids duplicate key collisions.
      *
-     * @param items          source collection
-     * @param keyExtractor   function extracting the map key
-     * @param valueExtractor function extracting the map value
-     * @param <T>            source element type
-     * @param <K>            key type
-     * @param <V>            value type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting the map key
+     * @param valueExtractor
+     *        function extracting the map value
+     * @param <T>
+     *        source element type
+     * @param <K>
+     *        key type
+     * @param <V>
+     *        value type
      * @return non-null LinkedHashMap
      */
     public static <T, K, V> Map<K, V> toMap(
-            Collection<T> items, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
+        Collection<T> items, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
         if (items == null || items.isEmpty() || keyExtractor == null || valueExtractor == null) {
             return Collections.emptyMap();
         }
@@ -237,13 +267,16 @@ public final class Lookups {
     // =========================================================================
 
     /**
-     * Groups elements by key into a {@code Map<K, List<V>>}.
-     * Preserves key insertion order using {@link LinkedHashMap}.
+     * Groups elements by key into a {@code Map<K, List<V>>}. Preserves key insertion order using {@link LinkedHashMap}.
      *
-     * @param items        source collection
-     * @param keyExtractor function extracting grouping key
-     * @param <K>          grouping key type
-     * @param <V>          element type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting grouping key
+     * @param <K>
+     *        grouping key type
+     * @param <V>
+     *        element type
      * @return non-null LinkedHashMap of grouped lists
      */
     public static <K, V> Map<K, List<V>> groupingBy(Collection<V> items, Function<V, K> keyExtractor) {
@@ -253,16 +286,22 @@ public final class Lookups {
     /**
      * Groups elements by key and transforms each child element into a custom value type.
      *
-     * @param items          source collection
-     * @param keyExtractor   function extracting grouping key
-     * @param valueExtractor function mapping element to desired grouped value
-     * @param <T>            source element type
-     * @param <K>            grouping key type
-     * @param <V>            transformed value type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting grouping key
+     * @param valueExtractor
+     *        function mapping element to desired grouped value
+     * @param <T>
+     *        source element type
+     * @param <K>
+     *        grouping key type
+     * @param <V>
+     *        transformed value type
      * @return non-null LinkedHashMap of grouped lists
      */
     public static <T, K, V> Map<K, List<V>> groupingBy(
-            Collection<T> items, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
+        Collection<T> items, Function<T, K> keyExtractor, Function<T, V> valueExtractor) {
         if (items == null || items.isEmpty() || keyExtractor == null || valueExtractor == null) {
             return Collections.emptyMap();
         }
@@ -281,9 +320,12 @@ public final class Lookups {
     /**
      * Counts elements matching a given predicate in a null-safe manner.
      *
-     * @param items     source collection
-     * @param predicate filter condition to count
-     * @param <T>       source element type
+     * @param items
+     *        source collection
+     * @param predicate
+     *        filter condition to count
+     * @param <T>
+     *        source element type
      * @return count of matching non-null items
      */
     public static <T> int count(Collection<T> items, Predicate<T> predicate) {
@@ -299,8 +341,10 @@ public final class Lookups {
     /**
      * Counts non-null elements in a collection in a null-safe manner.
      *
-     * @param items source collection
-     * @param <T>   source element type
+     * @param items
+     *        source collection
+     * @param <T>
+     *        source element type
      * @return count of non-null items
      */
     public static <T> int count(Collection<T> items) {
@@ -310,10 +354,14 @@ public final class Lookups {
     /**
      * Counts occurrences of items grouped by key.
      *
-     * @param items        source collection
-     * @param keyExtractor function extracting grouping key
-     * @param <T>          source element type
-     * @param <K>          grouping key type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting grouping key
+     * @param <T>
+     *        source element type
+     * @param <K>
+     *        grouping key type
      * @return non-null LinkedHashMap of counts
      */
     public static <T, K> Map<K, Long> countingBy(Collection<T> items, Function<T, K> keyExtractor) {
@@ -335,15 +383,20 @@ public final class Lookups {
     /**
      * Sums {@link BigDecimal} values grouped by key.
      *
-     * @param items          source collection
-     * @param keyExtractor   function extracting grouping key
-     * @param valueExtractor function extracting BigDecimal amount to sum
-     * @param <T>            source element type
-     * @param <K>            grouping key type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting grouping key
+     * @param valueExtractor
+     *        function extracting BigDecimal amount to sum
+     * @param <T>
+     *        source element type
+     * @param <K>
+     *        grouping key type
      * @return non-null LinkedHashMap of summed amounts
      */
     public static <T, K> Map<K, BigDecimal> summingBy(
-            Collection<T> items, Function<T, K> keyExtractor, Function<T, BigDecimal> valueExtractor) {
+        Collection<T> items, Function<T, K> keyExtractor, Function<T, BigDecimal> valueExtractor) {
         if (items == null || items.isEmpty() || keyExtractor == null || valueExtractor == null) {
             return Collections.emptyMap();
         }
@@ -365,9 +418,12 @@ public final class Lookups {
     /**
      * Partitions a collection into two lists: {@code true} (matching) and {@code false} (non-matching).
      *
-     * @param items     source collection
-     * @param predicate partitioning condition
-     * @param <T>       element type
+     * @param items
+     *        source collection
+     * @param predicate
+     *        partitioning condition
+     * @param <T>
+     *        element type
      * @return non-null Map with keys Boolean.TRUE and Boolean.FALSE
      */
     public static <T> Map<Boolean, List<T>> partitionBy(Collection<T> items, Predicate<T> predicate) {
@@ -394,10 +450,14 @@ public final class Lookups {
     /**
      * Joins extracted string values with a delimiter.
      *
-     * @param items           source collection
-     * @param stringExtractor function extracting string
-     * @param delimiter       separator (e.g. ", ")
-     * @param <T>             element type
+     * @param items
+     *        source collection
+     * @param stringExtractor
+     *        function extracting string
+     * @param delimiter
+     *        separator (e.g. ", ")
+     * @param <T>
+     *        element type
      * @return concatenated string or empty string if empty
      */
     public static <T> String joining(Collection<T> items, Function<T, String> stringExtractor, CharSequence delimiter) {
@@ -405,11 +465,11 @@ public final class Lookups {
             return "";
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .map(stringExtractor)
-                .filter(Objects::nonNull)
-                .filter(s -> !s.isBlank())
-                .collect(Collectors.joining(delimiter != null ? delimiter : ""));
+            .filter(Objects::nonNull)
+            .map(stringExtractor)
+            .filter(Objects::nonNull)
+            .filter(s -> !s.isBlank())
+            .collect(Collectors.joining(delimiter != null ? delimiter : ""));
     }
 
     // =========================================================================
@@ -417,11 +477,13 @@ public final class Lookups {
     // =========================================================================
 
     /**
-     * Filters out soft-deleted entities based on conventional methods (isDeleted, getDeletedAt).
-     * If no deletion flag is found, the item is retained.
+     * Filters out soft-deleted entities based on conventional methods (isDeleted, getDeletedAt). If no deletion flag is
+     * found, the item is retained.
      *
-     * @param items source collection
-     * @param <T>   element type
+     * @param items
+     *        source collection
+     * @param <T>
+     *        element type
      * @return filtered List of non-deleted items
      */
     public static <T> List<T> notDeleted(Collection<T> items) {
@@ -429,36 +491,39 @@ public final class Lookups {
             return Collections.emptyList();
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .filter(item -> {
-                    List<Method> methods = resolveDeletedMethods(item.getClass());
-                    if (methods.isEmpty()) {
-                        return true;
-                    }
-                    for (Method method : methods) {
-                        try {
-                            Object val = method.invoke(item);
-                            if (val instanceof Boolean b && b) {
-                                return false;
-                            }
-                            if (!(val instanceof Boolean) && val != null) {
-                                return false;
-                            }
-                        } catch (Exception ignored) {
-                            // ignore invocation exception
-                        }
-                    }
+            .filter(Objects::nonNull)
+            .filter(item -> {
+                List<Method> methods = resolveDeletedMethods(item.getClass());
+                if (methods.isEmpty()) {
                     return true;
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
+                }
+                for (Method method : methods) {
+                    try {
+                        Object val = method.invoke(item);
+                        if (val instanceof Boolean b && b) {
+                            return false;
+                        }
+                        if (!(val instanceof Boolean) && val != null) {
+                            return false;
+                        }
+                    } catch (Exception ignored) {
+                        // ignore invocation exception
+                    }
+                }
+                return true;
+            })
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
      * Filters items with custom non-deleted predicate.
      *
-     * @param items                source collection
-     * @param notDeletedPredicate  predicate returning true for non-deleted items
-     * @param <T>                  element type
+     * @param items
+     *        source collection
+     * @param notDeletedPredicate
+     *        predicate returning true for non-deleted items
+     * @param <T>
+     *        element type
      * @return filtered List of non-deleted items
      */
     public static <T> List<T> notDeleted(Collection<T> items, Predicate<T> notDeletedPredicate) {
@@ -469,17 +534,20 @@ public final class Lookups {
             return notDeleted(items);
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .filter(notDeletedPredicate)
-                .collect(Collectors.toCollection(ArrayList::new));
+            .filter(Objects::nonNull)
+            .filter(notDeletedPredicate)
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
      * Filters items whose status equals "active" (case-insensitive) using a custom status extractor.
      *
-     * @param items           source collection
-     * @param statusExtractor function extracting status string
-     * @param <T>             element type
+     * @param items
+     *        source collection
+     * @param statusExtractor
+     *        function extracting status string
+     * @param <T>
+     *        element type
      * @return filtered List of active items
      */
     public static <T> List<T> activeOnly(Collection<T> items, Function<T, String> statusExtractor) {
@@ -487,20 +555,22 @@ public final class Lookups {
             return Collections.emptyList();
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .filter(item -> {
-                    String status = statusExtractor.apply(item);
-                    return status != null && "active".equalsIgnoreCase(status.trim());
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
+            .filter(Objects::nonNull)
+            .filter(item -> {
+                String status = statusExtractor.apply(item);
+                return status != null && "active".equalsIgnoreCase(status.trim());
+            })
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
-     * Filters items whose status equals "active" or boolean active flag is true.
-     * Automatically attempts to resolve {@code getStatus()}, {@code status()}, {@code isActive()}, or {@code getActive()}.
+     * Filters items whose status equals "active" or boolean active flag is true. Automatically attempts to resolve
+     * {@code getStatus()}, {@code status()}, {@code isActive()}, or {@code getActive()}.
      *
-     * @param items source collection
-     * @param <T>   element type
+     * @param items
+     *        source collection
+     * @param <T>
+     *        element type
      * @return filtered List of active items
      */
     public static <T> List<T> activeOnly(Collection<T> items) {
@@ -508,24 +578,24 @@ public final class Lookups {
             return Collections.emptyList();
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .filter(item -> {
-                    Method method = resolveStatusMethod(item.getClass());
-                    if (method == null) {
-                        return true;
+            .filter(Objects::nonNull)
+            .filter(item -> {
+                Method method = resolveStatusMethod(item.getClass());
+                if (method == null) {
+                    return true;
+                }
+                try {
+                    Object val = method.invoke(item);
+                    if (val instanceof Boolean b) {
+                        return b;
                     }
-                    try {
-                        Object val = method.invoke(item);
-                        if (val instanceof Boolean b) {
-                            return b;
-                        }
-                        return val != null
-                                && "active".equalsIgnoreCase(val.toString().trim());
-                    } catch (Exception e) {
-                        return true;
-                    }
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
+                    return val != null
+                        && "active".equalsIgnoreCase(val.toString().trim());
+                } catch (Exception e) {
+                    return true;
+                }
+            })
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     // =========================================================================
@@ -535,21 +605,29 @@ public final class Lookups {
     /**
      * Lazy loads and indexes foreign entities into a Map, executing the loader ONLY when extracted IDs are non-empty.
      *
-     * @param sourceItems  source collection containing foreign IDs
-     * @param idExtractor  function extracting foreign ID from source items
-     * @param loader       repository / facade batch loader function
-     * @param keyExtractor function extracting Map key from loaded entity
-     * @param <T>          source element type
-     * @param <ID>         ID type
-     * @param <R>          loaded entity type
-     * @param <K>          Map key type
+     * @param sourceItems
+     *        source collection containing foreign IDs
+     * @param idExtractor
+     *        function extracting foreign ID from source items
+     * @param loader
+     *        repository / facade batch loader function
+     * @param keyExtractor
+     *        function extracting Map key from loaded entity
+     * @param <T>
+     *        source element type
+     * @param <ID>
+     *        ID type
+     * @param <R>
+     *        loaded entity type
+     * @param <K>
+     *        Map key type
      * @return non-null LinkedHashMap indexed by key
      */
     public static <T, ID, R, K> Map<K, R> loadMap(
-            Collection<T> sourceItems,
-            Function<T, ID> idExtractor,
-            Function<Collection<ID>, Collection<R>> loader,
-            Function<R, K> keyExtractor) {
+        Collection<T> sourceItems,
+        Function<T, ID> idExtractor,
+        Function<Collection<ID>, Collection<R>> loader,
+        Function<R, K> keyExtractor) {
         Set<ID> ids = extractIds(sourceItems, idExtractor);
         if (ids.isEmpty() || loader == null || keyExtractor == null) {
             return Collections.emptyMap();
@@ -560,16 +638,22 @@ public final class Lookups {
     /**
      * Lazy loads and indexes foreign entities directly from a collection of IDs.
      *
-     * @param ids          collection of IDs
-     * @param loader       repository / facade batch loader function
-     * @param keyExtractor function extracting Map key from loaded entity
-     * @param <ID>         ID type
-     * @param <R>          loaded entity type
-     * @param <K>          Map key type
+     * @param ids
+     *        collection of IDs
+     * @param loader
+     *        repository / facade batch loader function
+     * @param keyExtractor
+     *        function extracting Map key from loaded entity
+     * @param <ID>
+     *        ID type
+     * @param <R>
+     *        loaded entity type
+     * @param <K>
+     *        Map key type
      * @return non-null LinkedHashMap indexed by key
      */
     public static <ID, R, K> Map<K, R> loadMap(
-            Collection<ID> ids, Function<Collection<ID>, Collection<R>> loader, Function<R, K> keyExtractor) {
+        Collection<ID> ids, Function<Collection<ID>, Collection<R>> loader, Function<R, K> keyExtractor) {
         if (ids == null || ids.isEmpty() || loader == null || keyExtractor == null) {
             return Collections.emptyMap();
         }
@@ -579,24 +663,34 @@ public final class Lookups {
     /**
      * Lazy loads and indexes foreign entities into a Map with custom value transformation.
      *
-     * @param sourceItems    source collection containing foreign IDs
-     * @param idExtractor    function extracting foreign ID from source items
-     * @param loader         repository / facade batch loader function
-     * @param keyExtractor   function extracting Map key from loaded entity
-     * @param valueExtractor function transforming loaded entity into desired Map value
-     * @param <T>            source element type
-     * @param <ID>           ID type
-     * @param <R>            loaded entity type
-     * @param <K>            Map key type
-     * @param <V>            Map value type
+     * @param sourceItems
+     *        source collection containing foreign IDs
+     * @param idExtractor
+     *        function extracting foreign ID from source items
+     * @param loader
+     *        repository / facade batch loader function
+     * @param keyExtractor
+     *        function extracting Map key from loaded entity
+     * @param valueExtractor
+     *        function transforming loaded entity into desired Map value
+     * @param <T>
+     *        source element type
+     * @param <ID>
+     *        ID type
+     * @param <R>
+     *        loaded entity type
+     * @param <K>
+     *        Map key type
+     * @param <V>
+     *        Map value type
      * @return non-null LinkedHashMap indexed by key
      */
     public static <T, ID, R, K, V> Map<K, V> loadMap(
-            Collection<T> sourceItems,
-            Function<T, ID> idExtractor,
-            Function<Collection<ID>, Collection<R>> loader,
-            Function<R, K> keyExtractor,
-            Function<R, V> valueExtractor) {
+        Collection<T> sourceItems,
+        Function<T, ID> idExtractor,
+        Function<Collection<ID>, Collection<R>> loader,
+        Function<R, K> keyExtractor,
+        Function<R, V> valueExtractor) {
         Set<ID> ids = extractIds(sourceItems, idExtractor);
         if (ids.isEmpty() || loader == null || keyExtractor == null || valueExtractor == null) {
             return Collections.emptyMap();
@@ -611,10 +705,14 @@ public final class Lookups {
     /**
      * Safely finds a value from a lookup Map returning null if not found.
      *
-     * @param map lookup map
-     * @param key lookup key
-     * @param <K> map key type
-     * @param <V> map value type
+     * @param map
+     *        lookup map
+     * @param key
+     *        lookup key
+     * @param <K>
+     *        map key type
+     * @param <V>
+     *        map value type
      * @return found value or null
      */
     public static <K, V> V find(Map<K, V> map, K key) {
@@ -624,11 +722,16 @@ public final class Lookups {
     /**
      * Safely finds a value from a lookup Map with a fallback default.
      *
-     * @param map          lookup map
-     * @param key          lookup key
-     * @param defaultValue fallback default value
-     * @param <K>          map key type
-     * @param <V>          map value type
+     * @param map
+     *        lookup map
+     * @param key
+     *        lookup key
+     * @param defaultValue
+     *        fallback default value
+     * @param <K>
+     *        map key type
+     * @param <V>
+     *        map value type
      * @return found value or defaultValue
      */
     public static <K, V> V find(Map<K, V> map, K key, V defaultValue) {
@@ -638,13 +741,20 @@ public final class Lookups {
     /**
      * Safely finds a property value from a lookup Map without cascading null checks.
      *
-     * @param map               lookup map
-     * @param key               lookup key
-     * @param propertyExtractor function to extract property from found value
-     * @param defaultValue      fallback default value if not found or null
-     * @param <K>               map key type
-     * @param <V>               map value type
-     * @param <R>               property return type
+     * @param map
+     *        lookup map
+     * @param key
+     *        lookup key
+     * @param propertyExtractor
+     *        function to extract property from found value
+     * @param defaultValue
+     *        fallback default value if not found or null
+     * @param <K>
+     *        map key type
+     * @param <V>
+     *        map value type
+     * @param <R>
+     *        property return type
      * @return extracted property value or defaultValue
      */
     public static <K, V, R> R find(Map<K, V> map, K key, Function<V, R> propertyExtractor, R defaultValue) {
@@ -662,11 +772,16 @@ public final class Lookups {
     /**
      * Safely gets a value from a lookup Map with a fallback default.
      *
-     * @param map          lookup map
-     * @param key          lookup key
-     * @param defaultValue fallback default value
-     * @param <K>          map key type
-     * @param <V>          map value type
+     * @param map
+     *        lookup map
+     * @param key
+     *        lookup key
+     * @param defaultValue
+     *        fallback default value
+     * @param <K>
+     *        map key type
+     * @param <V>
+     *        map value type
      * @return found value or defaultValue
      */
     public static <K, V> V findOrDefault(Map<K, V> map, K key, V defaultValue) {
@@ -679,13 +794,20 @@ public final class Lookups {
     /**
      * Safely extracts a property from a lookup Map value with a fallback default.
      *
-     * @param map               lookup map
-     * @param key               lookup key
-     * @param propertyExtractor function to extract property from found value
-     * @param defaultValue      fallback default value if not found or null
-     * @param <K>               map key type
-     * @param <V>               map value type
-     * @param <R>               property return type
+     * @param map
+     *        lookup map
+     * @param key
+     *        lookup key
+     * @param propertyExtractor
+     *        function to extract property from found value
+     * @param defaultValue
+     *        fallback default value if not found or null
+     * @param <K>
+     *        map key type
+     * @param <V>
+     *        map value type
+     * @param <R>
+     *        property return type
      * @return extracted property value or defaultValue
      */
     public static <K, V, R> R findOrDefault(Map<K, V> map, K key, Function<V, R> propertyExtractor, R defaultValue) {
@@ -696,10 +818,14 @@ public final class Lookups {
      * Safely resolves a single entity/contract using a loader function if the ID is valid (non-null and non-blank).
      * Unwraps {@link Optional} results automatically if present.
      *
-     * @param id     lookup key / entity ID
-     * @param loader loader function taking ID
-     * @param <ID>   ID type
-     * @param <R>    resolved entity type
+     * @param id
+     *        lookup key / entity ID
+     * @param loader
+     *        loader function taking ID
+     * @param <ID>
+     *        ID type
+     * @param <R>
+     *        resolved entity type
      * @return resolved object or null if ID is blank/null or not found
      */
     @SuppressWarnings("unchecked")
@@ -720,10 +846,14 @@ public final class Lookups {
     /**
      * Transforms a collection into a list using a mapping function in a null-safe manner.
      *
-     * @param items  source collection
-     * @param mapper mapping function
-     * @param <T>    source element type
-     * @param <R>    target result type
+     * @param items
+     *        source collection
+     * @param mapper
+     *        mapping function
+     * @param <T>
+     *        source element type
+     * @param <R>
+     *        target result type
      * @return non-null List of mapped elements
      */
     public static <T, R> List<R> map(Collection<T> items, Function<T, R> mapper) {
@@ -736,10 +866,14 @@ public final class Lookups {
     /**
      * Transforms a collection into a flattened list using a mapping function in a null-safe manner.
      *
-     * @param items  source collection
-     * @param mapper mapping function returning a collection or streamable elements
-     * @param <T>    source element type
-     * @param <R>    target result type
+     * @param items
+     *        source collection
+     * @param mapper
+     *        mapping function returning a collection or streamable elements
+     * @param <T>
+     *        source element type
+     * @param <R>
+     *        target result type
      * @return non-null List of flattened elements
      */
     public static <T, R> List<R> flatMap(Collection<T> items, Function<T, ? extends Collection<R>> mapper) {
@@ -747,40 +881,48 @@ public final class Lookups {
             return Collections.emptyList();
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .map(mapper)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toCollection(ArrayList::new));
+            .filter(Objects::nonNull)
+            .map(mapper)
+            .filter(Objects::nonNull)
+            .flatMap(Collection::stream)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     /**
      * Transforms a collection by looking up related values from a Map and mapping with a {@link BiFunction}.
      *
-     * @param items        source collection
-     * @param keyExtractor function extracting the lookup key from source item
-     * @param lookupMap    map containing related lookup data
-     * @param mapper       bi-function taking (sourceItem, lookupValue) and returning target result
-     * @param <T>          source element type
-     * @param <K>          lookup key type
-     * @param <L>          lookup value type
-     * @param <R>          target result type
+     * @param items
+     *        source collection
+     * @param keyExtractor
+     *        function extracting the lookup key from source item
+     * @param lookupMap
+     *        map containing related lookup data
+     * @param mapper
+     *        bi-function taking (sourceItem, lookupValue) and returning target result
+     * @param <T>
+     *        source element type
+     * @param <K>
+     *        lookup key type
+     * @param <L>
+     *        lookup value type
+     * @param <R>
+     *        target result type
      * @return non-null List of mapped elements
      */
     public static <T, K, L, R> List<R> map(
-            Collection<T> items, Function<T, K> keyExtractor, Map<K, L> lookupMap, BiFunction<T, L, R> mapper) {
+        Collection<T> items, Function<T, K> keyExtractor, Map<K, L> lookupMap, BiFunction<T, L, R> mapper) {
         if (items == null || items.isEmpty() || mapper == null) {
             return Collections.emptyList();
         }
         return items.stream()
-                .filter(Objects::nonNull)
-                .map(item -> {
-                    K key = keyExtractor != null ? keyExtractor.apply(item) : null;
-                    L lookupVal = (lookupMap != null && key != null) ? lookupMap.get(key) : null;
-                    return mapper.apply(item, lookupVal);
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
+            .filter(Objects::nonNull)
+            .map(item -> {
+                K key = keyExtractor != null ? keyExtractor.apply(item) : null;
+                L lookupVal = (lookupMap != null && key != null) ? lookupMap.get(key) : null;
+                return mapper.apply(item, lookupVal);
+            })
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     // =========================================================================
@@ -789,17 +931,17 @@ public final class Lookups {
 
     private static Method resolveStatusMethod(Class<?> clazz) {
         return STATUS_METHOD_CACHE
-                .computeIfAbsent(clazz, c -> {
-                    for (String name : List.of("isActive", "getActive", "getStatus", "status")) {
-                        try {
-                            return Optional.of(c.getMethod(name));
-                        } catch (NoSuchMethodException ignored) {
-                            // Try next candidate
-                        }
+            .computeIfAbsent(clazz, c -> {
+                for (String name : List.of("isActive", "getActive", "getStatus", "status")) {
+                    try {
+                        return Optional.of(c.getMethod(name));
+                    } catch (NoSuchMethodException ignored) {
+                        // Try next candidate
                     }
-                    return Optional.empty();
-                })
-                .orElse(null);
+                }
+                return Optional.empty();
+            })
+            .orElse(null);
     }
 
     private static List<Method> resolveDeletedMethods(Class<?> clazz) {
@@ -823,7 +965,8 @@ public final class Lookups {
     /**
      * Fluent chain wrapper for collections, enabling chained transformations, grouping, and ID extraction.
      *
-     * @param <T> element type
+     * @param <T>
+     *        element type
      */
     public static class LookupChain<T> {
 
@@ -833,8 +976,9 @@ public final class Lookups {
             if (items == null || items.isEmpty()) {
                 this.elements = Collections.emptyList();
             } else {
-                this.elements =
-                        items.stream().filter(Objects::nonNull).collect(Collectors.toCollection(ArrayList::new));
+                this.elements = items.stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(ArrayList::new));
             }
         }
 
@@ -877,8 +1021,10 @@ public final class Lookups {
         /**
          * Transitions to a {@link LookupIdChain} for fluent lazy loading of foreign relations.
          *
-         * @param idExtractor function extracting the ID
-         * @param <ID>        ID type
+         * @param idExtractor
+         *        function extracting the ID
+         * @param <ID>
+         *        ID type
          * @return fluent ID chain
          */
         public <ID> LookupIdChain<ID> extractIds(Function<T, ID> idExtractor) {
@@ -888,8 +1034,10 @@ public final class Lookups {
         /**
          * Transitions to a {@link LookupIdChain} aggregating multiple foreign IDs from each element.
          *
-         * @param idExtractors varargs functions extracting IDs
-         * @param <ID>         ID type
+         * @param idExtractors
+         *        varargs functions extracting IDs
+         * @param <ID>
+         *        ID type
          * @return fluent ID chain
          */
         @SafeVarargs
@@ -961,7 +1109,8 @@ public final class Lookups {
     /**
      * Fluent ID chain for batch foreign lookup and loading.
      *
-     * @param <ID> ID type
+     * @param <ID>
+     *        ID type
      */
     public static class LookupIdChain<ID> {
 
@@ -974,8 +1123,10 @@ public final class Lookups {
         /**
          * Loads foreign entities using a batch loader only when IDs are not empty.
          *
-         * @param loader repository or facade loader function
-         * @param <R>    loaded entity type
+         * @param loader
+         *        repository or facade loader function
+         * @param <R>
+         *        loaded entity type
          * @return LookupChain of loaded entities
          */
         public <R> LookupChain<R> load(Function<Collection<ID>, Collection<R>> loader) {
@@ -988,10 +1139,14 @@ public final class Lookups {
         /**
          * Loads foreign entities and indexes them into a Map in a single fluent operation.
          *
-         * @param loader       repository or facade loader function
-         * @param keyExtractor function extracting Map key
-         * @param <R>          loaded entity type
-         * @param <K>          Map key type
+         * @param loader
+         *        repository or facade loader function
+         * @param keyExtractor
+         *        function extracting Map key
+         * @param <R>
+         *        loaded entity type
+         * @param <K>
+         *        Map key type
          * @return non-null LinkedHashMap
          */
         public <R, K> Map<K, R> loadMap(Function<Collection<ID>, Collection<R>> loader, Function<R, K> keyExtractor) {
@@ -1001,18 +1156,24 @@ public final class Lookups {
         /**
          * Loads foreign entities and indexes them into a Map with custom value extractor.
          *
-         * @param loader         repository or facade loader function
-         * @param keyExtractor   function extracting Map key
-         * @param valueExtractor function extracting Map value
-         * @param <R>            loaded entity type
-         * @param <K>            Map key type
-         * @param <V>            Map value type
+         * @param loader
+         *        repository or facade loader function
+         * @param keyExtractor
+         *        function extracting Map key
+         * @param valueExtractor
+         *        function extracting Map value
+         * @param <R>
+         *        loaded entity type
+         * @param <K>
+         *        Map key type
+         * @param <V>
+         *        Map value type
          * @return non-null LinkedHashMap
          */
         public <R, K, V> Map<K, V> loadMap(
-                Function<Collection<ID>, Collection<R>> loader,
-                Function<R, K> keyExtractor,
-                Function<R, V> valueExtractor) {
+            Function<Collection<ID>, Collection<R>> loader,
+            Function<R, K> keyExtractor,
+            Function<R, V> valueExtractor) {
             return load(loader).toMap(keyExtractor, valueExtractor);
         }
 

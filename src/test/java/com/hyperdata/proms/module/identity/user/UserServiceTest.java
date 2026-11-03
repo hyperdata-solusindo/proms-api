@@ -46,8 +46,7 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
-    @DisplayName(
-            "GIVEN authenticated user WHEN getMe THEN returns complete profile with active tenant, features, and otherTenants")
+    @DisplayName("GIVEN authenticated user WHEN getMe THEN returns complete profile with active tenant, features, and otherTenants")
     void givenAuthenticatedUser_whenGetMe_thenReturnsFullProfile() {
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
@@ -67,8 +66,8 @@ class UserServiceTest {
         otherMember.setRole("member");
         otherMember.setStatus("active");
 
-        TenantDetailDto tenantDetail =
-                new TenantDetailDto(tenantId, "hyperdata", "Hyperdata", "active", "Asia/Jakarta");
+        TenantDetailDto tenantDetail = new TenantDetailDto(tenantId, "hyperdata", "Hyperdata", "active",
+            "Asia/Jakarta");
         TenantSummaryDto otherSummary = new TenantSummaryDto(otherTenantId, "telemedis", "Telemedis");
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));

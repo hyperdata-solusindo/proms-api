@@ -38,9 +38,10 @@ public class DefaultTenantFacade implements TenantFacade {
         if (tenantIds == null || tenantIds.isEmpty()) {
             return List.of();
         }
-        return tenantRepository.findAllById(tenantIds).stream()
-                .map(tenantMapper::toSummaryDto)
-                .toList();
+        return tenantRepository.findAllById(tenantIds)
+            .stream()
+            .map(tenantMapper::toSummaryDto)
+            .toList();
     }
 
     @Override

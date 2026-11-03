@@ -9,15 +9,18 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionRepository
-        extends JpaRepository<Subscription, UUID>, JpaSpecificationExecutor<Subscription> {
+    extends
+        JpaRepository<Subscription, UUID>,
+        JpaSpecificationExecutor<Subscription> {
 
-    @Query(
-            """
-                SELECT s FROM Subscription s
-                WHERE s.tenantId = :tenantId
-                  AND s.status = :status
-                ORDER BY s.createdAt DESC
-                LIMIT 1
-            """)
-    Optional<Subscription> findLatestActiveByTenantId(@Param("tenantId") UUID tenantId, @Param("status") String status);
+    @Query("""
+            SELECT s FROM Subscription s
+            WHERE s.tenantId = :tenantId
+              AND s.status = :status
+            ORDER BY s.createdAt DESC
+            LIMIT 1
+        """)
+    Optional<Subscription> findLatestActiveByTenantId(@Param("tenantId")
+    UUID tenantId, @Param("status")
+    String status);
 }
