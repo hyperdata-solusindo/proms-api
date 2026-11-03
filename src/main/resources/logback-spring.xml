@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Register Sensitive Data Masking Converter -->
+    <conversionRule conversionWord="mask"
+                    converterClass="com.hyperdata.proms.common.observability.masking.MaskingPatternConverter" />
+
+    <!-- Sentry Appender for Logback -->
+    <appender name="SENTRY" class="io.sentry.logback.SentryAppender">
+        <minimumEventLevel>WARN</minimumEventLevel>
+        <minimumBreadcrumbLevel>INFO</minimumBreadcrumbLevel>
+    </appender>
+
+    <!-- LOCAL & DEV PROFILE: Human-readable Colored Console with Trace/Span IDs -->
+    <springProfile name="!prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr([%X{traceId:-},%X{spanId:-}]){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} : %mask(%m%n)</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+
+    <!-- PROD PROFILE: Structured Single-Line JSON (Logstash/ECS) -->
+    <springProfile name="prod">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                    </timestamp>
+                    <logLevel/>
+                    <threadName/>
+                    <loggerName/>
+                    <pattern>
+                        <pattern>
+                            {
+                            "traceId": "%X{traceId:-}",
+                            "spanId": "%X{spanId:-}",
+                            "message": "%mask(%m)"
+                            }
+                        </pattern>
+                    </pattern>
+                    <stackTrace/>
+                </providers>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+            <appender-ref ref="SENTRY"/>
+        </root>
+    </springProfile>
+</configuration>

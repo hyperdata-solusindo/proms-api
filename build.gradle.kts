@@ -37,6 +37,22 @@ dependencies {
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
 
+    // Observability: OpenTelemetry & Micrometer Tracing
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+
+    // Sentry Spring Boot & Logback Integration
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
+    implementation("io.sentry:sentry-logback:7.18.0")
+
+    // Structured JSON Logging for Production
+    runtimeOnly("net.logstash.logback:logstash-logback-encoder:8.0")
+
+    // Spring AspectJ / AOP for AutoTraceAspect
+    implementation("org.springframework.boot:spring-boot-starter-aspectj")
+
     // Validation (YAVI)
     implementation("am.ik.yavi:yavi:$yaviVersion")
 
