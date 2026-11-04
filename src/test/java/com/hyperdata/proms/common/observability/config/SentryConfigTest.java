@@ -44,4 +44,19 @@ class SentryConfigTest {
             .doesNotContainKeys("Authorization", "Cookie", "Set-Cookie", "X-Api-Key")
             .containsEntry("Content-Type", "application/json");
     }
+
+    @Test
+    @DisplayName("Should sync eventId with traceId in BeforeSendCallback when present")
+    void shouldSyncEventIdWithTraceId() {
+        SentryConfig config = new SentryConfig("", "test", "api", "api@0.0.1", 1.0);
+        var callback = config.sentryBeforeSendCallback();
+
+        SentryEvent event = new SentryEvent();
+        String traceId = "5788f5124af1188759579de096cede86";
+        event.setTag("trace_id", traceId);
+
+        SentryEvent processed = callback.execute(event, null);
+
+        assertThat(processed.getEventId().toString().replace("-", "")).isEqualTo(traceId);
+    }
 }

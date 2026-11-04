@@ -31,15 +31,31 @@ public class TraceIdHeaderFilter extends OncePerRequestFilter {
         HttpServletRequest request,
         HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
+        String traceId = null;
         if (tracer != null) {
             Span currentSpan = tracer.currentSpan();
             if (currentSpan != null && currentSpan.context() != null) {
-                String traceId = currentSpan.context().traceId();
+                traceId = currentSpan.context().traceId();
                 if (traceId != null && !traceId.isBlank()) {
                     response.setHeader(TRACE_ID_HEADER, traceId);
                 }
             }
         }
+
+        if (traceId != null && !traceId.isBlank()) {
+            final String finalTraceId = traceId;
+            io.sentry.Sentry.configureScope(scope -> {
+                scope.setTag("trace_id", finalTraceId);
+                scope.setTag("traceId", finalTraceId);
+                scope.setTag("otel.trace_id", finalTraceId);
+                try {
+                    scope.getPropagationContext().setTraceId(new io.sentry.protocol.SentryId(finalTraceId));
+                } catch (Exception ignored) {
+                    // Fallback gracefully if traceId format differs
+                }
+            });
+        }
+
         filterChain.doFilter(request, response);
     }
 }

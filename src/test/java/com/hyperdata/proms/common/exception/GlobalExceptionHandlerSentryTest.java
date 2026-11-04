@@ -48,6 +48,29 @@ class GlobalExceptionHandlerSentryTest {
         ResponseEntity<RestResponse<Void>> response = handler.handleGenericException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody().message()).contains("unexpected internal server error");
+        assertThat(response.getBody().message()).isEqualTo("An unexpected internal server error occurred");
+        assertThat(response.getBody().traceId()).isEqualTo("sample-trace-id-12345");
+    }
+
+    @Test
+    @DisplayName("Should handle 4xx BaseException without throwing or failing")
+    void shouldHandle4xxBaseException() {
+        BaseException ex = new ResourceNotFoundException("User not found");
+        ResponseEntity<RestResponse<Void>> response = handler.handleBaseException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody().message()).isEqualTo("User not found");
+        assertThat(response.getBody().traceId()).isEqualTo("sample-trace-id-12345");
+    }
+
+    @Test
+    @DisplayName("Should handle 5xx BaseException with 500 internal server error")
+    void shouldHandle5xxBaseException() {
+        BaseException ex = new BusinessException("Storage disk full", HttpStatus.INTERNAL_SERVER_ERROR);
+        ResponseEntity<RestResponse<Void>> response = handler.handleBaseException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().message()).isEqualTo("Storage disk full");
+        assertThat(response.getBody().traceId()).isEqualTo("sample-trace-id-12345");
     }
 }

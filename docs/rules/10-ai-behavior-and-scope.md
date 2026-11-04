@@ -20,3 +20,31 @@ Before concluding a task, run the verification commands:
 3. `./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"`
 
 Fix any compiler, formatting, or test failures autonomously before reporting completion.
+
+---
+
+## 4. Runtime Verification & Process Hygiene (Anti-Stale & Ghost Process Protocol)
+
+When verifying changes against live endpoints (`bootRun` or HTTP requests):
+1. **Source Integrity First**: Always verify `git status` or `git diff <file>` to ensure source changes are truly present on disk before running builds or tests.
+2. **Process Cleanliness**: Never launch background servers without checking and terminating existing listeners on target ports (`lsof -ti :<port> | xargs kill -9 2>/dev/null || true`).
+3. **Bypass Stale Daemon Cache**: When class signatures, constructors, annotations, or configurations change, compile with `--rerun-tasks` or stop daemons (`./gradlew --stop`) to ensure bytecode is genuinely rebuilt.
+4. **Never Leave Dev Servers Running**: Background test servers spawned by the agent MUST be explicitly terminated immediately after verification curl checks succeed.
+
+---
+
+## 5. DOs and DON'Ts for AI Agents
+
+### DOs:
+- **DO verify disk state with `git status` / `git diff`** before concluding that a fix or code change is ready.
+- **DO check active port bindings (`lsof -i :8080`)** before and after running test servers to avoid port collisions and stale responses.
+- **DO use `--rerun-tasks` or `./gradlew --stop`** when modifying annotations, interfaces, or dependency injection constructors to avoid Gradle daemon stale bytecode cache.
+- **DO kill any background process spawned during testing** immediately after verification is finished so the developer's workspace remains clean.
+- **DO verify response bodies and headers (`curl -i`)** end-to-end to confirm both HTTP status code and payload structure match expectations.
+
+### DON'Ts:
+- **DON'T assume code edits succeeded without checking git diff** (never trust memory over disk state).
+- **DON'T leave background `bootRun` or server processes running** as zombies on developer machine.
+- **DON'T rely on Gradle UP-TO-DATE outputs** when verifying behavior changes that depend on newly added constructor parameters or reflection/annotations.
+- **DON'T test only unit tests if runtime/framework wiring is being verified**; test the actual Spring context or mock container cleanly.
+- **DON'T execute `git commit` or `git push`** without explicit permission from the user.

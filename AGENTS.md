@@ -122,6 +122,7 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Targeted tests pass (`./gradlew test --tests "..."`).
 - [ ] Code formatted cleanly with `./gradlew spotlessApply`.
 - [ ] Architecture tests pass (`./gradlew test --tests "*ArchitectureTest*"`).
+- [ ] Process & Disk Hygiene: Verified with `git status`/`git diff`, no stale daemon cache, and no leftover background processes on ports.
 
 ---
 

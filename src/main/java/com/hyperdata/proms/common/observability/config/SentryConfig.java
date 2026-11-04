@@ -60,6 +60,23 @@ public class SentryConfig {
                 event.getRequest().getHeaders().remove("Set-Cookie");
                 event.getRequest().getHeaders().remove("X-Api-Key");
             }
+
+            // Sync Event ID with Trace ID so searching either traceId or eventId in GlitchTip matches directly
+            String traceId = event.getTag("trace_id");
+            if (traceId == null || traceId.isBlank()) {
+                traceId = event.getTag("traceId");
+            }
+            if (traceId == null || traceId.isBlank()) {
+                traceId = event.getTag("otel.trace_id");
+            }
+            if (traceId != null && !traceId.isBlank()) {
+                try {
+                    event.setEventId(new io.sentry.protocol.SentryId(traceId));
+                } catch (Exception ignored) {
+                    // Fallback gracefully if traceId format does not fit 32-hex
+                }
+            }
+
             return event;
         };
     }
