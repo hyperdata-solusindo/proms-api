@@ -38,4 +38,18 @@ class TraceIdHeaderFilterTest {
             .isEqualTo("4bf92f3577b34da6a3ce929d0e0e4736");
         verify(filterChain).doFilter(request, response);
     }
+
+    @Test
+    @DisplayName("Should proceed without error when tracer is null (tracing unconfigured)")
+    void shouldProceedWhenTracerIsNull() throws ServletException, IOException {
+        TraceIdHeaderFilter filter = new TraceIdHeaderFilter(null);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain filterChain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, filterChain);
+
+        assertThat(response.getHeader(TraceIdHeaderFilter.TRACE_ID_HEADER)).isNull();
+        verify(filterChain).doFilter(request, response);
+    }
 }

@@ -8,9 +8,9 @@ import io.sentry.SentryLevel;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -24,8 +24,8 @@ public class GlobalExceptionHandler {
         this(null);
     }
 
-    @Autowired
-    public GlobalExceptionHandler(Tracer tracer) {
+    public GlobalExceptionHandler(@Nullable
+    Tracer tracer) {
         this.tracer = tracer;
     }
 
@@ -60,12 +60,17 @@ public class GlobalExceptionHandler {
         Sentry.withScope(scope -> {
             scope.setLevel(level);
             scope.setTag("error.category", category);
+
             if (tracer != null) {
                 Span currentSpan = tracer.currentSpan();
                 if (currentSpan != null && currentSpan.context() != null) {
-                    scope.setTag("otel.trace_id", currentSpan.context().traceId());
+                    String traceId = currentSpan.context().traceId();
+                    if (traceId != null && !traceId.isBlank()) {
+                        scope.setTag("otel.trace_id", traceId);
+                    }
                 }
             }
+
             Sentry.captureException(ex);
         });
     }

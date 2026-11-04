@@ -2,19 +2,23 @@ package com.hyperdata.proms.common.observability.aspect;
 
 import io.micrometer.tracing.ScopedSpan;
 import io.micrometer.tracing.Tracer;
-import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 @Aspect
 @Component
-@RequiredArgsConstructor
 public class AutoTraceAspect {
 
     private final Tracer tracer;
+
+    public AutoTraceAspect(@Nullable
+    Tracer tracer) {
+        this.tracer = tracer;
+    }
 
     @Pointcut("execution(public * com.hyperdata.proms.module..service..*(..)) || " +
         "execution(public * com.hyperdata.proms.module..facade.internal..*(..))")
@@ -23,6 +27,9 @@ public class AutoTraceAspect {
 
     @Around("businessMethods()")
     public Object traceBusinessMethod(ProceedingJoinPoint pjp) throws Throwable {
+        if (tracer == null) {
+            return pjp.proceed();
+        }
         Class<?> declaringType = pjp.getSignature().getDeclaringType();
         String methodName = pjp.getSignature().getName();
         String spanName = declaringType.getSimpleName() + "#" + methodName;

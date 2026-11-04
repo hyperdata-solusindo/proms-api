@@ -7,31 +7,37 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
-@RequiredArgsConstructor
 public class TraceIdHeaderFilter extends OncePerRequestFilter {
 
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
 
     private final Tracer tracer;
 
+    public TraceIdHeaderFilter(@Nullable
+    Tracer tracer) {
+        this.tracer = tracer;
+    }
+
     @Override
     protected void doFilterInternal(
         HttpServletRequest request,
         HttpServletResponse response,
         FilterChain filterChain) throws ServletException, IOException {
-        Span currentSpan = tracer.currentSpan();
-        if (currentSpan != null && currentSpan.context() != null) {
-            String traceId = currentSpan.context().traceId();
-            if (traceId != null && !traceId.isBlank()) {
-                response.setHeader(TRACE_ID_HEADER, traceId);
+        if (tracer != null) {
+            Span currentSpan = tracer.currentSpan();
+            if (currentSpan != null && currentSpan.context() != null) {
+                String traceId = currentSpan.context().traceId();
+                if (traceId != null && !traceId.isBlank()) {
+                    response.setHeader(TRACE_ID_HEADER, traceId);
+                }
             }
         }
         filterChain.doFilter(request, response);

@@ -43,8 +43,8 @@ dependencies {
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 
-    // Sentry Spring Boot & Logback Integration
-    implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
+    // Sentry Core & Logback Integration (Spring Boot 4 compatible)
+    implementation("io.sentry:sentry:7.18.0")
     implementation("io.sentry:sentry-logback:7.18.0")
 
     // Structured JSON Logging for Production

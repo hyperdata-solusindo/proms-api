@@ -4,10 +4,16 @@
 
     <!-- Register Sensitive Data Masking Converter -->
     <conversionRule conversionWord="mask"
-                    converterClass="com.hyperdata.proms.common.observability.masking.MaskingPatternConverter" />
+                    class="com.hyperdata.proms.common.observability.masking.MaskingPatternConverter" />
+
+    <!-- Spring Property for Sentry DSN fallback -->
+    <springProperty scope="context" name="sentryDsn" source="sentry.dsn" defaultValue=""/>
 
     <!-- Sentry Appender for Logback -->
     <appender name="SENTRY" class="io.sentry.logback.SentryAppender">
+        <options>
+            <dsn>${sentryDsn}</dsn>
+        </options>
         <minimumEventLevel>WARN</minimumEventLevel>
         <minimumBreadcrumbLevel>INFO</minimumBreadcrumbLevel>
     </appender>

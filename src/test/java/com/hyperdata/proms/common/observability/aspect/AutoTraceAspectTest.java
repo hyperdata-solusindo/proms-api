@@ -36,4 +36,17 @@ class AutoTraceAspectTest {
         verify(span).tag("code.function", "testMethod");
         verify(span).end();
     }
+
+    @Test
+    @DisplayName("Should proceed without error when tracer is null (tracing unconfigured)")
+    void shouldProceedWhenTracerIsNull() throws Throwable {
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        when(pjp.proceed()).thenReturn("fallbackResult");
+
+        AutoTraceAspect aspect = new AutoTraceAspect(null);
+        Object result = aspect.traceBusinessMethod(pjp);
+
+        assertThat(result).isEqualTo("fallbackResult");
+        verify(pjp).proceed();
+    }
 }
