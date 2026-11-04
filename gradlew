@@ -91,22 +91,22 @@ APP_HOME=$( cd -P "${APP_HOME:-./}" > /dev/null && printf '%s\n' "$PWD" ) || exi
 # Load environment variables from .env if present
 if [ -f "$APP_HOME/.env" ]; then
     while IFS= read -r line || [ -n "$line" ]; do
-        # Ignore comments and empty lines
         case "$line" in
             \#*|"") continue ;;
-            JAVA_HOME=*)
-                val="${line#JAVA_HOME=}"
-                # Strip leading/trailing quotes if present
+            *=*)
+                key="${line%%=*}"
+                val="${line#*=}"
                 val="${val%\"}"
                 val="${val#\"}"
                 val="${val%\'}"
                 val="${val#\'}"
-                export JAVA_HOME="$val"
+                if echo "$key" | grep -qE '^[a-zA-Z_][a-zA-Z0-9_]*$'; then
+                    export "$key=$val"
+                fi
                 ;;
         esac
     done < "$APP_HOME/.env"
 fi
-
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD=maximum
 
