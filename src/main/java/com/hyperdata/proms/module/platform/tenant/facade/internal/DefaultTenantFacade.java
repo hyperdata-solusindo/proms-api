@@ -1,5 +1,6 @@
 package com.hyperdata.proms.module.platform.tenant.facade.internal;
 
+import com.hyperdata.proms.module.platform.tenant.constant.TenantCacheNames;
 import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
 import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantDetailDto;
 import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +26,13 @@ public class DefaultTenantFacade implements TenantFacade {
     private final TenantMapper tenantMapper;
 
     @Override
+    @Cacheable(cacheNames = TenantCacheNames.TENANT_DETAILS, key = "#tenantId", unless = "#result == null")
     public Optional<TenantDetailDto> getTenantDetail(UUID tenantId) {
         return tenantRepository.findById(tenantId).map(tenantMapper::toDetailDto);
     }
 
     @Override
+    @Cacheable(cacheNames = TenantCacheNames.TENANT_SUMMARIES, key = "#tenantId", unless = "#result == null")
     public Optional<TenantSummaryDto> getTenantSummary(UUID tenantId) {
         return tenantRepository.findById(tenantId).map(tenantMapper::toSummaryDto);
     }
@@ -45,6 +49,7 @@ public class DefaultTenantFacade implements TenantFacade {
     }
 
     @Override
+    @Cacheable(cacheNames = TenantCacheNames.TENANT_FEATURES, key = "#tenantId")
     public Map<String, Boolean> getTenantFeatures(UUID tenantId) {
         Map<String, Boolean> features = new HashMap<>();
         features.put("points", true);

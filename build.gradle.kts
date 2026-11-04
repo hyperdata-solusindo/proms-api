@@ -32,7 +32,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
+
+    // Cache Provider (Caffeine L1 Cache)
+    implementation("com.github.ben-manes.caffeine:caffeine")
 
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")

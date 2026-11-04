@@ -39,6 +39,7 @@
 com.hyperdata.proms/
 ├── ApiApplication.java                         # Main application runner
 ├── common/                                     # Cross-cutting concerns
+│   ├── config/                                 # Central infrastructure config (e.g. CacheConfig)
 │   ├── exception/                              # BaseException, GlobalExceptionHandler, custom exceptions
 │   ├── observability/                          # OTel tracing, filters, AOP aspects, masking engine
 │   ├── response/                               # RestResponse<T>, PageResponse<T>
@@ -47,6 +48,7 @@ com.hyperdata.proms/
 └── module/
     └── <domain>/                               # e.g., inventory, sales, identity
         └── <feature>/                          # e.g., product, order, auth
+            ├── constant/                       # Module constants & cache names (<Feature>CacheNames)
             ├── controller/                     # REST API Controllers (for web/mobile clients)
             ├── facade/                         # 👉 Public Contract for other modules
             │   ├── <Feature>Facade.java        # Public Interface (ONLY contract exposed)
