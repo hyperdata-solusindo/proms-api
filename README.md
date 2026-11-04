@@ -181,22 +181,33 @@ Salin file template `.env.example` ke `.env`:
 cp .env.example .env
 ```
 
-### 2. Atur `JAVA_HOME` (Untuk Menjalankan Lokal Tanpa Docker)
+### 2. Atur Path JDK / Java Home (`gradle.properties`)
 
-Buka file `.env` dan pastikan direktori `JAVA_HOME` sesuai dengan instalasi JDK 21 di mesin Anda:
+Gradle membutuhkan JDK 21 untuk mengompilasi dan menjalankan task. Jika `JAVA_HOME` belum diekspor secara global di environment shell Anda, Anda dapat menentukan lokasi JDK 21 melalui properti standard Gradle `org.gradle.java.home`:
 
-- **Linux (Ubuntu/Debian)**:
-  ```env
-  JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-  ```
-- **macOS (Homebrew Apple Silicon)**:
-  ```env
-  JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
-  ```
-- **macOS (Homebrew Intel)**:
-  ```env
-  JAVA_HOME=/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
-  ```
+1. Buat file `gradle.properties` lokal (sudah di-ignore oleh git) atau gunakan template:
+   ```bash
+   cp gradle.properties.example gradle.properties
+   ```
+2. Sesuaikan nilai `org.gradle.java.home` dengan path instalasi JDK 21 di mesin Anda:
+   - **Linux (Ubuntu/Debian)**:
+     ```properties
+     org.gradle.java.home=/usr/lib/jvm/java-21-openjdk-amd64
+     ```
+   - **macOS (Homebrew Apple Silicon)**:
+     ```properties
+     org.gradle.java.home=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+     ```
+   - **macOS (Homebrew Intel)**:
+     ```properties
+     org.gradle.java.home=/usr/local/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+     ```
+   - **Windows**:
+     ```properties
+     org.gradle.java.home=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.6.7-hotspot
+     ```
+
+> 💡 **Tips Global**: Anda juga bisa meletakkan baris `org.gradle.java.home` di `~/.gradle/gradle.properties` agar berlaku otomatis untuk semua project Gradle di komputer Anda tanpa perlu membuat file di tiap repository.
 
 ### 3. Konfigurasi Token & Sliding Expiration (Mobile-Friendly)
 
