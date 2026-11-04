@@ -37,6 +37,22 @@ dependencies {
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
 
+    // Observability: OpenTelemetry & Micrometer Tracing
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+
+    // Sentry Core & Logback Integration (Spring Boot 4 compatible)
+    implementation("io.sentry:sentry:7.18.0")
+    implementation("io.sentry:sentry-logback:7.18.0")
+
+    // Structured JSON Logging for Production
+    runtimeOnly("net.logstash.logback:logstash-logback-encoder:8.0")
+
+    // Spring AspectJ / AOP for AutoTraceAspect
+    implementation("org.springframework.boot:spring-boot-starter-aspectj")
+
     // Validation (YAVI)
     implementation("am.ik.yavi:yavi:$yaviVersion")
 
@@ -89,8 +105,31 @@ tasks.named("check") {
     dependsOn("installGitHooks")
 }
 
+// Local Environment Injection (.env) for Development & Testing
+fun loadEnv(): Map<String, String> {
+    val envFile = file(".env")
+    if (!envFile.exists()) return emptyMap()
+
+    return envFile.readLines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+        .associate { line ->
+            val parts = line.split("=", limit = 2)
+            val key = parts[0].trim()
+            val value = parts[1].trim().removeSurrounding("\"").removeSurrounding("'")
+            key to value
+        }
+}
+
+val localEnv = loadEnv()
+
+tasks.withType<org.springframework.boot.gradle.tasks.run.BootRun> {
+    environment(localEnv)
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    environment(localEnv)
 }
 
 tasks.test {

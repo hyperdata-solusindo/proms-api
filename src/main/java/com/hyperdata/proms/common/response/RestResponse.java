@@ -12,10 +12,18 @@ public record RestResponse<T>(
     @Schema(description = "Pesan keterangan status respon", example = "Berhasil")
     String message,
     @Schema(description = "Data payload respon")
-    T data) {
+    T data,
+    @Schema(
+        description = "Trace ID unik untuk keperluan debugging dan pelaporan error",
+        example = "4bf92f3577b34da6a3ce929d0e0e4736")
+    String traceId) {
+
+    public RestResponse(int statusCode, String message, T data) {
+        this(statusCode, message, data, null);
+    }
 
     public static <T> RestResponse<T> ok(T data, String message) {
-        return new RestResponse<>(HttpStatus.OK.value(), message, data);
+        return new RestResponse<>(HttpStatus.OK.value(), message, data, null);
     }
 
     public static <T> RestResponse<T> ok(T data) {
@@ -23,14 +31,22 @@ public record RestResponse<T>(
     }
 
     public static <T> RestResponse<T> created(T data, String message) {
-        return new RestResponse<>(HttpStatus.CREATED.value(), message, data);
+        return new RestResponse<>(HttpStatus.CREATED.value(), message, data, null);
     }
 
     public static <T> RestResponse<T> error(HttpStatus status, String message, T data) {
-        return new RestResponse<>(status.value(), message, data);
+        return new RestResponse<>(status.value(), message, data, null);
+    }
+
+    public static <T> RestResponse<T> error(HttpStatus status, String message, T data, String traceId) {
+        return new RestResponse<>(status.value(), message, data, traceId);
     }
 
     public static RestResponse<Void> error(HttpStatus status, String message) {
-        return error(status, message, null);
+        return error(status, message, null, null);
+    }
+
+    public static RestResponse<Void> error(HttpStatus status, String message, String traceId) {
+        return error(status, message, null, traceId);
     }
 }

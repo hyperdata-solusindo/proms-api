@@ -18,6 +18,8 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+gradle.properties
+!gradle.properties.example
 
 # ==============================================================================
 # COMPILED JAVA CLASSES & RUNTIME

@@ -31,12 +31,13 @@ class RestResponseTest {
     }
 
     @Test
-    @DisplayName("Given status and message, when error() is called, then return RestResponse with null data")
-    void shouldCreateErrorResponseWithoutData() {
-        RestResponse<Void> response = RestResponse.error(HttpStatus.NOT_FOUND, "Not found");
+    @DisplayName("Given status, message, data and traceId, when error() is called, then return RestResponse with traceId")
+    void shouldCreateErrorResponseWithTraceId() {
+        RestResponse<String> response = RestResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "Server Error", null,
+            "trace-123");
 
-        assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.message()).isEqualTo("Not found");
-        assertThat(response.data()).isNull();
+        assertThat(response.statusCode()).isEqualTo(500);
+        assertThat(response.message()).isEqualTo("Server Error");
+        assertThat(response.traceId()).isEqualTo("trace-123");
     }
 }
