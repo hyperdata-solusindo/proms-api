@@ -31,6 +31,7 @@
 12. **OpenAPI & Scalar Documentation**: All `@RestController` endpoints must have `@Tag`, `@Operation`, and `@ApiResponses`. Tags must be hierarchically organized 1:1 per `<domain>` via `x-tagGroups` in Scalar UI, and non-business controllers must use `@Hidden`.
 13. **Observability & Sensitive Data Masking**: All logs must follow SLF4J standards with zero plain credential leakage. Methods in Service and Facade are auto-traced via OTel, and error responses attach an `X-Trace-Id` header.
 14. **Security & Multi-Tenancy Standards**: Tenant data isolation enforced via PostgreSQL Row Level Security (RLS) with session context (`SET LOCAL app.tenant_id`). Cache keys for tenant data must include tenant prefix (`#tenantId + ':' + #id`). Zero secret leakage (`.env`), UU PDP compliance (synthetic dummy data only), and mandatory confirmation for destructive commands and external process termination.
+15. **CI/CD, Container & Deployment Standards**: Dedicated Liquibase migration runner before app booting (`LIQUIBASE_ENABLED=false` on backend server for dynamic scaling); Production zero-downtime via Nginx Blue/Green; Staging slots via PR labels (`deploy:staging-*`); Trivy container vulnerability gate exclusively during CD deployment before pushing to GHCR; and mandatory PR template compliance (`.github/pull_request_template.md`).
 
 ---
 
@@ -82,6 +83,7 @@ Read the specific rule file before implementing features in that domain:
 - [12. OpenAPI & Scalar API Documentation Standards](docs/rules/12-openapi-and-scalar-documentation.md)
 - [13. Observability, Logging & Sensitive Data Masking Standards](docs/rules/13-observability-and-logging.md)
 - [14. Security & Multi-tenancy Standards](docs/rules/14-security-and-multi-tenancy.md)
+- [15. CI/CD, Container Hardening & Deployment Standards](docs/rules/15-ci-cd-and-deployment-standards.md)
 
 ---
 
@@ -100,8 +102,11 @@ Read the specific rule file before implementing features in that domain:
 # 4. Check formatting without modifying
 ./gradlew spotlessCheck
 
-# 5. Full project verification (Definition of Done)
+# 5. Full project verification (Definition of Done: Spotless, ArchUnit, JUnit, JaCoCo)
 ./gradlew check
+
+# 6. Create Pull Request using official repository template
+gh pr create --template .github/pull_request_template.md
 ```
 
 ---
@@ -119,7 +124,7 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Zero dead code: No unused variables, fields, methods, or unused injected dependencies.
 - [ ] Validation implemented using YAVI.
 - [ ] MapStruct mappers configured with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.IGNORE`.
-- [ ] Endpoints and DTOs documented with OpenAPI `@Tag`, `@Operation`, and `@Schema` with realistic `example` values.
+- [ ] Endpoints and DTOs documented with OpenAPI `@Tag`, `@Operation`, and `@Schema` with realistic `example` values`.
 - [ ] Observability: No unmasked sensitive data/credentials in logs, and masking unit tests pass.
 - [ ] Distributed Tracing: X-Trace-Id header attached and OTel context active.
 - [ ] Multi-tenancy & Security: Tenant-scoped cache keys include tenant prefix; no blind `kill -9` or unconfirmed destructive commands; no secrets or real PII committed.
@@ -127,6 +132,8 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Targeted tests pass (`./gradlew test --tests "..."`).
 - [ ] Code formatted cleanly with `./gradlew spotlessApply`.
 - [ ] Architecture tests pass (`./gradlew test --tests "*ArchitectureTest*"`).
+- [ ] Full quality gate passes (`./gradlew check` including JaCoCo coverage threshold).
+- [ ] Pull Request (PR) description strictly adheres to `.github/pull_request_template.md` with all DoD checklist items marked.
 - [ ] Process & Disk Hygiene: Verified with `git status`/`git diff`, no stale daemon cache, and no leftover background processes on ports.
 
 ---
