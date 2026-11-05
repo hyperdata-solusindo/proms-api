@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-# ==========================================
-# Stage 1: Build the application using Gradle & JDK 21
-# ==========================================
+# ==============================================================================
+# Stage 1: Build the application using Gradle & Eclipse Temurin JDK 21
+# ==============================================================================
 FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /workspace
@@ -10,32 +10,31 @@ WORKDIR /workspace
 # Install bash for Gradle wrapper script compatibility
 RUN apk add --no-cache bash
 
-# 1. Copy Gradle wrapper and configuration files first to leverage build cache
-COPY platform/gradlew ./platform/
-COPY platform/gradle ./platform/gradle
-COPY platform/build.gradle.kts platform/settings.gradle.kts ./platform/
-COPY common-cli/build.gradle.kts ./common-cli/
+# 1. Copy Gradle wrapper and build configuration to leverage Docker layer caching
+COPY gradlew settings.gradle.kts build.gradle.kts ./
+COPY gradle ./gradle
 
-# 2. Download dependencies (cached layer)
-WORKDIR /workspace/platform
+# Download dependencies (warm up layer cache)
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
 
-# 3. Copy source code for common-cli and platform
-COPY common-cli/src /workspace/common-cli/src
-COPY platform/src /workspace/platform/src
+# 2. Copy source code and resources
+COPY src ./src
 
-# 4. Build application executable jar without running tests
+# 3. Build executable Spring Boot JAR (skip tests since tests run in CI job)
 RUN ./gradlew bootJar -x test --no-daemon && \
     find build/libs -maxdepth 1 -name "*.jar" ! -name "*-plain.jar" -exec cp {} /workspace/app.jar \;
 
-# ==========================================
-# Stage 2: Minimal JRE 21 Runtime
-# ==========================================
+# ==============================================================================
+# Stage 2: Minimal & Hardened JRE 21 Runtime
+# ==============================================================================
 FROM eclipse-temurin:21-jre-alpine AS runner
 
 WORKDIR /app
 
-# Create non-root system user for security
+# Install curl for container health check
+RUN apk add --no-cache curl tzdata
+
+# Create dedicated non-root system user and group
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy executable jar from builder stage
@@ -47,16 +46,15 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 # Default Environment Variables
-ENV DB_HOST=postgres \
-    DB_PORT=5432 \
-    DB_NAME=app_platform \
-    DB_USER=platform_user \
-    DB_PASSWORD=platform_password \
-    LIQUIBASE_ENABLED=true \
-    JAVA_OPTS=""
+ENV SERVER_PORT=8080 \
+    SPRING_PROFILES_ACTIVE=prod \
+    JAVA_OPTS="-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 
-# Default Spring Boot server port
+# Default application port
 EXPOSE 8080
 
-# Support passing JVM options and CLI arguments (e.g. db:migrate, db:seed)
+# Healthcheck using Spring Boot Actuator probe
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=25s \
+  CMD curl -f http://localhost:8080/actuator/health/liveness || exit 1
+
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar \"$@\"", "--"]

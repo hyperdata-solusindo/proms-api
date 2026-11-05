@@ -44,18 +44,19 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Run verification (Spotless, JUnit, ArchUnit)
+      - name: Run verification (Spotless, JUnit, ArchUnit, JaCoCo)
         run: ./gradlew check --build-cache
 
-      - name: Upload Test & Verification Reports on Failure
-        if: failure()
+      - name: Upload Test & Coverage Reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gradle-reports
+          name: verification-and-coverage-reports
           path: |
             build/reports/tests/
+            build/reports/jacoco/test/html/
             build/reports/problems/
-          retention-days: 7
+          retention-days: 14
 
   ai-review:
     name: AI Architectural Review (Gemini)
@@ -341,3 +342,23 @@ jobs:
               print(f"::error ::Failed to post comment to GitHub PR: {e}")
               sys.exit(1)
           EOF
+
+  secret-and-fs-security-scan:
+    name: Fast Secret & Config Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan Repository Configuration & Secrets with Trivy
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'config,secret'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1' # Enterprise Gate: Blokir jika ada hardcoded secret bocor
+          severity: 'CRITICAL,HIGH'
+
+
