@@ -127,6 +127,7 @@ jobs:
                       m["name"].replace("models/", "")
                       for m in data.get("models", [])
                       if "generateContent" in m.get("supportedGenerationMethods", [])
+                      and "tts" not in m.get("name", "").lower()
                   ]
                   print(f"Dynamically discovered models supporting generateContent: {discovered}")
                   # Prioritize flash models, then pro models
@@ -137,7 +138,7 @@ jobs:
                           candidate_models.append(m)
           except Exception as e:
               print(f"::warning ::Dynamic model discovery failed ({e}), using default fallback list.")
-              for fallback in ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"]:
+              for fallback in ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-2.5-flash"]:
                   if fallback not in candidate_models:
                       candidate_models.append(fallback)
 
@@ -152,7 +153,10 @@ jobs:
               payload = json.dumps({
                   "contents": [{
                       "parts": [{"text": prompt}]
-                  }]
+                  }],
+                  "generationConfig": {
+                      "maxOutputTokens": 4096
+                  }
               }).encode("utf-8")
 
               # Retry up to 3 times for transient 503/429 spikes
