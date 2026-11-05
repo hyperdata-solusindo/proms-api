@@ -178,11 +178,11 @@ jobs:
 
           # 4. Fast-path model priority (instant execution without upfront ListModels roundtrip)
           default_fast_models = [
-              "gemini-3.8-flash",
-              "gemini-3.6-flash",
-              "gemini-3.5-flash-lite",
-              "gemini-3.1-flash-lite",
-              "gemini-3-flash-preview"
+              "gemini-3.6-flash",       # High Availability Stable (paling tahan spike 503)
+              "gemini-3.8-flash",       # Flagship Flash (kapabilitas penalaran tertinggi)
+              "gemini-3.5-flash-lite",  # Throughput tinggi
+              "gemini-3.1-flash-lite",  # Fallback lite
+              "gemini-3-flash-preview"  # Fallback preview
           ]
           candidate_models = []
           if preferred_model:
