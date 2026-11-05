@@ -1,0 +1,162 @@
+name: AI Architecture Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai-review:
+    name: AI Architectural Review (Gemini)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run AI Architecture Review
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          python - << 'EOF'
+          import os
+          import sys
+          import json
+          import subprocess
+          import urllib.request
+          import urllib.error
+
+          gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+          github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+          repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+          pr_number = os.environ.get("PR_NUMBER", "").strip()
+          base_ref = os.environ.get("BASE_REF", "").strip()
+
+          if not gemini_key:
+              print("::notice ::GEMINI_API_KEY secret is not configured. Skipping automated AI review.")
+              print("To enable automated AI reviews, add GEMINI_API_KEY in Repository Settings > Secrets > Actions.")
+              sys.exit(0)
+
+          # 1. Fetch git diff against target base branch
+          try:
+              subprocess.run(["git", "fetch", "origin", base_ref], check=True)
+              diff = subprocess.check_output(
+                  ["git", "diff", f"origin/{base_ref}...HEAD"],
+                  stderr=subprocess.STDOUT
+              ).decode("utf-8", errors="ignore")
+          except Exception as e:
+              print(f"::warning ::Failed to compute git diff: {e}")
+              sys.exit(0)
+
+          if not diff.strip():
+              print("No diff detected. Skipping review.")
+              sys.exit(0)
+
+          # 2. Read AGENTS.md rules
+          agents_content = ""
+          if os.path.exists("AGENTS.md"):
+              with open("AGENTS.md", "r", encoding="utf-8") as f:
+                  agents_content = f.read()
+
+          # 3. Construct evaluation prompt
+          prompt = f"""
+          Anda adalah Senior Architecture & Security Reviewer untuk project enterprise 'hyperdata-solusindo/proms-api-java'.
+          Tinjau perubahan kode (git diff) di bawah ini berdasarkan aturan pada AGENTS.md dan pastikan kepatuhan pada 14 Golden Rules:
+
+          === STANDAR PROYEK (AGENTS.md) ===
+          {agents_content}
+
+          === GIT DIFF YANG DIAJUKAN ===
+          {diff[:35000]}
+          ==============================
+
+          Format laporan review dalam bahasa Indonesia dengan struktur Markdown berikut:
+          ### 🤖 Laporan AI Architecture Review
+
+          #### 1. Ringkasan Perubahan
+          (Ringkasan 2-3 kalimat mengenai apa yang diubah/ditambahkan).
+
+          #### 2. Kepatuhan 14 Golden Rules & Checklist Arsitektur
+          - **Batas Antar-Modul (Rule 1 & 2)**: [PASS / VIOLATION] (Keterangan)
+          - **DTO Immutability (Rule 4)**: [PASS / VIOLATION] (Keterangan)
+          - **JPA Entity & Lombok (Rule 5)**: [PASS / VIOLATION] (Keterangan)
+          - **Dependency Injection (Rule 6)**: [PASS / VIOLATION] (Keterangan)
+          - **YAVI Validation (Rule 7)**: [PASS / VIOLATION] (Keterangan)
+          - **Anti-N+1 / The Golden Stack (Rule 10)**: [PASS / VIOLATION] (Keterangan)
+          - **Multi-Tenancy & Security (Rule 14)**: [PASS / VIOLATION] (Keterangan)
+
+          #### 3. Temuan & Saran Konstruktif (Jika ada)
+          (Jelaskan baris/bagian kode yang melanggar beserta contoh perbaikannya DO vs DON'T).
+
+          #### 4. Kesimpulan & Rekomendasi
+          **Status**: `[APPROVED]` jika bersih dan patuh, atau `[REQUEST_CHANGES]` jika terdapat pelanggaran aturan inti.
+          """
+
+          # 4. Call Google Gemini API (gemini-2.5-flash)
+          gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
+          payload = json.dumps({
+              "contents": [{
+                  "parts": [{"text": prompt}]
+              }]
+          }).encode("utf-8")
+
+          req = urllib.request.Request(
+              gemini_url,
+              data=payload,
+              headers={"Content-Type": "application/json"}
+          )
+
+          try:
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  result = json.loads(resp.read().decode("utf-8"))
+                  review_text = result["candidates"][0]["content"]["parts"][0]["text"]
+          except urllib.error.HTTPError as e:
+              err_body = e.read().decode("utf-8", errors="ignore")
+              print(f"::error ::Gemini API error ({e.code}): {err_body}")
+              sys.exit(1)
+          except Exception as e:
+              print(f"::error ::Failed to call Gemini API: {e}")
+              sys.exit(1)
+
+          # 5. Post review comment to GitHub Pull Request
+          gh_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+          comment_payload = json.dumps({
+              "body": review_text
+          }).encode("utf-8")
+
+          gh_req = urllib.request.Request(
+              gh_url,
+              data=comment_payload,
+              headers={
+                  "Authorization": f"Bearer {github_token}",
+                  "Accept": "application/vnd.github.v3+json",
+                  "Content-Type": "application/json",
+                  "User-Agent": "PROMS-AI-PR-Reviewer"
+              }
+          )
+
+          try:
+              with urllib.request.urlopen(gh_req, timeout=30) as resp:
+                  print("AI review comment posted successfully to PR!")
+          except Exception as e:
+              print(f"::error ::Failed to post comment to GitHub PR: {e}")
+              sys.exit(1)
+          EOF
