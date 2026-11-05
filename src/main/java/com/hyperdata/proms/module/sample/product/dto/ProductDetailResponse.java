@@ -5,4 +5,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ProductDetailResponse(
-        UUID id, String sku, String name, BigDecimal price, int stock, boolean active, Instant createdAt) {}
+    UUID id,
+    String sku,
+    String name,
+    BigDecimal price,
+    int stock,
+    boolean active,
+    Instant createdAt) {
+}

@@ -5,6 +5,7 @@ import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.util.Lookups;
 import com.hyperdata.proms.common.validation.YaviValidator;
+import com.hyperdata.proms.module.sample.product.constant.ProductCacheNames;
 import com.hyperdata.proms.module.sample.product.dto.CreateProductRequest;
 import com.hyperdata.proms.module.sample.product.dto.ProductDetailResponse;
 import com.hyperdata.proms.module.sample.product.dto.ProductFilter;
@@ -18,6 +19,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,10 +46,11 @@ public class ProductService {
         return productMapper.toDetailResponse(saved);
     }
 
+    @Cacheable(cacheNames = ProductCacheNames.PRODUCT_DETAILS, key = "#id")
     @Transactional(readOnly = true)
     public ProductDetailResponse getProductById(UUID id) {
-        Product product =
-                productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product", id));
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product", id));
         return productMapper.toDetailResponse(product);
     }
 
@@ -63,12 +67,13 @@ public class ProductService {
         return PageResponse.from(productPage, items);
     }
 
+    @CacheEvict(cacheNames = ProductCacheNames.PRODUCT_DETAILS, key = "#id")
     @Transactional
     public ProductDetailResponse updateProduct(UUID id, UpdateProductRequest request) {
         YaviValidator.validateAndThrow(UpdateProductRequest.validator, request);
 
-        Product product =
-                productRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Product", id));
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Product", id));
 
         product.setName(request.name());
         product.setPrice(request.price());
@@ -81,6 +86,7 @@ public class ProductService {
         return productMapper.toDetailResponse(updated);
     }
 
+    @CacheEvict(cacheNames = ProductCacheNames.PRODUCT_DETAILS, key = "#id")
     @Transactional
     public void deleteProduct(UUID id) {
         if (!productRepository.existsById(id)) {

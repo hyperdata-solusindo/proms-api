@@ -1,3 +1,5 @@
 # Cursor AI Rules
 You MUST read and follow the master project directives in `AGENTS.md` and `docs/rules/`.
 All project architecture, coding idioms, YAVI validation, MapStruct, JPA standards, and testing conventions are strictly defined in `AGENTS.md`.
+
+When planning or brainstorming features, follow `.agents/skills/project-brainstorming/SKILL.md`.

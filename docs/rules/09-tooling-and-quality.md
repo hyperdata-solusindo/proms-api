@@ -1,7 +1,14 @@
 # Rule 09: Automated Quality Gates (ArchUnit, Spotless & IDE Formatting)
 
-## 1. Spotless Java Formatter (Palantir Java Format)
-Spotless menggunakan **Palantir Java Format** (`palantirJavaFormat()`), yang dirancang khusus untuk memformat lambda, stream, dan fluent builder (seperti YAVI dan CriteriaBuilder) secara rapi dan linear tanpa nesting bertingkat (*staircase indentation*) yang terjadi pada Google Java Format biasa.
+## 1. Spotless Java Formatter (Eclipse JDT Formatter Engine)
+Spotless dikonfigurasikan menggunakan **Eclipse JDT Formatter Engine** dengan profil standar internal `PromsJavaFormat` ([`.vscode/eclipse-java-formatter.xml`](../../.vscode/eclipse-java-formatter.xml)). Engine ini menjamin integrasi 100% konsisten dengan language server **Red Hat Java** (`redhat.java`) di VS Code, Cursor, Antigravity, dan CI pipeline.
+
+Karakteristik formatting standar:
+- **Line Width**: Maksimum 120 karakter.
+- **Indentation**: 4 spasi (tab policy: spaces only).
+- **Continuation Indent**: 1 level (+4 spasi).
+- **Braces**: Egyptian Braces / 1TBS (`end_of_line`).
+- **Imports**: Diurutkan secara alfabetis tanpa wildcard (`.*`), dilarang menggunakan FQCN di dalam tubuh kode.
 
 Commands:
 - Apply formatting: `./gradlew spotlessApply`
@@ -16,9 +23,9 @@ Untuk menjamin konsistensi 100% di semua IDE (VS Code, Cursor, Antigravity, Inte
    - Indentasi: 4 spasi (Java/Kotlin), 2 spasi (JSON/YAML/Markdown).
    - Line Endings: Wajib `LF` (`\n`), trim trailing whitespace, insert final newline.
 2. **Lapis IDE / Formatter di VS Code ([`.vscode/settings.json`](../../.vscode/settings.json))**:
-   - **Default Formatter Java**: `richardwillis.vscode-spotless-gradle` (menjalankan engine Spotless Palantir langsung di IDE setiap kali `Ctrl+S` / Save sehingga hasil format 100% identik dengan AI dan build pipeline).
-   - **Language Support & Import Management (Red Hat Java)**: `redhat.java` menangani IntelliSense, navigasi, dan import otomatis. `java.completion.importOrder` diset `["#", ""]` agar import tersusun dalam 1 blok alfabetis tanpa baris kosong pemisah package (selaras dengan Palantir/Google Java Style), serta `starThreshold: 99` untuk melarang wildcard (`.*`).
-   - **Fallback Profil Formatter Eclipse**: [`.vscode/eclipse-java-formatter.xml`](../../.vscode/eclipse-java-formatter.xml) (`PromsJavaFormat`).
+   - **Java Formatter Engine**: `redhat.java` menggunakan profil [`.vscode/eclipse-java-formatter.xml`](../../.vscode/eclipse-java-formatter.xml) (`PromsJavaFormat`).
+   - **Language Support & Import Management (Red Hat Java)**: `redhat.java` menangani IntelliSense, navigasi, dan import otomatis. `java.completion.importOrder` diset `["#", ""]` agar import tersusun dalam 1 blok alfabetis tanpa baris kosong pemisah package, serta `starThreshold: 99` untuk melarang wildcard (`.*`).
+   - **Spotless Integration**: Ekstensi `richardwillis.vscode-spotless-gradle` memastikan build pipeline dan IDE berjalan selaras.
 3. **Lapis Prettier ([`.prettierrc.json`](../../.prettierrc.json))**:
    - Formatter default untuk JSON, YAML, dan Markdown dengan `tabWidth: 2` dan `singleQuote: true`.
 4. **Lapis Git Pre-commit Hook ([`.githooks/pre-commit`](../../.githooks/pre-commit))**:
@@ -40,8 +47,14 @@ ArchUnit strictly enforces:
 2. Facades in `module.*.*.facade` must be Java interfaces.
 3. Facade implementations must reside in `*.facade.internal.*` dan carry `@Component`.
 4. Facade methods must not return JPA `@Entity` types.
-5. Controllers must be annotated with `@RestController`.
-6. Services must be annotated with `@Service`.
+5. Controllers (excluding interfaces) must be annotated with `@RestController`.
+6. Controllers must implement their `<Feature>Api` contract interface.
+7. Services must be annotated with `@Service`.
+8. Inter-Module Boundary: Modul luar (`module` lain maupun `common`) dilarang mengakses package internal modul (`service`, `repository`, `entity`, `mapper`, `constant`, `controller`, internal `dto`, dan `facade.internal`). Komunikasi lintas modul HANYA boleh melalui `facade` dan `facade.dto`.
+9. Field Injection Prohibition: Dilarang menggunakan field injection `@Autowired`.
+10. Entity Lombok Prohibition: JPA Entities dilarang menggunakan `@Data` (juga diblokir pada level compiler via `lombok.config`).
+11. Transactional Boundary: Dilarang menggunakan anotasi `@Transactional` pada level class maupun method di controller.
+12. DTO Immutability: Seluruh class di package `..dto..` wajib berupa Java 21 `record`.
 
 Run ArchUnit checks:
 ```bash

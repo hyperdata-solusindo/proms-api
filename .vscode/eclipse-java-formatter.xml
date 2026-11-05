@@ -6,8 +6,17 @@
         <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="4"/>
         <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="4"/>
         <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
-        <setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="2"/>
-        <setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="2"/>
+        <setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="1"/>
+        <setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="1"/>
+
+        <!-- Preservation of manual line breaks in fluent chains (e.g. YAVI validation, stream builders) -->
+        <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="false"/>
+        <setting id="org.eclipse.jdt.core.formatter.join_lines_in_comments" value="false"/>
+
+        <!-- On/Off Tags to bypass formatter (aligned with Spotless toggleOffOn) -->
+        <setting id="org.eclipse.jdt.core.formatter.use_on_off_tags" value="true"/>
+        <setting id="org.eclipse.jdt.core.formatter.disabling_tag" value="@formatter:off"/>
+        <setting id="org.eclipse.jdt.core.formatter.enabling_tag" value="@formatter:on"/>
 
         <!-- Comments -->
         <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
@@ -32,24 +41,30 @@
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_lambda_body" value="end_of_line"/>
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_array_initializer" value="end_of_line"/>
 
-        <!-- Wrapping & Alignments: Wrap all elements on new line when wrapping (like Palantir Java Format) -->
-        <!-- 48 = ONE_PER_LINE_SPLIT (wrap all elements, each on a new line) -->
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_allocation_expression" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_explicit_constructor_call" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_method_invocation" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_qualified_allocation_expression" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_method_declaration" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_constructor_declaration" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_record_components" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_selector_in_method_invocation" value="48"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_expressions_in_array_initializer" value="48"/>
+        <!-- Method Chaining & Fluent APIs (e.g. Builder, YAVI ValidatorBuilder) -->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_selector_in_method_invocation" value="80"/>
 
-        <!-- Annotations -->
+        <!-- Method & Constructor Arguments -->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_method_invocation" value="16"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_allocation_expression" value="16"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_explicit_constructor_call" value="16"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_qualified_allocation_expression" value="16"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_method_declaration" value="16"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_constructor_declaration" value="16"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_expressions_in_array_initializer" value="16"/>
+
+        <!-- Annotations Wrapping & Record Components -->
+        <!-- 52 = WRAP_ONE_PER_LINE (48) + INDENT_BY_ONE (4) = Exactly +1 indent level (4 spaces) -->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_record_components" value="48"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_annotation" value="52"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_annotations_on_parameter" value="48"/>
+
+        <!-- Annotations New Line Insertion -->
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_type" value="insert"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_method" value="insert"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_field" value="insert"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_package" value="insert"/>
-        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_parameter" value="do not insert"/>
+        <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_parameter" value="insert"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_local_variable" value="insert"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_type_annotation" value="do not insert"/>
 

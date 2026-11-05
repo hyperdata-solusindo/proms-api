@@ -15,7 +15,7 @@
 
 ---
 
-## 2. The 11 Golden Rules (Quick Summary)
+## 2. The 14 Golden Rules (Quick Summary)
 
 1. **2-Layer Modular Monolith**: Code resides in `com.hyperdata.proms.module.<domain>.<feature>`.
 2. **Inter-Module Facade Rule**: Module A calling Module B **MUST** use `facade/<Feature>Facade.java` (Interface). Never inject foreign `Service` or `Repository`.
@@ -28,6 +28,9 @@
 9. **JPA 3-Level Query**: Derived (1-2 params), explicit `@Query` JPQL (>2 params/JOIN), or `JpaSpecificationExecutor` (dynamic filters).
 10. **The Golden Stack (Anti-N+1 In-Memory Datatables)**: Datatables and cross-module enrichment **MUST** use the Golden Stack (L1 Cache + `Lookups` batch ID extraction & indexing + MapStruct assembly). Never write cross-module SQL joins or call facades inside loops.
 11. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`).
+12. **OpenAPI & Scalar Documentation**: All `@RestController` endpoints must have `@Tag`, `@Operation`, and `@ApiResponses`. Tags must be hierarchically organized 1:1 per `<domain>` via `x-tagGroups` in Scalar UI, and non-business controllers must use `@Hidden`.
+13. **Observability & Sensitive Data Masking**: All logs must follow SLF4J standards with zero plain credential leakage. Methods in Service and Facade are auto-traced via OTel, and error responses attach an `X-Trace-Id` header.
+14. **Security & Multi-Tenancy Standards**: Tenant data isolation enforced via PostgreSQL Row Level Security (RLS) with session context (`SET LOCAL app.tenant_id`). Cache keys for tenant data must include tenant prefix (`#tenantId + ':' + #id`). Zero secret leakage (`.env`), UU PDP compliance (synthetic dummy data only), and mandatory confirmation for destructive commands and external process termination.
 
 ---
 
@@ -37,13 +40,16 @@
 com.hyperdata.proms/
 ├── ApiApplication.java                         # Main application runner
 ├── common/                                     # Cross-cutting concerns
+│   ├── config/                                 # Central infrastructure config (e.g. CacheConfig)
 │   ├── exception/                              # BaseException, GlobalExceptionHandler, custom exceptions
-│   ├── response/                               # ApiResponse<T>, PageResponse<T>
+│   ├── observability/                          # OTel tracing, filters, AOP aspects, masking engine
+│   ├── response/                               # RestResponse<T>, PageResponse<T>
 │   ├── util/                                   # Lookups (Anti-N+1 in-memory engine)
 │   └── validation/                             # YaviValidator helper
 └── module/
     └── <domain>/                               # e.g., inventory, sales, identity
         └── <feature>/                          # e.g., product, order, auth
+            ├── constant/                       # Module constants & cache names (<Feature>CacheNames)
             ├── controller/                     # REST API Controllers (for web/mobile clients)
             ├── facade/                         # 👉 Public Contract for other modules
             │   ├── <Feature>Facade.java        # Public Interface (ONLY contract exposed)
@@ -73,6 +79,9 @@ Read the specific rule file before implementing features in that domain:
 - [09. Automated Quality Gates (ArchUnit & Spotless)](docs/rules/09-tooling-and-quality.md)
 - [10. AI Behavior, Scope Lockdown & Definition of Done](docs/rules/10-ai-behavior-and-scope.md)
 - [11. The Golden Stack Pattern (Lookups, Anti-N+1, In-Memory Enrichment)](docs/rules/11-the-golden-stack.md)
+- [12. OpenAPI & Scalar API Documentation Standards](docs/rules/12-openapi-and-scalar-documentation.md)
+- [13. Observability, Logging & Sensitive Data Masking Standards](docs/rules/13-observability-and-logging.md)
+- [14. Security & Multi-tenancy Standards](docs/rules/14-security-and-multi-tenancy.md)
 
 ---
 
@@ -107,9 +116,23 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] No JPA `@Entity` returned from Facade or Controller.
 - [ ] Cross-module calls only use foreign `*Facade`, not foreign `*Service` or `*Repository`.
 - [ ] Datatables / DTO enrichment across modules uses The Golden Stack (`Lookups` utility) without cross-module SQL joins or loop queries.
+- [ ] Zero dead code: No unused variables, fields, methods, or unused injected dependencies.
 - [ ] Validation implemented using YAVI.
 - [ ] MapStruct mappers configured with `componentModel = "spring"` and `unmappedTargetPolicy = ReportingPolicy.IGNORE`.
+- [ ] Endpoints and DTOs documented with OpenAPI `@Tag`, `@Operation`, and `@Schema` with realistic `example` values.
+- [ ] Observability: No unmasked sensitive data/credentials in logs, and masking unit tests pass.
+- [ ] Distributed Tracing: X-Trace-Id header attached and OTel context active.
+- [ ] Multi-tenancy & Security: Tenant-scoped cache keys include tenant prefix; no blind `kill -9` or unconfirmed destructive commands; no secrets or real PII committed.
 - [ ] Unit tests written with BDD `@DisplayName` format.
 - [ ] Targeted tests pass (`./gradlew test --tests "..."`).
 - [ ] Code formatted cleanly with `./gradlew spotlessApply`.
 - [ ] Architecture tests pass (`./gradlew test --tests "*ArchitectureTest*"`).
+- [ ] Process & Disk Hygiene: Verified with `git status`/`git diff`, no stale daemon cache, and no leftover background processes on ports.
+
+---
+
+## 7. AI Agent Skills & Brainstorming Protocol
+
+When exploring new features, planning changes, or brainstorming architecture:
+- **Mandatory Skill**: Use `project-brainstorming` (`.agents/skills/project-brainstorming/SKILL.md`).
+- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 14 Golden Rules above, companion rules in `docs/rules/`, and Architecture Decision Records in `docs/adr/` before presenting designs or generating implementation plans.

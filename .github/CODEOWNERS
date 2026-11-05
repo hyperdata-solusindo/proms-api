@@ -1,0 +1,32 @@
+# CODEOWNERS for hyperdata-solusindo/proms-api-java
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default catch-all code owners
+* @hyperdata-solusindo/backend-core
+
+# Architecture Directives, AI Rules, and Governance
+/AGENTS.md @hyperdata-solusindo/tech-lead
+/CLAUDE.md @hyperdata-solusindo/tech-lead
+/.cursorrules @hyperdata-solusindo/tech-lead
+/docs/rules/ @hyperdata-solusindo/tech-lead
+/docs/adr/ @hyperdata-solusindo/tech-lead
+/src/test/java/com/hyperdata/proms/architecture/ @hyperdata-solusindo/tech-lead
+
+# CI / CD & Build Engineering
+/.github/workflows/ @hyperdata-solusindo/devops @hyperdata-solusindo/tech-lead
+/build.gradle.kts @hyperdata-solusindo/tech-lead
+/gradle/ @hyperdata-solusindo/tech-lead
+/gradlew @hyperdata-solusindo/tech-lead
+/gradlew.bat @hyperdata-solusindo/tech-lead
+
+# Database Schemas, Liquibase Changelogs & Migration Scripts
+/src/main/resources/db/ @hyperdata-solusindo/database-admins @hyperdata-solusindo/backend-core
+/scripts/db.sh @hyperdata-solusindo/database-admins
+
+# Common Infrastructure & Security Layer
+/src/main/java/com/hyperdata/proms/common/security/ @hyperdata-solusindo/security-team
+/src/main/java/com/hyperdata/proms/common/config/ @hyperdata-solusindo/tech-lead
+
+# Domain Modules
+/src/main/java/com/hyperdata/proms/module/identity/ @hyperdata-solusindo/team-identity
+/src/main/java/com/hyperdata/proms/module/platform/ @hyperdata-solusindo/team-platform

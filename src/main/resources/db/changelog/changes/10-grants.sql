@@ -1,7 +1,22 @@
 --liquibase formatted sql
---changeset hyproms:10-grants splitStatements:false rollbackSplitStatements:false
+--changeset hyproms:10-grants splitStatements:false rollbackSplitStatements:false runOnChange:true
 DO $$
+DECLARE
+    v_app_user text := '${app_user}';
 BEGIN
+    -- 1. Grant hak akses ke user aplikasi yang dikonfigurasi dinamis (dari .env / Liquibase parameter)
+    IF v_app_user IS NOT NULL AND v_app_user <> '' AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = v_app_user) THEN
+        EXECUTE format('GRANT USAGE ON SCHEMA platform TO %I;', v_app_user);
+        EXECUTE format('GRANT USAGE ON SCHEMA proms TO %I;', v_app_user);
+        EXECUTE format('GRANT ALL ON ALL FUNCTIONS IN SCHEMA platform TO %I;', v_app_user);
+        EXECUTE format('GRANT ALL ON ALL FUNCTIONS IN SCHEMA proms TO %I;', v_app_user);
+        EXECUTE format('GRANT SELECT,INSERT,DELETE,UPDATE ON ALL TABLES IN SCHEMA platform TO %I;', v_app_user);
+        EXECUTE format('GRANT SELECT,INSERT,DELETE,UPDATE ON ALL TABLES IN SCHEMA proms TO %I;', v_app_user);
+        EXECUTE format('GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA platform TO %I;', v_app_user);
+        EXECUTE format('GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA proms TO %I;', v_app_user);
+    END IF;
+
+    -- 2. Backward-compatibility untuk role spesifik jika didefinisikan terpisah
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'platform_app') THEN
         EXECUTE 'GRANT USAGE ON SCHEMA platform TO platform_app;';
         EXECUTE 'GRANT ALL ON FUNCTION platform.current_tenant() TO platform_app;';
@@ -26,6 +41,7 @@ BEGIN
         EXECUTE 'GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE platform.v_directory_members TO platform_app;';
         EXECUTE 'GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE platform.v_directory_teams TO platform_app;';
     END IF;
+
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'proms_app') THEN
         EXECUTE 'GRANT USAGE ON SCHEMA platform TO proms_app;';
         EXECUTE 'GRANT USAGE ON SCHEMA proms TO proms_app;';
@@ -105,7 +121,19 @@ BEGIN
 END $$;
 
 --rollback DO $$
+--rollback DECLARE
+--rollback     v_app_user text := '${app_user}';
 --rollback BEGIN
+--rollback     IF v_app_user IS NOT NULL AND v_app_user <> '' AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = v_app_user) THEN
+--rollback         EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA platform FROM %I;', v_app_user);
+--rollback         EXECUTE format('REVOKE ALL ON ALL TABLES IN SCHEMA proms FROM %I;', v_app_user);
+--rollback         EXECUTE format('REVOKE ALL ON ALL FUNCTIONS IN SCHEMA platform FROM %I;', v_app_user);
+--rollback         EXECUTE format('REVOKE ALL ON ALL FUNCTIONS IN SCHEMA proms FROM %I;', v_app_user);
+--rollback         EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA platform FROM %I;', v_app_user);
+--rollback         EXECUTE format('REVOKE ALL ON ALL SEQUENCES IN SCHEMA proms FROM %I;', v_app_user);
+--rollback         EXECUTE format('REVOKE USAGE ON SCHEMA platform FROM %I;', v_app_user);
+--rollback         EXECUTE format('REVOKE USAGE ON SCHEMA proms FROM %I;', v_app_user);
+--rollback     END IF;
 --rollback     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'platform_app') THEN
 --rollback         EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA platform FROM platform_app;';
 --rollback         EXECUTE 'REVOKE ALL ON ALL FUNCTIONS IN SCHEMA platform FROM platform_app;';

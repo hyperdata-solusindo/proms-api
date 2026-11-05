@@ -38,14 +38,14 @@ class DefaultProductFacadeTest {
     void shouldReturnSummaryWhenFound() {
         UUID id = UUID.randomUUID();
         Product product = Product.builder()
-                .id(id)
-                .sku("SKU-1")
-                .name("Keyboard")
-                .price(new BigDecimal("500000"))
-                .stock(5)
-                .active(true)
-                .createdAt(Instant.now())
-                .build();
+            .id(id)
+            .sku("SKU-1")
+            .name("Keyboard")
+            .price(new BigDecimal("500000"))
+            .stock(5)
+            .active(true)
+            .createdAt(Instant.now())
+            .build();
         ProductSummaryDto summaryDto = new ProductSummaryDto(id, "SKU-1", "Keyboard", new BigDecimal("500000"), true);
 
         when(productRepository.findById(id)).thenReturn(Optional.of(product));
@@ -76,21 +76,21 @@ class DefaultProductFacadeTest {
         Set<UUID> ids = Set.of(id1, id2);
 
         Product p1 = Product.builder()
-                .id(id1)
-                .sku("SKU-1")
-                .name("Keyboard")
-                .price(BigDecimal.TEN)
-                .stock(5)
-                .active(true)
-                .build();
+            .id(id1)
+            .sku("SKU-1")
+            .name("Keyboard")
+            .price(BigDecimal.TEN)
+            .stock(5)
+            .active(true)
+            .build();
         Product p2 = Product.builder()
-                .id(id2)
-                .sku("SKU-2")
-                .name("Mouse")
-                .price(BigDecimal.ONE)
-                .stock(10)
-                .active(true)
-                .build();
+            .id(id2)
+            .sku("SKU-2")
+            .name("Mouse")
+            .price(BigDecimal.ONE)
+            .stock(10)
+            .active(true)
+            .build();
 
         ProductSummaryDto s1 = new ProductSummaryDto(id1, "SKU-1", "Keyboard", BigDecimal.TEN, true);
         ProductSummaryDto s2 = new ProductSummaryDto(id2, "SKU-2", "Mouse", BigDecimal.ONE, true);
@@ -119,12 +119,12 @@ class DefaultProductFacadeTest {
     void shouldReturnTrueWhenStockAvailable() {
         UUID id = UUID.randomUUID();
         Product product = Product.builder()
-                .id(id)
-                .sku("SKU-1")
-                .name("Keyboard")
-                .stock(10)
-                .active(true)
-                .build();
+            .id(id)
+            .sku("SKU-1")
+            .name("Keyboard")
+            .stock(10)
+            .active(true)
+            .build();
         when(productRepository.findById(id)).thenReturn(Optional.of(product));
 
         assertTrue(productFacade.isStockAvailable(id, 5));
@@ -137,12 +137,12 @@ class DefaultProductFacadeTest {
     void shouldReturnFalseWhenProductInactive() {
         UUID id = UUID.randomUUID();
         Product product = Product.builder()
-                .id(id)
-                .sku("SKU-1")
-                .name("Keyboard")
-                .stock(100)
-                .active(false)
-                .build();
+            .id(id)
+            .sku("SKU-1")
+            .name("Keyboard")
+            .stock(100)
+            .active(false)
+            .build();
         when(productRepository.findById(id)).thenReturn(Optional.of(product));
 
         assertFalse(productFacade.isStockAvailable(id, 1));

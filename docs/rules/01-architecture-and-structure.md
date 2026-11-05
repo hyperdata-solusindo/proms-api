@@ -13,8 +13,10 @@ Example:
 Inside each `<feature>` directory, strictly maintain this folder structure:
 ```text
 <feature>/
-├── controller/                       # Web REST controllers
-│   └── <Feature>Controller.java
+├── constant/                         # Feature constants & cache names (<Feature>CacheNames.java)
+├── controller/                       # Web REST controllers & API contracts
+│   ├── <Feature>Api.java             # Contract Interface (Routing & OpenAPI Specs)
+│   └── <Feature>Controller.java      # Implementation Class (@RestController)
 ├── facade/                           # Public gateway to other modules
 │   ├── <Feature>Facade.java          # Public Interface (Contract)
 │   ├── dto/                          # Public Record DTOs returned by Facade
@@ -38,9 +40,13 @@ Inside each `<feature>` directory, strictly maintain this folder structure:
 
 ## 2. Strict Boundary Rules
 
-1. **Internal Encapsulation**: Classes in `service`, `repository`, `entity`, and `mapper` are **private** to this feature. Modul lain dilarang meng-import class dari sub-package ini.
+1. **Internal Encapsulation**: Classes in `constant`, `service`, `repository`, `entity`, and `mapper` are **private** to this feature. Modul lain dilarang meng-import class dari sub-package ini.
 2. **Facade Contract Rule**: Modul luar **HANYA** boleh meng-import interface di `facade/` dan Record DTO di `facade/dto/`.
 3. **No Entity Leakage**: Facade dan Controller **DILARANG** mengembalikan JPA `@Entity`. Seluruh data yang keluar wajib dibungkus dalam Java 21 `record`.
-4. **Controller Boundary**: Controller hanya boleh memanggil Service (atau Facade jika relevan). Controller dilarang meng-inject Repository.
+4. **Controller Boundary & Contract Interface Pattern**:
+   - Seluruh REST controller wajib mengimplementasikan interface kontraknya (`<Feature>Controller implements <Feature>Api`).
+   - Rute HTTP (`@GetMapping`, `@PostMapping`, dll.) serta seluruh metadata dokumentasi OpenAPI (`@Tag`, `@Operation`, `@ApiResponses`, `@Parameter`, `@SecurityRequirements`) wajib dideklarasikan pada interface `<Feature>Api`.
+   - Class `<Feature>Controller` murni bertindak sebagai implementasi bersih: hanya beranotasi `@RestController` dan `@RequiredArgsConstructor`, menginjeksi Service/Facade, memanggil logika bisnis, dan mengembalikan `RestResponse<T>`.
+   - Controller dilarang meng-inject Repository.
 5. **Transactional Boundary**: Anotasi `@Transactional` hanya boleh digunakan di layer Service atau Facade implementation, dilarang di Controller.
 6. **The Golden Stack for Cross-Module Enrichment**: Datatable atau listing queries **DILARANG** melakukan SQL `JOIN` lintas tabel modul lain. Wajib menerapkan **The Golden Stack** (L1 Cache + `Lookups` in-memory batch extraction/map + MapStruct DTO assembly). Lihat [Rule 11](11-the-golden-stack.md).

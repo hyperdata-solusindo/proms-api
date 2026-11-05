@@ -16,9 +16,27 @@ flowchart LR
 ```
 
 ### Pillar 1: In-Memory / L1 Caching (Caffeine & Spring Cache)
-- Read-heavy master data (e.g. `CompanyInfo`, `UserInfo`, `CategorySummaryDto`) should be cached at the `*Facade` boundary.
+- Read-heavy master data (e.g. `CompanyInfo`, `UserInfo`, `CategorySummaryDto`, `TenantDetailDto`) should be cached at the `*Facade` boundary or service queries.
 - Eliminates database round-trips for repetitive lookups, bringing lookup latency down to sub-microsecond memory reads (`< 0.001 ms`).
-- Evicted automatically on state mutations via `@CacheEvict`.
+- **Dedicated Module Cache Names**: Dilarang menggunakan string literal acak atau mengumpulkan cache names di `common`. Wajib mendeklarasikan cache names pada class konstanta khusus di masing-masing modul: `module.<domain>.<feature>.constant.<Feature>CacheNames`.
+- **Tenant-Scoped Cache Isolation (Anti-RLS Bypass)**:
+  - Cache L1 bekerja di memory aplikasi dan **tidak melewati PostgreSQL Row Level Security (RLS)**.
+  - Untuk entitas/data yang berlingkup tenant (misal: product, order, task, dokumen), key cache **WAJIB menyertakan tenant prefix**, contoh:
+    ```java
+    @Cacheable(cacheNames = <Feature>CacheNames.<NAME>, key = "#tenantId + ':' + #id", unless = "#result == null")
+    ```
+    atau jika menggunakan context auth:
+    ```java
+    @Cacheable(cacheNames = <Feature>CacheNames.<NAME>, key = "#currentUser.activeTenantId() + ':' + #id", unless = "#result == null")
+    ```
+  - ❌ **DILARANG menggunakan `key = "#id"`** untuk data berlingkup tenant karena dapat mengakibatkan Tenant B membaca data Tenant A langsung dari cache tanpa pengecekan RLS database.
+  - Pengecualian hanya untuk data global platform yang tidak memiliki `tenant_id` (seperti platform plans atau lookup tenant itu sendiri berdasarkan `tenantId`).
+- **SpEL Handling pada Return Type `Optional<T>`**: Saat method mengembalikan `Optional<T>`, Spring Cache otomatis meng-unwrap value menjadi `T` (atau `null` jika empty). Maka evaluasi `unless` wajib menggunakan:
+  ```java
+  @Cacheable(cacheNames = <Feature>CacheNames.<NAME>, key = "#tenantId + ':' + #id", unless = "#result == null")
+  ```
+  *(Dilarang menggunakan `!#result.isPresent()`, yang akan memicu `SpelEvaluationException`)*.
+- **Auto Eviction**: Gunakan `@CacheEvict(cacheNames = <Feature>CacheNames.<NAME>, key = "#tenantId + ':' + #id")` pada method mutasi data (create, update, delete).
 
 ### Pillar 2: `Lookups` Utility Engine (`com.hyperdata.proms.common.util.Lookups`)
 - In-memory processing engine for batch ID extraction, one-to-one indexing, one-to-many grouping, safe transformations, and domain filtering.
@@ -141,5 +159,7 @@ Map<UUID, CategorySummaryDto> categoryMap = Lookups.of(products)
 - **DO NOT** write SQL `JOIN` across tables belonging to different feature packages or modules.
 - **DO NOT** inject a foreign repository or service into another module; call its `*Facade` instead.
 - **DO NOT** call a facade inside a loop (`for (var item : list) facade.findById(item.getId())`). Always use `Lookups.extractIds` and a batch facade method `facade.findAllByIds(ids)`.
+- **DO NOT** hardcode cache names with string literals or store feature-specific cache names in `common`; use `<Feature>CacheNames` in `module.<domain>.<feature>.constant`.
+- **DO NOT** use `!#result.isPresent()` in Spring Cache SpEL `unless` expressions; use `unless = "#result == null"` because Spring Cache unwraps `Optional`.
 - **DO NOT** use `Collectors.toMap` for multi-item lists where keys could collide; use `Lookups.toMap`.
 - **ALWAYS** use `Lookups` from `com.hyperdata.proms.common.util.Lookups`.

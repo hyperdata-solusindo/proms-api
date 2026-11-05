@@ -1,0 +1,130 @@
+# Rule 14: Security & Multi-tenancy Standards
+
+## 1. Overview & Core Philosophy
+
+PROMS API follows an enterprise-grade **Defense in Depth** security model. Security is not an afterthought or an isolated filter; it is enforced across the entire stack:
+1. **Database Layer**: PostgreSQL Row Level Security (RLS) policies isolating tenant data at the storage engine level.
+2. **Application Layer**: Explicit tenant context resolution, connection session variable injection, and fail-closed transaction boundaries.
+3. **Cache Layer**: Tenant-prefixed cache keys preventing cache-level RLS bypass.
+4. **API Layer**: Strict endpoint authorization, YAVI input validation, and zero internal error/stack trace leakage.
+5. **AI Agent Operational Guardrails**: Zero secret exposure, UU PDP personal data compliance, and confirmation gates on destructive commands.
+
+---
+
+## 2. Multi-Tenancy & Row Level Security (RLS)
+
+### 2.1. PostgreSQL RLS Architecture
+All tenant-scoped tables in schemas `platform` and `proms` have Row Level Security enabled (defined in `src/main/resources/db/changelog/changes/09-rls-policies.sql`).
+- Policies isolate records via:
+  ```sql
+  CREATE POLICY tenant_isolation ON <schema>.<table>
+      USING ((tenant_id = platform.current_tenant()))
+      WITH CHECK ((tenant_id = platform.current_tenant()));
+  ```
+- The function `platform.current_tenant()` reads the PostgreSQL session setting:
+  ```sql
+  nullif(current_setting('app.tenant_id', true), '')::uuid
+  ```
+- Role-based restrictive policies (e.g. `finance_only`) read:
+  ```sql
+  platform.current_workspace_role() -- coalesces current_setting('app.workspace_role', true)
+  ```
+
+### 2.2. Tenant Context Lifecycle & Session Injection
+For RLS policies to evaluate correctly, every database transaction executing tenant-scoped operations **MUST** configure the PostgreSQL session settings:
+1. **Extraction**: The active tenant is extracted from the authenticated user's session (`CurrentUser.activeTenantId()`) verified via `TokenAuthenticationFilter` and `AuthFacade`.
+2. **Session Variable Injection**: Before executing queries in a transaction, the connection must execute:
+   ```sql
+   SET LOCAL app.tenant_id = '<activeTenantId>';
+   SET LOCAL app.workspace_role = '<workspaceRole>';
+   ```
+   *(Using `SET LOCAL` ensures that parameters are scoped strictly to the current transaction and are automatically cleared when the transaction commits or rolls back).*
+3. **Thread-Bound Cleanup**: In-memory context holders (e.g. `SecurityContextHolder` or `TenantContext`) must be cleared in a `finally` block or filter completion callback to prevent thread-pool leakage.
+
+### 2.3. The Fail-Closed Principle
+- ❌ **DILARANG mengeksekusi query entitas ber-tenant saat tenant context kosong**. Jika sebuah request mengakses resource tenant tetapi `activeTenantId` bernilai `null`, sistem wajib menolak request dengan HTTP 403 Forbidden (*Fail-Closed*).
+- ❌ **DILARANG menggunakan superuser database (`postgres`) untuk koneksi aplikasi runtime**. Aplikasi harus terkoneksi menggunakan role `platform_app` atau `proms_app` agar bypass RLS tidak dapat terjadi.
+
+---
+
+## 3. Tenant-Aware Caching Standards (Anti-RLS Bypass)
+
+In-memory L1 cache (Caffeine) and distributed L2 cache (Redis) operate in application memory and **completely bypass database Row Level Security**. Without proper cache isolation, Tenant B can read Tenant A's cached data by requesting the same ID.
+
+### Rules for Multi-Tenant Caching:
+1. **Mandatory Tenant Prefix**: Every cache key for tenant-owned entities **MUST** include the tenant ID:
+   ```java
+   // ✅ DO: Key includes tenant context
+   @Cacheable(
+       cacheNames = ProductCacheNames.PRODUCT_DETAILS,
+       key = "#tenantId + ':' + #id",
+       unless = "#result == null"
+   )
+   public Optional<ProductDetailResponse> getProduct(UUID tenantId, UUID id) { ... }
+   ```
+   Or via authenticated context:
+   ```java
+   @Cacheable(
+       cacheNames = <Feature>CacheNames.<NAME>,
+       key = "#currentUser.activeTenantId() + ':' + #id",
+       unless = "#result == null"
+   )
+   ```
+2. ❌ **NEVER use bare IDs for tenant resources**:
+   ```java
+   // ❌ DON'T: Bypasses RLS across tenants!
+   @Cacheable(cacheNames = ProductCacheNames.PRODUCT_DETAILS, key = "#id")
+   ```
+3. **Cache Eviction**: Mutation methods (create, update, delete) must evict cache using the exact same tenant prefix:
+   ```java
+   @CacheEvict(cacheNames = ProductCacheNames.PRODUCT_DETAILS, key = "#tenantId + ':' + #id")
+   ```
+4. **Global Data Exception**: Only platform-wide master data that has no `tenant_id` (e.g. subscription plans, public feature flags, or resolving a tenant itself by `tenantId`) is allowed to use single ID keys.
+
+---
+
+## 4. Endpoint Authorization & Secure Coding
+
+### 4.1. Endpoint Authorization
+- Every endpoint in `<Feature>Api` or `<Feature>Controller` must explicitly declare security requirements:
+  - Public endpoints: Explicitly configured in `SecurityConfig` (`permitAll()`) and marked with appropriate documentation.
+  - Authenticated endpoints: Require valid authentication and verify tenant membership via `UserFacade.resolveUserMembership(userId, tenantId)`.
+  - Role-restricted endpoints: Enforce role requirements (e.g. `owner`, `admin`, `finance`, `member`) before executing domain logic.
+
+### 4.2. Input Validation & SQL Injection Prevention
+- All incoming DTOs must be validated using **YAVI** builders before processing.
+- Dynamic filtering must use Spring Data JPA `JpaSpecificationExecutor` and parameterized Criteria API.
+- ❌ **DILARANG melakukan konkatenasi string mentah ke dalam query SQL/JPQL**.
+
+### 4.3. Information Leakage Prevention
+- **Error Envelope**: All error responses must use `RestResponse.error(...)`.
+- **Zero Stack Trace Leakage**: Internal exception messages, SQL syntax details, table names, or stack traces **DILARANG** dikembalikan ke klien HTTP.
+- **Traceability**: All error responses must include an `X-Trace-Id` header so developers can correlate client errors with internal server logs without exposing server internals.
+
+---
+
+## 5. AI Agent Operational Security & Safety Guardrails
+
+All AI Agents (Claude, Gemini, Cursor, Copilot, DeepSeek) operating in this repository must strictly adhere to the following operational security directives:
+
+### 5.1. Confidentiality & Secret Protection
+- ❌ **DILARANG KERAS membaca, mencetak, atau menyalin isi file `.env`, `.env.local`, private key, token JWT, atau password** ke dalam jendela chat, prompt LLM, file scratch publik, atau commit git.
+- Jika memerlukan konfigurasi environment, gunakan file template `.env.example` yang hanya memuat dummy placeholder.
+
+### 5.2. Personal Data Protection (UU PDP No. 27/2022 Compliance)
+- ❌ **DILARANG KERAS menggunakan data pribadi asli** (nama orang riil, alamat email pribadi nyata, NIK/KTP, nomor telepon, atau data finansial asli) dalam kode sumber, test fixtures, unit test data, seed database, atau commit message.
+- **Wajib menggunakan Synthetic / Dummy Data**:
+  - Email: `user@hyperdata.co.id`, `alice@example.com`, `test.member@proms.local`
+  - UUID: `UUID.randomUUID()`
+  - Nama: `User Test`, `Sample Customer`, `Demo Product`
+
+### 5.3. Safe Process Hygiene (No Blind `kill -9`)
+- ❌ **DILARANG KERAS menjalankan perintah blind `kill -9`** (misalnya `lsof -ti :<port> | xargs kill -9`).
+- AI Agent wajib memeriksa proses apa yang sedang berjalan pada port target (`lsof -i :<port>`). Jika proses tersebut bukan background server yang di-spawn oleh sesi agent itu sendiri (misalnya Docker Postgres, runner IDE, atau backend lain milik developer), **AI AGENT WAJIB BERTANYA DAN MEMINTA KONFIRMASI KEPADA USER** sebelum mematikannya.
+
+### 5.4. Mandatory Confirmation for Destructive Commands
+AI Agent **DILARANG** menjalankan perintah destruktif berikut secara otomatis tanpa persetujuan eksplisit dari user:
+1. `./scripts/db.sh fresh` atau `./scripts/db.sh reset` (menghapus dan membuat ulang seluruh database).
+2. Perintah Liquibase rollback atau `DROP TABLE` / `DROP DATABASE`.
+3. Perintah SQL `TRUNCATE` atau `DELETE FROM ...` dalam jumlah besar.
+4. Perintah `git reset --hard` atau `git clean -fd` yang berpotensi menghapus pekerjaan developer.
