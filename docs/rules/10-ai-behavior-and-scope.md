@@ -13,6 +13,12 @@ Format messages as:
 - Scope: module name (e.g. `product`, `order`, `auth`, `common`).
 - Note: Never run `git commit` or `git push` automatically without user instruction.
 
+### Mandatory Pull Request Protocol
+Setiap kali AI Agent atau developer membuat Pull Request (PR):
+- **Wajib Mengikuti Template**: Deskripsi PR **wajib** mengikuti seluruh struktur dari [`.github/pull_request_template.md`](../../.github/pull_request_template.md) (Ringkasan Perubahan, Tipe Perubahan, AI-Assisted Development disclosure, dan checklist DoD).
+- **Checklist Kepatuhan**: Seluruh butir checklist Definition of Done pada template PR wajib diverifikasi dan dicentang (`[x]`).
+- **Dilarang PR Kosong**: Dilarang membuat PR dengan flag `--fill` default atau body kosong/ringkas tanpa struktur template resmi.
+
 ## 3. Self-Correction Loop
 Before concluding a task, run the verification commands:
 1. `./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"` (Targeted inner loop)

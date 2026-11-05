@@ -60,3 +60,12 @@ Run ArchUnit checks:
 ```bash
 ./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"
 ```
+
+## 5. JaCoCo Code Coverage Quality Gate
+JaCoCo terintegrasi secara native di `./gradlew check` untuk memastikan setiap logika bisnis baru diuji dengan baik:
+- **Exclusion Filter**: Class tanpa logika bisnis (`**/dto/**`, `**/entity/**`, `**/model/**`, `**/config/**`, `*Application*`, `*MapperImpl*`) otomatis dikecualikan dari perhitungan coverage.
+- **Coverage Ratchet**: Nilai minimal coverage (`jacocoTestCoverageVerification`) dilarang diturunkan untuk meloloskan build yang gagal.
+- **Laporan Visual HTML**:
+  - Dihasilkan di `build/reports/jacoco/test/html/index.html`.
+  - Di-generate otomatis via `./gradlew jacocoTestReport`.
+
