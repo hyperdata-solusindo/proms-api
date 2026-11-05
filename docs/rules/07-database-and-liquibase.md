@@ -81,3 +81,15 @@ Tabel panduan cepat untuk mencegah kesalahan umum (*common pitfalls*) saat menul
 | **Environment Safety** | Gunakan command `./scripts/db.sh fresh` atau `dropAll` hanya di mesin lokal dev. | **JANGAN PERNAH** menjalankan script reset / destructive drop di environment Staging atau Production. |
 | **Index Creation (Big Tables)** | Untuk tabel besar atau produksi, pertimbangkan pembuatan index dengan pola non-blocking jika didukung. | **JANGAN** mengunci tabel dengan lock eksklusif lama saat menambahkan constraint/index di jam operasional tinggi. |
 | **Seeder Separation** | Pisahkan data konfigurasi (`seed-config`) dari data dummy pengujian (`seed-dummy`). | **JANGAN** mencampur data dummy developer ke dalam file migrasi DDL utama atau master changelog production. |
+| **Dynamic Scaling & Multi-Replica** | Jalankan migrasi via Dedicated One-Shot Job sebelum container aplikasi menyala (`LIQUIBASE_ENABLED=false` pada backend server). | **JANGAN** membiarkan banyak container aplikasi menjalankan auto-migrasi bersamaan saat booting (memicu lock deadlock). |
+
+---
+
+## 9. Dynamic Scaling & Dedicated Migration Runner (Production Standard)
+
+Untuk mendukung **horizontal dynamic scaling** (multi-replica container):
+1. **Container Server Backend**:
+   - Pada environment Staging & Production, environment variable `LIQUIBASE_ENABLED` pada container aplikasi utama **wajib diset `false`**.
+2. **Dedicated One-Shot Runner**:
+   - Skrip deployment / CD pipeline wajib menjalankan kontainer migrasi one-shot terpisah (`db:migrate`) sampai selesai dan sukses (*exit 0*) sebelum menaikkan versi container server yang baru.
+
