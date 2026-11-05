@@ -8,10 +8,12 @@
 
 | Target | Wajib Ada | Atribut Kunci | Fungsi di UI Scalar |
 | :--- | :--- | :--- | :--- |
-| **API Contract Interface** | `@Tag` | `name`, `description` | Folder/kategori grup di sidebar navigasi. |
+| **API Contract Interface** | `@Tag` | `name`, `description` | Sub-fitur di dalam folder grup domain (`x-tagGroups`). |
+| **Internal / Utility Controller** | `@Hidden` | - | Menyembunyikan controller teknis dari daftar API. |
 | **Endpoint Method** | `@Operation` | `summary` (≤7 kata), `description` | Judul endpoint pada baris URL & penjelasan detail. |
 | **Domain-specific Status** | `@ApiResponses` | `responseCode`, `description`, `content` | Menampilkan skema respon sukses & error spesifik domain. |
 | **Global Error Status** | *Dikelola otomatis* | Via `OpenApiConfig` `OperationCustomizer` | Respon `400` dan `500` terpasang otomatis ke seluruh endpoint. |
+| **Domain Grouping** | *Dikelola otomatis* | Via `OpenApiConfig` (`x-tagGroups`) | Folder kategori domain 1:1 mengikuti package `<domain>`. |
 | **Path / Query Param** | `@Parameter` | `description`, `example`, `required` | Form input parameter pada panel *Try It*. |
 | **Public Endpoint** | `@SecurityRequirements` | Kosong (`@SecurityRequirements`) | Melepas icon gembok otorisasi pada endpoint publik. |
 | **DTO Record Class** | `@Schema` | `description` | Judul model pada tab Schemas/Models. |
@@ -245,6 +247,11 @@ public class OpenApiConfig {
 }
 ```
 
+### Domain Tag Groups (`x-tagGroups`)
+Untuk memastikan sidebar Scalar UI merefleksikan arsitektur modular **`<domain>.<feature>`** secara 1:1, `OpenApiConfig` menyusun ekstensi `x-tagGroups` di root OpenAPI:
+- Setiap controller di `com.hyperdata.proms.module.<domain>.<feature>` dikelompokkan ke grup **`<domain>`** (misal: *Identity*, *Sample*, *Platform*).
+- Tag fitur (misal: *Authentication*, *User Profile*, *Products*) menjadi sub-item yang dapat di-expand/collapse di dalam domain tersebut.
+
 ---
 
 ## 4. Prohibited Anti-Patterns (❌ NEVER DO)
@@ -257,6 +264,8 @@ public class OpenApiConfig {
 6. ❌ **JANGAN letakkan anotasi OpenAPI di JPA Entity**: Anotasi `@Schema` hanya milik DTO (`record`). Entity tidak boleh terekspos ke layer dokumentasi API.
 7. ❌ **JANGAN gunakan `@SecurityRequirement` manual di tiap method berulang kali**: Gunakan konfigurasi global `OpenApiConfig`. Hanya gunakan `@SecurityRequirements` (kosong) saat mengecualikan endpoint publik.
 8. ❌ **JANGAN buat summary `@Operation` terlalu panjang**: `summary` harus singkat (≤7 kata). Gunakan atribut `description` untuk penjelasan panjang/markdown.
+9. ❌ **JANGAN biarkan controller internal / non-bisnis terekspos tanpa `@Hidden`**: Selalu berikan anotasi `@Hidden` pada controller sistem atau internal docs (misal `ScalarDocController`) agar tidak mencemari sidebar dokumentasi API.
+10. ❌ **JANGAN membuat endpoint di luar hierarki modular `module.<domain>.<feature>`**: Semua endpoint bisnis wajib mematuhi package convention agar otomatis terpetakan ke dalam domain tag group Scalar.
 
 ---
 
@@ -264,10 +273,12 @@ public class OpenApiConfig {
 
 - [ ] Interface `<Feature>Api` memiliki anotasi `@Tag(name = "...", description = "...")`.
 - [ ] Controller class mengimplementasikan `<Feature>Api` dan beranotasi `@RestController`.
+- [ ] Controller internal / utilitas teknis memiliki anotasi `@Hidden`.
 - [ ] Semua method endpoint di interface memiliki `@Operation(summary = "...", description = "...")`.
 - [ ] Parameter URL (`@PathVariable`, `@RequestParam`) dianotasi `@Parameter(example = "...")`.
 - [ ] Status HTTP sukses (`200/201`) dan error domain spesifik (`401`, `404`) didaftarkan di interface.
 - [ ] Respon 400 dan 500 tidak diduplikasi secara manual di method.
 - [ ] Semua record DTO Request & Response memiliki `@Schema` dengan atribut `example` realistis di setiap field.
 - [ ] Endpoint publik diberi anotasi `@SecurityRequirements` agar tidak meminta token di UI Scalar.
+- [ ] Sidebar Scalar mengelompokkan API per domain secara 1:1 via `x-tagGroups`.
 - [ ] Tidak ada FQCN di seluruh layer controller, interface, dan DTO.
