@@ -6,18 +6,21 @@ on:
       - main
       - dev
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - main
       - dev
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
-  check:
-    name: Java CI (Test, ArchUnit, Spotless)
+  verify:
+    name: Java Verification (Spotless, ArchUnit, Tests)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -32,16 +35,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/dev' }}
+          cache-read-only: false
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Check code formatting (Spotless)
-        run: ./gradlew spotlessCheck --no-daemon
-
-      - name: Run full verification (JUnit, ArchUnit, Checks)
-        run: ./gradlew check --no-daemon
+      - name: Run verification (Spotless, JUnit, ArchUnit)
+        run: ./gradlew check --build-cache
 
       - name: Upload Test & Verification Reports on Failure
         if: failure()
@@ -52,3 +52,285 @@ jobs:
             build/reports/tests/
             build/reports/problems/
           retention-days: 7
+
+  ai-review:
+    name: AI Architectural Review (Gemini)
+    needs: verify
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run AI Architecture Review
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          python - << 'EOF'
+          import os
+          import sys
+          import json
+          import subprocess
+          import time
+          import urllib.request
+          import urllib.error
+
+          gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+          preferred_model = os.environ.get("GEMINI_MODEL", "").strip()
+          github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+          repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+          pr_number = os.environ.get("PR_NUMBER", "").strip()
+          base_ref = os.environ.get("BASE_REF", "").strip()
+
+          if not gemini_key:
+              print("::notice ::GEMINI_API_KEY secret is not configured. Skipping automated AI review.")
+              print("To enable automated AI reviews, add GEMINI_API_KEY in Repository Settings > Secrets > Actions.")
+              sys.exit(0)
+
+          # 1. Fetch git diff and list of changed files against target base branch
+          try:
+              subprocess.run(["git", "fetch", "origin", base_ref], check=True)
+              diff = subprocess.check_output(
+                  ["git", "diff", f"origin/{base_ref}...HEAD"],
+                  stderr=subprocess.STDOUT
+              ).decode("utf-8", errors="ignore")
+              changed_files = subprocess.check_output(
+                  ["git", "diff", "--name-only", f"origin/{base_ref}...HEAD"],
+                  stderr=subprocess.STDOUT
+              ).decode("utf-8", errors="ignore").splitlines()
+          except Exception as e:
+              print(f"::warning ::Failed to compute git diff: {e}")
+              sys.exit(0)
+
+          if not diff.strip():
+              print("No diff detected. Skipping review.")
+              sys.exit(0)
+
+          print(f"Changed files in PR ({len(changed_files)} files): {changed_files}")
+
+          # 2. Context-Aware Skill Discovery based on changed files
+          skill_mapping = {
+              "Security & Multi-Tenancy": {
+                  "patterns": ["auth", "tenant", "security", "token", "password", ".github/workflows"],
+                  "file": ".agents/skills/security-and-multi-tenancy/SKILL.md"
+              },
+              "The Golden Stack & JPA Performance": {
+                  "patterns": ["repository", "entity", "lookup", "mapper", "src/main/resources/db"],
+                  "file": ".agents/skills/the-golden-stack-performance/SKILL.md"
+              },
+              "Modular Facade & Boundary": {
+                  "patterns": ["facade", "service", "architecturetest"],
+                  "file": ".agents/skills/modular-facade-boundary/SKILL.md"
+              },
+              "API Contract & YAVI": {
+                  "patterns": ["controller", "dto", "request", "response", "validator"],
+                  "file": ".agents/skills/api-contract-and-yavi/SKILL.md"
+              }
+          }
+
+          active_skills_names = []
+          active_skills_instructions = []
+
+          for skill_name, cfg in skill_mapping.items():
+              matched = any(any(pat in f.lower() for pat in cfg["patterns"]) for f in changed_files)
+              if matched and os.path.exists(cfg["file"]):
+                  active_skills_names.append(skill_name)
+                  with open(cfg["file"], "r", encoding="utf-8") as sf:
+                      active_skills_instructions.append(f"### Spesialisasi Skill: {skill_name}\n{sf.read()}")
+
+          if not active_skills_names:
+              active_skills_names.append("General Architecture Baseline (AGENTS.md)")
+
+          print(f"Context-Aware Active Skills: {active_skills_names}")
+
+          # 3. Read AGENTS.md rules
+          agents_content = ""
+          if os.path.exists("AGENTS.md"):
+              with open("AGENTS.md", "r", encoding="utf-8") as f:
+                  agents_content = f.read()
+
+          skills_block = "\n\n".join(active_skills_instructions)
+
+          # 4. Construct evaluation prompt (trimmed to keep latency fast < 20s)
+          active_skills_header = ", ".join(f"`{s}`" for s in active_skills_names)
+          prompt = f"""
+          Anda adalah Senior Architecture & Security Reviewer untuk project enterprise 'hyperdata-solusindo/proms-api-java'.
+          Tinjau perubahan kode (git diff) di bawah ini berdasarkan aturan pada AGENTS.md dan Skill Khusus yang diaktifkan secara Context-Aware:
+
+          === STANDAR PROYEK UTAMA (AGENTS.md) ===
+          {agents_content}
+
+          === SKILL SPESIALISASI YANG DIAKTIFKAN (CONTEXT-AWARE) ===
+          {skills_block if skills_block else "Gunakan standar baseline arsitektur AGENTS.md."}
+
+          === DAFTAR FILE YANG DIUBAH ===
+          {json.dumps(changed_files, indent=2)}
+
+          === GIT DIFF YANG DIAJUKAN ===
+          {diff[:15000]}
+          ==============================
+
+          Format laporan review dalam bahasa Indonesia dengan struktur Markdown berikut:
+          ### 🤖 Laporan AI Architecture Review
+
+          > **🎯 Skill Aktif (Context-Aware)**: {active_skills_header}
+
+          #### 1. 📋 Ringkasan Perubahan
+          (Ringkasan 2-3 kalimat mengenai apa yang diubah/ditambahkan dalam PR ini).
+
+          ---
+
+          #### 2. 🚦 Matriks Kepatuhan 14 Golden Rules
+
+          | Aturan Arsitektur | Status | Catatan Evaluasi |
+          | :--- | :---: | :--- |
+          | **Batas Antar-Modul** *(Rule 1 & 2)* | 🟢 **PASS** / 🔴 **VIOLATION** | (Catatan ringkas 1 kalimat) |
+          | **DTO Immutability** *(Rule 4)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **JPA Entity & Lombok** *(Rule 5)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **Dependency Injection** *(Rule 6)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **YAVI Validation** *(Rule 7)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **The Golden Stack** *(Rule 10)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **Security & Multi-Tenancy** *(Rule 14)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+
+          ---
+
+          #### 3. 🔍 Sorotan Evaluasi Berdasarkan Skill
+          (Buat sub-heading untuk setiap skill aktif yang relevan, sertakan DO vs DON'T jika ada saran perbaikan):
+          ##### [Nama Skill]
+          - **Temuan**: (Catatan evaluasi spesifik).
+
+          ---
+
+          #### 4. 🏁 Keputusan Review
+          (Gunakan format GitHub alert blockquote berikut):
+          Jika seluruh aturan lolos:
+          > [!NOTE]
+          > ### 🟢 STATUS: `[APPROVED]`
+          > **Rekomendasi**: Seluruh aturan inti arsitektur dan keamanan terpenuhi. Perubahan aman untuk digabungkan (*safe to merge*).
+
+          Jika terdapat pelanggaran:
+          > [!CAUTION]
+          > ### 🔴 STATUS: `[REQUEST_CHANGES]`
+          > **Rekomendasi**: Terdapat pelanggaran aturan arsitektur yang wajib diperbaiki sebelum digabungkan:
+          > - (Daftar perbaikan)
+          """
+
+          # 4. Discover available models for this API key via ListModels
+          candidate_models = []
+          if preferred_model:
+              candidate_models.append(preferred_model)
+
+          try:
+              list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_key}"
+              req_list = urllib.request.Request(list_url)
+              with urllib.request.urlopen(req_list, timeout=15) as resp:
+                  data = json.loads(resp.read().decode("utf-8"))
+                  discovered = [
+                      m["name"].replace("models/", "")
+                      for m in data.get("models", [])
+                      if "generateContent" in m.get("supportedGenerationMethods", [])
+                      and "tts" not in m.get("name", "").lower()
+                  ]
+                  print(f"Dynamically discovered models supporting generateContent: {discovered}")
+                  flash_models = [m for m in discovered if "flash" in m]
+                  other_models = [m for m in discovered if "flash" not in m]
+                  for m in flash_models + other_models:
+                      if m not in candidate_models:
+                          candidate_models.append(m)
+          except Exception as e:
+              print(f"::warning ::Dynamic model discovery failed ({e}), using default fallback list.")
+              for fallback in ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-2.5-flash"]:
+                  if fallback not in candidate_models:
+                      candidate_models.append(fallback)
+
+          print(f"Model priority list: {candidate_models}")
+
+          # 5. Call Gemini API across models with retries on 503/429
+          review_text = None
+          last_err = None
+
+          for model_name in candidate_models:
+              gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+              payload = json.dumps({
+                  "contents": [{
+                      "parts": [{"text": prompt}]
+                  }],
+                  "generationConfig": {
+                      "maxOutputTokens": 4096
+                  }
+              }).encode("utf-8")
+
+              for attempt in range(1, 4):
+                  req = urllib.request.Request(
+                      gemini_url,
+                      data=payload,
+                      headers={"Content-Type": "application/json"}
+                  )
+
+                  try:
+                      print(f"Calling {model_name} (attempt {attempt})...")
+                      with urllib.request.urlopen(req, timeout=90) as resp:
+                          result = json.loads(resp.read().decode("utf-8"))
+                          review_text = result["candidates"][0]["content"]["parts"][0]["text"]
+                          print(f"Successfully generated review using model: {model_name}")
+                          break
+                  except urllib.error.HTTPError as e:
+                      err_body = e.read().decode("utf-8", errors="ignore")
+                      last_err = f"({e.code}): {err_body}"
+                      if e.code in (503, 429) and attempt < 3:
+                          backoff = attempt * 5
+                          print(f"::warning ::Model {model_name} returned {e.code} high demand, retrying in {backoff}s...")
+                          time.sleep(backoff)
+                          continue
+                      print(f"::warning ::Model {model_name} failed: {last_err}")
+                      break
+                  except Exception as e:
+                      last_err = str(e)
+                      print(f"::warning ::Model {model_name} error: {last_err}")
+                      break
+
+              if review_text:
+                  break
+
+          if not review_text:
+              print(f"::error ::All Gemini models failed. Last error: {last_err}")
+              sys.exit(1)
+
+          # 6. Post review comment to GitHub Pull Request
+          gh_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+          comment_payload = json.dumps({
+              "body": review_text
+          }).encode("utf-8")
+
+          gh_req = urllib.request.Request(
+              gh_url,
+              data=comment_payload,
+              headers={
+                  "Authorization": f"Bearer {github_token}",
+                  "Accept": "application/vnd.github.v3+json",
+                  "Content-Type": "application/json",
+                  "User-Agent": "PROMS-AI-PR-Reviewer"
+              }
+          )
+
+          try:
+              with urllib.request.urlopen(gh_req, timeout=30) as resp:
+                  print("AI review comment posted successfully to PR!")
+          except Exception as e:
+              print(f"::error ::Failed to post comment to GitHub PR: {e}")
+              sys.exit(1)
+          EOF
