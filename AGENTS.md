@@ -135,4 +135,4 @@ Before finishing any task, every AI Agent MUST verify:
 
 When exploring new features, planning changes, or brainstorming architecture:
 - **Mandatory Skill**: Use `project-brainstorming` (`.agents/skills/project-brainstorming/SKILL.md`).
-- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 13 Golden Rules above and companion rules in `docs/rules/` before presenting designs or generating implementation plans.
+- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 14 Golden Rules above, companion rules in `docs/rules/`, and Architecture Decision Records in `docs/adr/` before presenting designs or generating implementation plans.

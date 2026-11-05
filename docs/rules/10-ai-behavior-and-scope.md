@@ -15,9 +15,10 @@ Format messages as:
 
 ## 3. Self-Correction Loop
 Before concluding a task, run the verification commands:
-1. `./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`
-2. `./gradlew spotlessApply`
-3. `./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"`
+1. `./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"` (Targeted inner loop)
+2. `./gradlew spotlessApply` (Automated formatting)
+3. `./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"` (Guardrail verification)
+4. `./gradlew check` (Mandatory full DoD gate: tests + ArchUnit + SpotlessCheck)
 
 Fix any compiler, formatting, or test failures autonomously before reporting completion.
 
