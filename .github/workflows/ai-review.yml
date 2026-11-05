@@ -58,13 +58,17 @@ jobs:
               print("To enable automated AI reviews, add GEMINI_API_KEY in Repository Settings > Secrets > Actions.")
               sys.exit(0)
 
-          # 1. Fetch git diff against target base branch
+          # 1. Fetch git diff and list of changed files against target base branch
           try:
               subprocess.run(["git", "fetch", "origin", base_ref], check=True)
               diff = subprocess.check_output(
                   ["git", "diff", f"origin/{base_ref}...HEAD"],
                   stderr=subprocess.STDOUT
               ).decode("utf-8", errors="ignore")
+              changed_files = subprocess.check_output(
+                  ["git", "diff", "--name-only", f"origin/{base_ref}...HEAD"],
+                  stderr=subprocess.STDOUT
+              ).decode("utf-8", errors="ignore").splitlines()
           except Exception as e:
               print(f"::warning ::Failed to compute git diff: {e}")
               sys.exit(0)
@@ -73,19 +77,65 @@ jobs:
               print("No diff detected. Skipping review.")
               sys.exit(0)
 
-          # 2. Read AGENTS.md rules
+          print(f"Changed files in PR ({len(changed_files)} files): {changed_files}")
+
+          # 2. Context-Aware Skill Discovery based on changed files
+          skill_mapping = {
+              "Security & Multi-Tenancy": {
+                  "patterns": ["auth", "tenant", "security", "token", "password", ".github/workflows"],
+                  "file": ".agents/skills/security-and-multi-tenancy/SKILL.md"
+              },
+              "The Golden Stack & JPA Performance": {
+                  "patterns": ["repository", "entity", "lookup", "mapper", "src/main/resources/db"],
+                  "file": ".agents/skills/the-golden-stack-performance/SKILL.md"
+              },
+              "Modular Facade & Boundary": {
+                  "patterns": ["facade", "service", "architecturetest"],
+                  "file": ".agents/skills/modular-facade-boundary/SKILL.md"
+              },
+              "API Contract & YAVI": {
+                  "patterns": ["controller", "dto", "request", "response", "validator"],
+                  "file": ".agents/skills/api-contract-and-yavi/SKILL.md"
+              }
+          }
+
+          active_skills_names = []
+          active_skills_instructions = []
+
+          for skill_name, cfg in skill_mapping.items():
+              matched = any(any(pat in f.lower() for pat in cfg["patterns"]) for f in changed_files)
+              if matched and os.path.exists(cfg["file"]):
+                  active_skills_names.append(skill_name)
+                  with open(cfg["file"], "r", encoding="utf-8") as sf:
+                      active_skills_instructions.append(f"### Spesialisasi Skill: {skill_name}\n{sf.read()}")
+
+          if not active_skills_names:
+              active_skills_names.append("General Architecture Baseline (AGENTS.md)")
+
+          print(f"Context-Aware Active Skills: {active_skills_names}")
+
+          # 3. Read AGENTS.md rules
           agents_content = ""
           if os.path.exists("AGENTS.md"):
               with open("AGENTS.md", "r", encoding="utf-8") as f:
                   agents_content = f.read()
 
-          # 3. Construct evaluation prompt (trimmed to keep latency fast < 20s)
+          skills_block = "\n\n".join(active_skills_instructions)
+
+          # 4. Construct evaluation prompt (trimmed to keep latency fast < 20s)
+          active_skills_header = ", ".join(f"`{s}`" for s in active_skills_names)
           prompt = f"""
           Anda adalah Senior Architecture & Security Reviewer untuk project enterprise 'hyperdata-solusindo/proms-api-java'.
-          Tinjau perubahan kode (git diff) di bawah ini berdasarkan aturan pada AGENTS.md dan pastikan kepatuhan pada 14 Golden Rules:
+          Tinjau perubahan kode (git diff) di bawah ini berdasarkan aturan pada AGENTS.md dan Skill Khusus yang diaktifkan secara Context-Aware:
 
-          === STANDAR PROYEK (AGENTS.md) ===
+          === STANDAR PROYEK UTAMA (AGENTS.md) ===
           {agents_content}
+
+          === SKILL SPESIALISASI YANG DIAKTIFKAN (CONTEXT-AWARE) ===
+          {skills_block if skills_block else "Gunakan standar baseline arsitektur AGENTS.md."}
+
+          === DAFTAR FILE YANG DIUBAH ===
+          {json.dumps(changed_files, indent=2)}
 
           === GIT DIFF YANG DIAJUKAN ===
           {diff[:15000]}
@@ -93,6 +143,8 @@ jobs:
 
           Format laporan review dalam bahasa Indonesia dengan struktur Markdown berikut:
           ### 🤖 Laporan AI Architecture Review
+
+          **🎯 Skill Terdeteksi (Context-Aware)**: {active_skills_header}
 
           #### 1. Ringkasan Perubahan
           (Ringkasan 2-3 kalimat mengenai apa yang diubah/ditambahkan).
@@ -106,8 +158,8 @@ jobs:
           - **Anti-N+1 / The Golden Stack (Rule 10)**: [PASS / VIOLATION] (Keterangan)
           - **Multi-Tenancy & Security (Rule 14)**: [PASS / VIOLATION] (Keterangan)
 
-          #### 3. Temuan & Saran Konstruktif (Jika ada)
-          (Jelaskan baris/bagian kode yang melanggar beserta contoh perbaikannya DO vs DON'T).
+          #### 3. Evaluasi Mendalam Berdasarkan Skill Aktif
+          (Berikan analisis khusus berdasarkan standar skill yang terdeteksi di atas, sertakan contoh DO vs DON'T jika ada temuan).
 
           #### 4. Kesimpulan & Rekomendasi
           **Status**: `[APPROVED]` jika bersih dan patuh, atau `[REQUEST_CHANGES]` jika terdapat pelanggaran aturan inti.
