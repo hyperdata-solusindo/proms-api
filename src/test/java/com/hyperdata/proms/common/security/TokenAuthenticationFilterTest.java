@@ -4,15 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.hyperdata.proms.module.identity.auth.entity.PersonalAccessToken;
-import com.hyperdata.proms.module.identity.auth.service.TokenService;
+import com.hyperdata.proms.module.identity.auth.facade.AuthFacade;
+import com.hyperdata.proms.module.identity.auth.facade.dto.VerifiedTokenDto;
 import com.hyperdata.proms.module.identity.user.facade.UserFacade;
 import com.hyperdata.proms.module.identity.user.facade.dto.UserAuthDto;
 import com.hyperdata.proms.module.identity.user.facade.dto.UserMembershipDto;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -30,7 +29,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class TokenAuthenticationFilterTest {
 
     @Mock
-    private TokenService tokenService;
+    private AuthFacade authFacade;
 
     @Mock
     private UserFacade userFacade;
@@ -56,17 +55,13 @@ class TokenAuthenticationFilterTest {
         UUID userId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
 
-        PersonalAccessToken pat = new PersonalAccessToken();
-        pat.setId(1L);
-        pat.setTokenableId(userId);
-        pat.setAbilities("tenant:" + tenantId);
-        pat.setExpiresAt(Instant.now().plusSeconds(3600));
+        VerifiedTokenDto token = new VerifiedTokenDto(1L, userId, Optional.of(tenantId));
 
         UserAuthDto user = new UserAuthDto(userId, "user@hyperdata.co.id", "hashed", "User Test", "id", "Asia/Jakarta",
             true);
         UserMembershipDto membership = new UserMembershipDto(tenantId, "admin");
 
-        given(tokenService.verifyToken(1L, "validPlainToken")).willReturn(Optional.of(pat));
+        given(authFacade.verifyToken(1L, "validPlainToken")).willReturn(Optional.of(token));
         given(userFacade.findByIdForAuth(userId)).willReturn(Optional.of(user));
         given(userFacade.resolveUserMembership(userId, Optional.of(tenantId))).willReturn(Optional.of(membership));
 
@@ -77,7 +72,7 @@ class TokenAuthenticationFilterTest {
         assertThat(principal.email()).isEqualTo("user@hyperdata.co.id");
         assertThat(principal.workspaceRole()).isEqualTo("admin");
         assertThat(principal.tokenId()).isEqualTo(1L);
-        verify(tokenService).recordTokenUsage(1L);
+        verify(authFacade).recordTokenUsage(1L);
         verify(filterChain).doFilter(request, response);
     }
 }

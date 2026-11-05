@@ -19,12 +19,24 @@ flowchart LR
 - Read-heavy master data (e.g. `CompanyInfo`, `UserInfo`, `CategorySummaryDto`, `TenantDetailDto`) should be cached at the `*Facade` boundary or service queries.
 - Eliminates database round-trips for repetitive lookups, bringing lookup latency down to sub-microsecond memory reads (`< 0.001 ms`).
 - **Dedicated Module Cache Names**: Dilarang menggunakan string literal acak atau mengumpulkan cache names di `common`. Wajib mendeklarasikan cache names pada class konstanta khusus di masing-masing modul: `module.<domain>.<feature>.constant.<Feature>CacheNames`.
+- **Tenant-Scoped Cache Isolation (Anti-RLS Bypass)**:
+  - Cache L1 bekerja di memory aplikasi dan **tidak melewati PostgreSQL Row Level Security (RLS)**.
+  - Untuk entitas/data yang berlingkup tenant (misal: product, order, task, dokumen), key cache **WAJIB menyertakan tenant prefix**, contoh:
+    ```java
+    @Cacheable(cacheNames = <Feature>CacheNames.<NAME>, key = "#tenantId + ':' + #id", unless = "#result == null")
+    ```
+    atau jika menggunakan context auth:
+    ```java
+    @Cacheable(cacheNames = <Feature>CacheNames.<NAME>, key = "#currentUser.activeTenantId() + ':' + #id", unless = "#result == null")
+    ```
+  - ❌ **DILARANG menggunakan `key = "#id"`** untuk data berlingkup tenant karena dapat mengakibatkan Tenant B membaca data Tenant A langsung dari cache tanpa pengecekan RLS database.
+  - Pengecualian hanya untuk data global platform yang tidak memiliki `tenant_id` (seperti platform plans atau lookup tenant itu sendiri berdasarkan `tenantId`).
 - **SpEL Handling pada Return Type `Optional<T>`**: Saat method mengembalikan `Optional<T>`, Spring Cache otomatis meng-unwrap value menjadi `T` (atau `null` jika empty). Maka evaluasi `unless` wajib menggunakan:
   ```java
-  @Cacheable(cacheNames = <Feature>CacheNames.<NAME>, key = "#id", unless = "#result == null")
+  @Cacheable(cacheNames = <Feature>CacheNames.<NAME>, key = "#tenantId + ':' + #id", unless = "#result == null")
   ```
   *(Dilarang menggunakan `!#result.isPresent()`, yang akan memicu `SpelEvaluationException`)*.
-- **Auto Eviction**: Gunakan `@CacheEvict(cacheNames = <Feature>CacheNames.<NAME>, key = "#id")` pada method mutasi data (create, update, delete).
+- **Auto Eviction**: Gunakan `@CacheEvict(cacheNames = <Feature>CacheNames.<NAME>, key = "#tenantId + ':' + #id")` pada method mutasi data (create, update, delete).
 
 ### Pillar 2: `Lookups` Utility Engine (`com.hyperdata.proms.common.util.Lookups`)
 - In-memory processing engine for batch ID extraction, one-to-one indexing, one-to-many grouping, safe transformations, and domain filtering.
