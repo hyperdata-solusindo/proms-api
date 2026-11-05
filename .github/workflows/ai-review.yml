@@ -76,7 +76,7 @@ jobs:
               with open("AGENTS.md", "r", encoding="utf-8") as f:
                   agents_content = f.read()
 
-          # 3. Construct evaluation prompt
+          # 3. Construct evaluation prompt (trimmed to keep latency fast < 20s)
           prompt = f"""
           Anda adalah Senior Architecture & Security Reviewer untuk project enterprise 'hyperdata-solusindo/proms-api-java'.
           Tinjau perubahan kode (git diff) di bawah ini berdasarkan aturan pada AGENTS.md dan pastikan kepatuhan pada 14 Golden Rules:
@@ -85,7 +85,7 @@ jobs:
           {agents_content}
 
           === GIT DIFF YANG DIAJUKAN ===
-          {diff[:35000]}
+          {diff[:15000]}
           ==============================
 
           Format laporan review dalam bahasa Indonesia dengan struktur Markdown berikut:
@@ -110,11 +110,11 @@ jobs:
           **Status**: `[APPROVED]` jika bersih dan patuh, atau `[REQUEST_CHANGES]` jika terdapat pelanggaran aturan inti.
           """
 
-          # 4. Call Google Gemini API (gemini-3.8-flash)
+          # 4. Call Google Gemini API
           models_to_try = [
               os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
-              "gemini-1.5-flash",
-              "gemini-pro"
+              "gemini-2.0-flash",
+              "gemini-2.0-flash-exp"
           ]
 
           review_text = None
@@ -135,7 +135,7 @@ jobs:
               )
 
               try:
-                  with urllib.request.urlopen(req, timeout=60) as resp:
+                  with urllib.request.urlopen(req, timeout=120) as resp:
                       result = json.loads(resp.read().decode("utf-8"))
                       review_text = result["candidates"][0]["content"]["parts"][0]["text"]
                       print(f"Successfully generated review using model: {model_name}")
