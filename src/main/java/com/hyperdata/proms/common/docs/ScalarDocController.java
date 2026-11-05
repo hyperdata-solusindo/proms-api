@@ -17,6 +17,7 @@ public class ScalarDocController {
           background: rgba(168, 85, 247, 0.2) !important;
         }
         aside li[data-sidebar-id*="/tag-group/"] > div a,
+        aside li[data-sidebar-id*="/tag-group/"] > div button,
         aside a[href*="#tag-group/"] {
           padding: 0.35rem 0.5rem !important;
         }
@@ -34,13 +35,21 @@ public class ScalarDocController {
           color: #c084fc !important;
         }
 
-        /* 2. FEATURE TAGS (SEJAJAR DENGAN DOMAIN GROUP) */
+        /* 2. FEATURE TAGS (TIDAK ADA PADDING LEFT / SEJAJAR DENGAN DOMAIN GROUP) */
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > button,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > button,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a,
         aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a,
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a {
+        aside li[data-sidebar-id*="/tag/"] > button,
+        aside li[data-sidebar-id*="/tag/"] > div > button,
+        aside li[data-sidebar-id*="/tag/"] > a,
+        aside li[data-sidebar-id*="/tag/"] > div > a {
           padding-left: 0.5rem !important;
         }
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a > .scalar-sidebar-indent,
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a > .scalar-sidebar-indent {
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li button .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li a .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag/"] button .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag/"] a .scalar-sidebar-indent {
           display: none !important;
         }
         aside li[data-sidebar-id*="/tag/"] [class*="button-label"],
@@ -52,13 +61,20 @@ public class ScalarDocController {
           letter-spacing: normal !important;
           color: #e2e8f0 !important;
         }
-        aside a[href*="#tag/"]:hover {
+        aside a[href*="#tag/"]:hover,
+        aside li[data-sidebar-id*="/tag/"] button:hover {
           background: rgba(255, 255, 255, 0.06) !important;
           color: #ffffff !important;
         }
 
-        /* 3. ENDPOINTS (INDENT 1 LEVEL LANGSUNG DI BAWAH FEATURE) */
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li a > .scalar-sidebar-indent:first-of-type {
+        /* 3. ENDPOINTS (TETAP ADA PADDING / MENJOROK KE DALAM DI BAWAH FEATURE) */
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li a,
+        aside li[data-sidebar-id*="/tag/"] > ul > li a,
+        aside a[href*="#tag/"][href*="/"] {
+          padding-left: 1.65rem !important;
+        }
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li a .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag/"] > ul > li a .scalar-sidebar-indent {
           display: none !important;
         }
 
