@@ -1,0 +1,274 @@
+name: Deep Security Audit (Cloudflare Standard)
+
+on:
+  schedule:
+    # Setiap hari Minggu jam 00:00 UTC (07:00 WIB)
+    - cron: '0 0 * * 0'
+  pull_request:
+    types: [labeled]
+  push:
+    branches:
+      - 'release/**'
+      - 'main'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Audit Scope'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - 'full'
+          - 'auth-and-multi-tenancy'
+          - 'data-layer'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  security-audit:
+    name: Cloudflare Security Audit Engine
+    if: |
+      github.event_name != 'pull_request' ||
+      github.event.label.name == 'audit:deep-security'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Cloudflare Multi-Phase Security Audit
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TRIGGER_EVENT: ${{ github.event_name }}
+          AUDIT_SCOPE: ${{ inputs.scope }}
+        run: |
+          python - << 'EOF'
+          import os
+          import sys
+          import json
+          import glob
+          import time
+          import urllib.request
+          import urllib.error
+
+          gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+          preferred_model = os.environ.get("GEMINI_MODEL", "").strip()
+          github_token = os.environ.get("GITHUB_TOKEN", "").strip()
+          repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+          is_pr = os.environ.get("IS_PR", "false").lower() == "true"
+          pr_number = os.environ.get("PR_NUMBER", "").strip()
+          trigger_event = os.environ.get("TRIGGER_EVENT", "unknown")
+          scope = os.environ.get("AUDIT_SCOPE", "").strip() or "full"
+
+          if not gemini_key:
+              print("::notice ::GEMINI_API_KEY secret is not configured. Skipping security audit.")
+              sys.exit(0)
+
+          # 1. Gather critical security source files
+          target_patterns = [
+              "src/main/java/**/*Filter*.java",
+              "src/main/java/**/*Security*.java",
+              "src/main/java/**/*Auth*.java",
+              "src/main/java/**/*Facade*.java",
+              "src/main/java/**/*Controller*.java",
+              "src/main/java/**/*Repository*.java",
+              "src/main/java/**/*Entity*.java",
+              "src/main/resources/application*.yml"
+          ]
+
+          collected_files = []
+          for pat in target_patterns:
+              for filepath in glob.glob(pat, recursive=True):
+                  if filepath not in collected_files:
+                      collected_files.append(filepath)
+
+          collected_files.sort()
+          print(f"Auditing {len(collected_files)} core security surfaces under scope: '{scope}'...")
+
+          # Read samples of code surfaces (bounded to keep token limit safe)
+          code_context = ""
+          total_chars = 0
+          for fpath in collected_files:
+              try:
+                  with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                      content = f.read()
+                      if total_chars + len(content) > 30000:
+                          code_context += f"\n\n// File: {fpath} (Truncated preview)\n" + content[:1000]
+                          break
+                      code_context += f"\n\n// File: {fpath}\n" + content
+                      total_chars += len(content)
+              except Exception as e:
+                  print(f"Skipping {fpath}: {e}")
+
+          # 2. Read Cloudflare Security Audit Guidance from repository skill
+          skill_content = ""
+          skill_path = ".agents/skills/security-and-multi-tenancy/SKILL.md"
+          if os.path.exists(skill_path):
+              with open(skill_path, "r", encoding="utf-8") as sf:
+                  skill_content = sf.read()
+
+          # 3. Construct Deep Security Evaluation Prompt
+          prompt = f"""
+          Anda adalah Chief Information Security Officer (CISO) & Vulnerability Hunter enterprise yang menggunakan metodologi Cloudflare Security Audit Framework.
+          Lakukan audit keamanan mendalam pada codebase Java enterprise 'hyperdata-solusindo/proms-api-java'.
+
+          === METODOLOGI CLOUDFLARE SECURITY AUDIT & STANDAR MULTI-TENANCY ===
+          {skill_content}
+
+          === DAFTAR BERKAS PERMUKAAN SERANGAN (ATTACK SURFACES) ===
+          {json.dumps(collected_files, indent=2)}
+
+          === KODE SUMBER KRUSIAL TERPILIH ===
+          {code_context}
+          ====================================================================
+
+          Lakukan analisis multi-fase terhadap kategori serangan utama:
+          1. **Tenant & Object Isolation (BOLA / IDOR)**: Apakah query memvalidasi tenant ID? Apakah cache key berpotensi collision?
+          2. **Web Protocol & Authentication**: Verifikasi token/JWT, filter boundary, session fixation, timing attack.
+          3. **Resource Exhaustion & Availability (DoS)**: Unbounded queries tanpa limit/pageable, N+1 query loop.
+          4. **Data Privacy & Secrets (UU PDP No. 27/2022)**: Kebocoran PII pada logging, hardcoded credentials.
+
+          Format laporan output dalam bahasa Indonesia dengan struktur Markdown berikut:
+          # 🛡️ Laporan Audit Keamanan Mendalam (Cloudflare Standard)
+
+          > **Audit Trigger**: `{trigger_event}` • **Audit Scope**: `{scope}` • **Files Analyzed**: `{len(collected_files)} core security files`
+
+          ## 1. 📊 Ringkasan Postur Keamanan
+          (Penilaian ringkas 2-3 kalimat mengenai ketahanan aplikasi terhadap serangan siber & kebocoran tenant).
+
+          ## 2. 🚦 Matriks Evaluasi Attack Classes (Cloudflare Standard)
+
+          | Attack Class | Status | Keterangan & Analisis Sumber |
+          | :--- | :---: | :--- |
+          | **Tenant & Object Isolation (BOLA/IDOR)** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis kepatuhan query & cache prefix) |
+          | **Token & Authentication Boundary** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis isolasi filter & token claims) |
+          | **Resource Exhaustion & Availability** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis query boundaries & anti-N+1) |
+          | **Secret Hygiene & Privacy (UU PDP)** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis credentials & sanitasi data) |
+
+          ## 3. 🔍 Rincian Temuan & Rekomendasi Mitigasi
+          (Jika ada temuan berikan rincian file, bukti kode, dan solusi DO vs DON'T. Jika bersih, nyatakan bukti kekokohan arsitektur).
+
+          ## 4. 🏁 Kesimpulan & Verdict Keamanan
+          > [!NOTE]
+          > ### 🟢 VERDICT: `[SECURE / AUDIT_PASSED]`
+          > (atau `> [!CAUTION] ### 🔴 VERDICT: [ACTION_REQUIRED]` jika ditemukan kerentanan berisiko).
+          """
+
+          # 4. Fast-path model priority (instant execution without upfront ListModels roundtrip)
+          default_fast_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash", "gemini-1.5-flash"]
+          candidate_models = []
+          if preferred_model:
+              candidate_models.append(preferred_model)
+          for m in default_fast_models:
+              if m not in candidate_models:
+                  candidate_models.append(m)
+
+          print(f"Fast-path model priority list: {candidate_models}")
+
+          audit_report = None
+          last_err = None
+
+          for model_name in candidate_models:
+              gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+              payload = json.dumps({
+                  "contents": [{"parts": [{"text": prompt}]}],
+                  "generationConfig": {
+                      "maxOutputTokens": 2500,
+                      "temperature": 0.2
+                  }
+              }).encode("utf-8")
+
+              for attempt in range(1, 3):
+                  req = urllib.request.Request(
+                      gemini_url,
+                      data=payload,
+                      headers={"Content-Type": "application/json"}
+                  )
+                  try:
+                      print(f"Running deep security audit with {model_name} (attempt {attempt})...")
+                      with urllib.request.urlopen(req, timeout=45) as resp:
+                          res = json.loads(resp.read().decode("utf-8"))
+                          audit_report = res["candidates"][0]["content"]["parts"][0]["text"]
+                          print(f"Security audit generated successfully via {model_name}")
+                          break
+                  except urllib.error.HTTPError as e:
+                      err_body = e.read().decode("utf-8", errors="ignore")
+                      last_err = f"({e.code}): {err_body}"
+                      if e.code in (503, 429) and attempt < 3:
+                          time.sleep(attempt * 5)
+                          continue
+                      print(f"::warning ::Model {model_name} failed: {last_err}")
+                      break
+                  except Exception as e:
+                      last_err = str(e)
+                      break
+
+              if audit_report:
+                  break
+
+          if not audit_report:
+              print(f"::error ::Security audit failed on all models: {last_err}")
+              sys.exit(1)
+
+          # 5. Save report to artifact files
+          os.makedirs("security-audit-results", exist_ok=True)
+          with open("security-audit-results/SECURITY-REPORT.md", "w", encoding="utf-8") as f:
+              f.write(audit_report)
+
+          machine_findings = {
+              "audit_timestamp": time.time(),
+              "scope": scope,
+              "trigger_event": trigger_event,
+              "files_audited_count": len(collected_files),
+              "raw_report_file": "SECURITY-REPORT.md"
+          }
+          with open("security-audit-results/findings.json", "w", encoding="utf-8") as f:
+              json.dump(machine_findings, f, indent=2)
+
+          print("Audit artifacts created: SECURITY-REPORT.md, findings.json")
+
+          # 6. If triggered on PR with label, post comment to PR
+          if is_pr and pr_number:
+              gh_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+              comment_payload = json.dumps({"body": audit_report}).encode("utf-8")
+              gh_req = urllib.request.Request(
+                  gh_url,
+                  data=comment_payload,
+                  headers={
+                      "Authorization": f"Bearer {github_token}",
+                      "Accept": "application/vnd.github.v3+json",
+                      "Content-Type": "application/json",
+                      "User-Agent": "PROMS-Cloudflare-Security-Auditor"
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(gh_req, timeout=30) as resp:
+                      print("Deep security audit report posted successfully to PR!")
+              except Exception as e:
+                  print(f"::warning ::Failed to post audit comment to PR: {e}")
+          EOF
+
+      - name: Upload Security Audit Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: security-audit-results/
+          retention-days: 30

@@ -50,6 +50,11 @@ ArchUnit strictly enforces:
 5. Controllers (excluding interfaces) must be annotated with `@RestController`.
 6. Controllers must implement their `<Feature>Api` contract interface.
 7. Services must be annotated with `@Service`.
+8. Inter-Module Boundary: Modul luar (`module` lain maupun `common`) dilarang mengakses package internal modul (`service`, `repository`, `entity`, `mapper`, `constant`, `controller`, internal `dto`, dan `facade.internal`). Komunikasi lintas modul HANYA boleh melalui `facade` dan `facade.dto`.
+9. Field Injection Prohibition: Dilarang menggunakan field injection `@Autowired`.
+10. Entity Lombok Prohibition: JPA Entities dilarang menggunakan `@Data` (juga diblokir pada level compiler via `lombok.config`).
+11. Transactional Boundary: Dilarang menggunakan anotasi `@Transactional` pada level class maupun method di controller.
+12. DTO Immutability: Seluruh class di package `..dto..` wajib berupa Java 21 `record`.
 
 Run ArchUnit checks:
 ```bash

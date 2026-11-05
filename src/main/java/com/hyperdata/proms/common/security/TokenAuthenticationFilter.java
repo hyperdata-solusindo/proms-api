@@ -1,6 +1,6 @@
 package com.hyperdata.proms.common.security;
 
-import com.hyperdata.proms.module.identity.auth.service.TokenService;
+import com.hyperdata.proms.module.identity.auth.facade.AuthFacade;
 import com.hyperdata.proms.module.identity.user.facade.UserFacade;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,7 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
-    private final TokenService tokenService;
+    private final AuthFacade authFacade;
     private final UserFacade userFacade;
 
     @Override
@@ -39,35 +39,32 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                     Long tokenId = Long.valueOf(tokenValue.substring(0, pipeIndex));
                     String plainToken = tokenValue.substring(pipeIndex + 1);
 
-                    var patOpt = tokenService.verifyToken(tokenId, plainToken);
-                    if (patOpt.isPresent()) {
-                        var pat = patOpt.get();
-                        UUID userId = pat.getTokenableId();
-
-                        UUID tenantId = null;
-                        if (pat.getAbilities() != null && pat.getAbilities().startsWith("tenant:")) {
-                            tenantId = UUID.fromString(pat.getAbilities().substring(7));
-                        }
+                    var tokenOpt = authFacade.verifyToken(tokenId, plainToken);
+                    if (tokenOpt.isPresent()) {
+                        var token = tokenOpt.get();
+                        UUID userId = token.userId();
+                        Optional<UUID> tenantIdOpt = token.tenantId();
+                        UUID tenantId = tenantIdOpt.orElse(null);
 
                         var userOpt = userFacade.findByIdForAuth(userId);
                         if (userOpt.isPresent() && userOpt.get().isActive()) {
                             var user = userOpt.get();
                             String role = "member";
 
-                            if (tenantId != null) {
-                                var membershipOpt = userFacade.resolveUserMembership(userId, Optional.of(tenantId));
+                            if (tenantIdOpt.isPresent()) {
+                                var membershipOpt = userFacade.resolveUserMembership(userId, tenantIdOpt);
                                 if (membershipOpt.isPresent()) {
                                     role = membershipOpt.get().role();
                                 }
                             }
 
                             CurrentUser currentUser = new CurrentUser(user.id(), user.email(), tenantId, role,
-                                pat.getId());
+                                token.tokenId());
                             var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
                             var auth = new UsernamePasswordAuthenticationToken(currentUser, null, authorities);
                             SecurityContextHolder.getContext().setAuthentication(auth);
 
-                            tokenService.recordTokenUsage(pat.getId());
+                            authFacade.recordTokenUsage(token.tokenId());
                         }
                     }
                 } catch (Exception ignored) {

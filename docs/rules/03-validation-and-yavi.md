@@ -7,6 +7,8 @@ We use **YAVI (`am.ik.yavi:yavi`)** for type-safe, lambda-based validation.
 YaviValidator.validateAndThrow(CreateProductRequest.validator, request);
 ```
 
+> **Naming Standard**: Validator instances embedded inside Request records MUST always be declared as `public static final Validator<T> validator` (camelCase `validator`, bukan uppercase `VALIDATOR`).
+
 ---
 
 ## 6 Canonical YAVI Patterns (Few-Shot Reference)

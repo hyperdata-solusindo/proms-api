@@ -5,11 +5,11 @@
    ```bash
    ./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"
    ```
-2. **Outer Loop (Definition of Done)**: Run full test and verification suite:
+2. **Outer Loop (Definition of Done)**: Run full project verification suite before completion:
    ```bash
-   ./gradlew test
-   ./gradlew spotlessCheck
+   ./gradlew check
    ```
+   *(Menjalankan seluruh unit test, slice test, integrasi, ArchUnit guardrails, serta verifikasi formatting Spotless).*
 
 ## 2. Human-Readable BDD Format
 All test methods MUST use `@DisplayName` in BDD format:
@@ -27,4 +27,4 @@ void shouldThrowWhenSkuExists() {
 ## 3. Test Layers & Scope
 - **Service Tests**: Pure unit tests with Mockito (`@ExtendWith(MockitoExtension.class)`). Do NOT spin up Spring context.
 - **Controller Tests**: Slice tests with `@WebMvcTest(FeatureController.class)`.
-- **Repository Tests**: Use `@DataJpaTest` with test containers or embedded database only if testing custom complex `@Query`.
+- **Repository Tests**: Use `@DataJpaTest` with embedded H2 database (`testRuntimeOnly("com.h2database:h2")`) only if testing custom complex `@Query` or JPA Specifications.

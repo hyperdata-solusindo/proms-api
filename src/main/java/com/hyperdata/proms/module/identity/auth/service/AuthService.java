@@ -28,7 +28,7 @@ public class AuthService {
 
     @Transactional
     public LoginResponse login(LoginRequest request) {
-        YaviValidator.validateAndThrow(LoginRequest.VALIDATOR, request);
+        YaviValidator.validateAndThrow(LoginRequest.validator, request);
 
         var user = userFacade
             .findByEmailForAuth(request.email())

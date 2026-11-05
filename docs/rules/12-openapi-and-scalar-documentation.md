@@ -43,7 +43,7 @@ public record LoginRequest(
         )
         String password
 ) {
-    public static final Validator<LoginRequest> VALIDATOR = ValidatorBuilder.<LoginRequest>of()
+    public static final Validator<LoginRequest> validator = ValidatorBuilder.<LoginRequest>of()
             .constraint(LoginRequest::email, "email", c -> c.notBlank().email())
             .constraint(LoginRequest::password, "password", c -> c.notBlank())
             .build();

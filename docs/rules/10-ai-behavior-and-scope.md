@@ -15,9 +15,10 @@ Format messages as:
 
 ## 3. Self-Correction Loop
 Before concluding a task, run the verification commands:
-1. `./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`
-2. `./gradlew spotlessApply`
-3. `./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"`
+1. `./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"` (Targeted inner loop)
+2. `./gradlew spotlessApply` (Automated formatting)
+3. `./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"` (Guardrail verification)
+4. `./gradlew check` (Mandatory full DoD gate: tests + ArchUnit + SpotlessCheck)
 
 Fix any compiler, formatting, or test failures autonomously before reporting completion.
 
@@ -27,7 +28,7 @@ Fix any compiler, formatting, or test failures autonomously before reporting com
 
 When verifying changes against live endpoints (`bootRun` or HTTP requests):
 1. **Source Integrity First**: Always verify `git status` or `git diff <file>` to ensure source changes are truly present on disk before running builds or tests.
-2. **Process Cleanliness**: Never launch background servers without checking and terminating existing listeners on target ports (`lsof -ti :<port> | xargs kill -9 2>/dev/null || true`).
+2. **Process Cleanliness & Port Safety**: Never launch background servers without checking active port listeners (`lsof -i :<port>`). NEVER run blind termination (`kill -9`) on occupied ports. If a port is occupied by a process not spawned by the agent (e.g. Postgres Docker, IDE, developer services), **always ask the user for confirmation** before attempting to terminate it.
 3. **Bypass Stale Daemon Cache**: When class signatures, constructors, annotations, or configurations change, compile with `--rerun-tasks` or stop daemons (`./gradlew --stop`) to ensure bytecode is genuinely rebuilt.
 4. **Never Leave Dev Servers Running**: Background test servers spawned by the agent MUST be explicitly terminated immediately after verification curl checks succeed.
 
@@ -38,11 +39,18 @@ When verifying changes against live endpoints (`bootRun` or HTTP requests):
 ### DOs:
 - **DO verify disk state with `git status` / `git diff`** before concluding that a fix or code change is ready.
 - **DO check active port bindings (`lsof -i :8080`)** before and after running test servers to avoid port collisions and stale responses.
+- **DO ask user permission before killing any external process** occupying a target port.
 - **DO use `--rerun-tasks` or `./gradlew --stop`** when modifying annotations, interfaces, or dependency injection constructors to avoid Gradle daemon stale bytecode cache.
-- **DO kill any background process spawned during testing** immediately after verification is finished so the developer's workspace remains clean.
+- **DO kill any background process spawned by yourself during testing** immediately after verification is finished so the developer's workspace remains clean.
 - **DO verify response bodies and headers (`curl -i`)** end-to-end to confirm both HTTP status code and payload structure match expectations.
+- **DO use synthetic / dummy data** for testing and seeding to comply with personal data privacy laws (UU PDP No. 27/2022).
+- **DO ask explicit confirmation before running destructive commands** (e.g., `./scripts/db.sh fresh`, `rollback`, database drop/truncate/reset).
 
 ### DON'Ts:
+- **DON'T execute blind `kill -9`** (`lsof -ti :<port> | xargs kill -9`) against processes not spawned by the agent. Always ask the user first.
+- **DON'T read, print, or expose secret files or credentials** (`.env`, private keys, authentication tokens, connection passwords) into chat, logs, or commit history.
+- **DON'T include real personal identifiable information (PII)** like real user emails, NIK, phone numbers, or addresses in code, test fixtures, logs, or prompts (UU PDP No. 27/2022).
+- **DON'T execute destructive database commands** (`./scripts/db.sh fresh`, dropping tables, database resets) without explicit confirmation from the user.
 - **DON'T assume code edits succeeded without checking git diff** (never trust memory over disk state).
 - **DON'T leave background `bootRun` or server processes running** as zombies on developer machine.
 - **DON'T rely on Gradle UP-TO-DATE outputs** when verifying behavior changes that depend on newly added constructor parameters or reflection/annotations.
