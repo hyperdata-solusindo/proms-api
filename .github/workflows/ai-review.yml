@@ -144,25 +144,46 @@ jobs:
           Format laporan review dalam bahasa Indonesia dengan struktur Markdown berikut:
           ### 🤖 Laporan AI Architecture Review
 
-          **🎯 Skill Terdeteksi (Context-Aware)**: {active_skills_header}
+          > **🎯 Skill Aktif (Context-Aware)**: {active_skills_header}
 
-          #### 1. Ringkasan Perubahan
-          (Ringkasan 2-3 kalimat mengenai apa yang diubah/ditambahkan).
+          #### 1. 📋 Ringkasan Perubahan
+          (Ringkasan 2-3 kalimat mengenai apa yang diubah/ditambahkan dalam PR ini).
 
-          #### 2. Kepatuhan 14 Golden Rules & Checklist Arsitektur
-          - **Batas Antar-Modul (Rule 1 & 2)**: [PASS / VIOLATION] (Keterangan)
-          - **DTO Immutability (Rule 4)**: [PASS / VIOLATION] (Keterangan)
-          - **JPA Entity & Lombok (Rule 5)**: [PASS / VIOLATION] (Keterangan)
-          - **Dependency Injection (Rule 6)**: [PASS / VIOLATION] (Keterangan)
-          - **YAVI Validation (Rule 7)**: [PASS / VIOLATION] (Keterangan)
-          - **Anti-N+1 / The Golden Stack (Rule 10)**: [PASS / VIOLATION] (Keterangan)
-          - **Multi-Tenancy & Security (Rule 14)**: [PASS / VIOLATION] (Keterangan)
+          ---
 
-          #### 3. Evaluasi Mendalam Berdasarkan Skill Aktif
-          (Berikan analisis khusus berdasarkan standar skill yang terdeteksi di atas, sertakan contoh DO vs DON'T jika ada temuan).
+          #### 2. 🚦 Matriks Kepatuhan 14 Golden Rules
 
-          #### 4. Kesimpulan & Rekomendasi
-          **Status**: `[APPROVED]` jika bersih dan patuh, atau `[REQUEST_CHANGES]` jika terdapat pelanggaran aturan inti.
+          | Aturan Arsitektur | Status | Catatan Evaluasi |
+          | :--- | :---: | :--- |
+          | **Batas Antar-Modul** *(Rule 1 & 2)* | 🟢 **PASS** / 🔴 **VIOLATION** | (Catatan ringkas 1 kalimat) |
+          | **DTO Immutability** *(Rule 4)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **JPA Entity & Lombok** *(Rule 5)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **Dependency Injection** *(Rule 6)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **YAVI Validation** *(Rule 7)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **The Golden Stack** *(Rule 10)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **Security & Multi-Tenancy** *(Rule 14)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+
+          ---
+
+          #### 3. 🔍 Sorotan Evaluasi Berdasarkan Skill
+          (Buat sub-heading untuk setiap skill aktif yang relevan, sertakan DO vs DON'T jika ada saran perbaikan):
+          ##### [Nama Skill]
+          - **Temuan**: (Catatan evaluasi spesifik).
+
+          ---
+
+          #### 4. 🏁 Keputusan Review
+          (Gunakan format GitHub alert blockquote berikut):
+          Jika seluruh aturan lolos:
+          > [!NOTE]
+          > ### 🟢 STATUS: `[APPROVED]`
+          > **Rekomendasi**: Seluruh aturan inti arsitektur dan keamanan terpenuhi. Perubahan aman untuk digabungkan (*safe to merge*).
+
+          Jika terdapat pelanggaran:
+          > [!CAUTION]
+          > ### 🔴 STATUS: `[REQUEST_CHANGES]`
+          > **Rekomendasi**: Terdapat pelanggaran aturan arsitektur yang wajib diperbaiki sebelum digabungkan:
+          > - (Daftar perbaikan)
           """
 
           # 4. Discover available models for this API key via ListModels
