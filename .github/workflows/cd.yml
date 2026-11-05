@@ -102,11 +102,55 @@ jobs:
           echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
 
   # ============================================================================
-  # Phase 2: Build & Push Container Image to GHCR
+  # Phase 2: CI Verification Quality Gate (Pastikan CI Lolos Sebelum Deploy)
+  # ============================================================================
+  verify-ci:
+    name: Verify CI Checks Passed
+    needs: resolve-intent
+    if: needs.resolve-intent.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Wait and verify that CI workflow succeeds
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          echo "⏳ Checking CI status for commit $COMMIT_SHA..."
+          # Polling status commit check dari GitHub API (maksimal 10 menit)
+          for i in $(seq 1 40); do
+            # Ambil status check suite untuk commit saat ini
+            STATUSES=$(gh api "repos/${{ github.repository }}/commits/$COMMIT_SHA/check-runs" \
+              --jq '.check_runs[] | select(.name | contains("Java Verification")) | {status: .status, conclusion: .conclusion}')
+            
+            CHECK_STATUS=$(echo "$STATUSES" | jq -r '.status // empty')
+            CHECK_CONCLUSION=$(echo "$STATUSES" | jq -r '.conclusion // empty')
+
+            echo "[$i/40] Java Verification Check status: '$CHECK_STATUS', conclusion: '$CHECK_CONCLUSION'..."
+
+            if [ "$CHECK_STATUS" = "completed" ]; then
+              if [ "$CHECK_CONCLUSION" = "success" ]; then
+                echo "✅ CI verification passed successfully! Proceeding to deployment."
+                exit 0
+              else
+                echo "❌ CI verification failed with conclusion: '$CHECK_CONCLUSION'!"
+                echo "Deployment aborted to protect server stability."
+                exit 1
+              fi
+            fi
+
+            sleep 15
+          done
+
+          echo "⚠️ Timeout waiting for CI verification to complete. Aborting deployment."
+          exit 1
+
+  # ============================================================================
+  # Phase 3: Build & Push Container Image to GHCR
   # ============================================================================
   build-and-push:
     name: Package & Push Docker Image
-    needs: resolve-intent
+    needs: [resolve-intent, verify-ci]
     if: needs.resolve-intent.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -148,7 +192,7 @@ jobs:
           cache-from: type=gha
 
       - name: Enterprise Security Gate - Trivy Container Vulnerability Scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: 'proms-api-deploy-scan:inspect'
           format: 'table'
@@ -169,7 +213,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ============================================================================
-  # Phase 3: Rollout Deployment to Target VPS
+  # Phase 4: Rollout Deployment to Target VPS
   # ============================================================================
   deploy:
     name: Deploy to Server

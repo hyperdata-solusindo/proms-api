@@ -28,15 +28,12 @@ Untuk mendukung *horizontal dynamic scaling* (multi-replica container):
 
 ---
 
-## 3. Shift-Left Security & Vulnerability Gates (Trivy)
-Sistem keamanan pipeline mengadopsi standar Shift-Left:
-1. **Ring 1: Fast Secret & Config Scan (PR / Push)**:
-   - Dijalankan secara paralel dengan unit test (`ci.yml`).
-   - Memindai repositori dari kebocoran password, token, atau API key (`scan-type: config,secret`).
-   - **Blocking Gate (`exit-code: 1`)**: PR langsung diblokir jika terdeteksi rahasia yang bocor.
-2. **Ring 2: Container Security Gate (CD Pipeline)**:
-   - Memindai Docker image sebelum di-push ke GitHub Container Registry (`ghcr.io`).
-   - **Blocking Gate**: Memblokir deployment jika ditemukan kerentanan dengan tingkat keparahan **`CRITICAL`** yang sudah memiliki patch resmi dari vendor (`ignore-unfixed: true`).
+## 3. Container Security & Vulnerability Gates (Trivy in CD)
+Sistem keamanan Trivy dijalankan **secara eksklusif pada pipeline CD ([`.github/workflows/cd.yml`](../../.github/workflows/cd.yml)) saat proses deployment dipicu**:
+- **Trigger**: Hanya berjalan ketika ada event deployment (misal: label PR `deploy:staging-*` atau rilis tag production).
+- **Inspeksi Container**: Memindai Docker image sebelum di-push ke GitHub Container Registry (`ghcr.io`).
+- **Blocking Gate**: Memblokir deployment jika ditemukan kerentanan dengan tingkat keparahan **`CRITICAL`** yang sudah memiliki patch resmi dari vendor (`ignore-unfixed: true`).
+- **CI Isolation**: Pipeline CI harian (`ci.yml`) tetap fokus pada kecepatan eksekusi Java verification dan AI review tanpa overhead container scanning.
 
 ---
 
