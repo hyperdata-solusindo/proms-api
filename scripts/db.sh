@@ -12,6 +12,14 @@
 #   ./scripts/db.sh seed-config             # Seed system configurations (dev, staging, prod)
 #   ./scripts/db.sh seed-dummy              # Seed dummy data (DEV & STAGING ONLY)
 #   ./scripts/db.sh seed                    # Seed both config and dummy (DEV & STAGING)
+#
+# Execution Runner:
+#   By default, uses gradle wrapper (native Java, no Docker needed).
+#   Override runner via:
+#     RUNNER=gradle ./scripts/db.sh ...     # Run via ./gradlew liquibase
+#     RUNNER=liquibase ./scripts/db.sh ...  # Run via system liquibase CLI
+#     RUNNER=docker ./scripts/db.sh ...     # Run via Docker container
+#     USE_DOCKER=false ./scripts/db.sh ...  # Disallow Docker completely
 # ==============================================================================
 
 set -eo pipefail
@@ -39,13 +47,38 @@ SEED_DUMMY_FILE="db/seed/db.seed-dummy-master.yaml"
 RESOURCES_DIR="${PROJECT_ROOT}/src/main/resources"
 LIQUIBASE_URL="jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
-# Check docker or local liquibase availability
-USE_DOCKER=false
-if ! command -v liquibase &> /dev/null; then
-    if command -v docker &> /dev/null; then
-        USE_DOCKER=true
+# Determine runner: gradle (native), liquibase (cli), or docker
+RUNNER="${RUNNER:-}"
+
+if [ -n "${RUNNER}" ]; then
+    case "${RUNNER}" in
+        gradle|liquibase|docker) ;;
+        *)
+            echo "[ERROR] Invalid RUNNER='${RUNNER}'. Must be one of: gradle, liquibase, docker."
+            exit 1
+            ;;
+    esac
+elif [ "${USE_DOCKER:-}" = "true" ]; then
+    RUNNER="docker"
+elif [ "${USE_DOCKER:-}" = "false" ]; then
+    if [ -x "${PROJECT_ROOT}/gradlew" ] && command -v java &> /dev/null; then
+        RUNNER="gradle"
+    elif command -v liquibase &> /dev/null; then
+        RUNNER="liquibase"
     else
-        echo "[ERROR] Neither 'liquibase' CLI nor 'docker' is installed."
+        echo "[ERROR] Docker is disabled (USE_DOCKER=false), but neither 'gradlew' (with java) nor 'liquibase' CLI is available."
+        exit 1
+    fi
+else
+    # Auto-detection: prefer native non-docker execution via project gradlew or local liquibase
+    if [ -x "${PROJECT_ROOT}/gradlew" ] && command -v java &> /dev/null; then
+        RUNNER="gradle"
+    elif command -v liquibase &> /dev/null; then
+        RUNNER="liquibase"
+    elif command -v docker &> /dev/null; then
+        RUNNER="docker"
+    else
+        echo "[ERROR] No runner available. Neither 'gradlew' (with java), 'liquibase' CLI, nor 'docker' is available."
         exit 1
     fi
 fi
@@ -54,7 +87,10 @@ run_liquibase() {
     local target_changelog="${1:-${CHANGELOG_FILE}}"
     shift || true
 
-    if [ "${USE_DOCKER}" = true ]; then
+    # Unset Spring-specific liquibase env vars that trigger Liquibase CLI warnings
+    local liquibase_clean_env=(env -u LIQUIBASE_ENABLED -u LIQUIBASE_CONTEXTS -u LIQUIBASE_LABELS)
+
+    if [ "${RUNNER}" = "docker" ]; then
         docker run --rm \
             --network host \
             -e JAVA_OPTS="-Dapp_user=${DB_APP_USER}" \
@@ -66,8 +102,12 @@ run_liquibase() {
             --username="${DB_USER}" \
             --password="${DB_PASSWORD}" \
             "$@"
+    elif [ "${RUNNER}" = "gradle" ]; then
+        "${liquibase_clean_env[@]}" "${PROJECT_ROOT}/gradlew" -q -p "${PROJECT_ROOT}" \
+            -Dapp_user="${DB_APP_USER}" \
+            liquibase --args="\"--search-path=${RESOURCES_DIR}\" \"--changelog-file=${target_changelog}\" \"--url=${LIQUIBASE_URL}\" \"--username=${DB_USER}\" \"--password=${DB_PASSWORD}\" $*"
     else
-        JAVA_OPTS="-Dapp_user=${DB_APP_USER} ${JAVA_OPTS}" \
+        "${liquibase_clean_env[@]}" JAVA_OPTS="-Dapp_user=${DB_APP_USER} ${JAVA_OPTS:-}" \
         liquibase \
             --search-path="${RESOURCES_DIR}" \
             --changelog-file="${target_changelog}" \
@@ -82,6 +122,7 @@ print_banner() {
     echo "============================================================"
     echo "  PROMS Liquibase Migration Helper"
     echo "  Target: ${LIQUIBASE_URL} (User: ${DB_USER}, App User: ${DB_APP_USER})"
+    echo "  Runner: ${RUNNER}"
     echo "============================================================"
 }
 

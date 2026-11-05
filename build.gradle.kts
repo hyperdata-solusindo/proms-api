@@ -32,7 +32,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
+
+    // Cache Provider (Caffeine L1 Cache)
+    implementation("com.github.ben-manes.caffeine:caffeine")
 
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
@@ -67,6 +71,7 @@ dependencies {
 
     // Database Driver (PostgreSQL)
     runtimeOnly("org.postgresql:postgresql")
+    runtimeOnly("info.picocli:picocli:4.7.7")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
@@ -139,4 +144,18 @@ tasks.test {
 tasks.asciidoctor {
     inputs.dir(project.extra["snippetsDir"]!!)
     dependsOn(tasks.test)
+}
+
+tasks.register<JavaExec>("liquibase") {
+    group = "database"
+    description = "Runs Liquibase CLI using project runtime classpath"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("liquibase.integration.commandline.LiquibaseCommandLine")
+
+    val defaultAppUser = localEnv["DB_APP_USER"] ?: localEnv["DB_USER"] ?: "platform_user"
+    systemProperty(
+        "app_user",
+        providers.systemProperty("app_user")
+            .orElse(providers.environmentVariable("DB_APP_USER").orElse(defaultAppUser))
+    )
 }

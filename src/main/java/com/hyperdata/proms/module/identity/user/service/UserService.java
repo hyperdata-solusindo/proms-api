@@ -3,6 +3,7 @@ package com.hyperdata.proms.module.identity.user.service;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.util.Lookups;
+import com.hyperdata.proms.module.identity.user.constant.UserCacheNames;
 import com.hyperdata.proms.module.identity.user.dto.MeResponse;
 import com.hyperdata.proms.module.identity.user.dto.OtherTenantDto;
 import com.hyperdata.proms.module.identity.user.entity.TenantMember;
@@ -18,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,10 @@ public class UserService {
     private final TenantFacade tenantFacade;
     private final UserMapper userMapper;
 
+    @Cacheable(
+        cacheNames = UserCacheNames.USER_ME,
+        key = "#currentUser.userId() + ':' + #currentUser.activeTenantId()",
+        unless = "#result == null")
     public MeResponse getMe(CurrentUser currentUser) {
         UUID userId = currentUser.userId();
         UUID currentTenantId = currentUser.activeTenantId();
