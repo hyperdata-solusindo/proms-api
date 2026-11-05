@@ -11,12 +11,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class ScalarDocController {
 
     private static final String SCALAR_CUSTOM_CSS = """
-        /* 1. DOMAIN GROUP (PARENT / CATEGORY HEADING) */
+        /* 1. DOMAIN GROUP (HEADING KATEGORI DOMAIN) */
         aside li[data-sidebar-id*="/tag-group/"] > div:hover,
         aside a[href*="#tag-group/"]:hover {
           background: rgba(168, 85, 247, 0.2) !important;
         }
-        aside li[data-sidebar-id*="/tag-group/"] > div a,
+        aside li[data-sidebar-id*="/tag-group/"] > div > a,
+        aside li[data-sidebar-id*="/tag-group/"] > div > button,
+        aside li[data-sidebar-id*="/tag-group/"] > a,
         aside a[href*="#tag-group/"] {
           padding: 0.35rem 0.5rem !important;
         }
@@ -36,30 +38,67 @@ public class ScalarDocController {
 
         /* 2. FEATURE TAGS (SEJAJAR DENGAN DOMAIN GROUP) */
         aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a,
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a {
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > button,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > button,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > div > a,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > div > button,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > a,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > button {
           padding-left: 0.5rem !important;
+          padding-top: 0.35rem !important;
+          padding-bottom: 0.35rem !important;
         }
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a > .scalar-sidebar-indent,
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a > .scalar-sidebar-indent {
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > div > a .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > a .scalar-sidebar-indent {
           display: none !important;
         }
-        aside li[data-sidebar-id*="/tag/"] [class*="button-label"],
-        aside a[href*="#tag/"] [class*="button-label"],
-        aside a[href*="#tag/"] div {
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a [class*="button-label"],
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a [class*="button-label"],
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a > div,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a > div,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) [class*="button-label"] {
           font-size: 0.825rem !important;
-          font-weight: 500 !important;
+          font-weight: 600 !important;
           text-transform: none !important;
           letter-spacing: normal !important;
-          color: #e2e8f0 !important;
+          color: #f1f5f9 !important;
         }
-        aside a[href*="#tag/"]:hover {
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > div > a:hover,
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > a:hover,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > div > a:hover,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > a:hover {
           background: rgba(255, 255, 255, 0.06) !important;
           color: #ffffff !important;
         }
 
-        /* 3. ENDPOINTS (INDENT 1 LEVEL LANGSUNG DI BAWAH FEATURE) */
-        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li a > .scalar-sidebar-indent:first-of-type {
+        /* 3. ENDPOINTS (INDENTASI MENJOROK KE DALAM DI BAWAH FEATURE TAG) */
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li > a,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > ul > li > a {
+          padding-left: 1.65rem !important;
+          padding-top: 0.3rem !important;
+          padding-bottom: 0.3rem !important;
+        }
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li > a .scalar-sidebar-indent,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > ul > li > a .scalar-sidebar-indent {
           display: none !important;
+        }
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li > a [class*="button-label"],
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > ul > li > a [class*="button-label"] {
+          font-size: 0.8rem !important;
+          font-weight: 400 !important;
+          text-transform: none !important;
+          color: #cbd5e1 !important;
+        }
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li > a:hover,
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > ul > li > a:hover {
+          background: rgba(255, 255, 255, 0.06) !important;
+        }
+        aside li[data-sidebar-id*="/tag-group/"] > ul > li > ul > li > a:hover [class*="button-label"],
+        aside li[data-sidebar-id*="/tag/"]:not(li[data-sidebar-id*="/tag-group/"] *) > ul > li > a:hover [class*="button-label"] {
+          color: #ffffff !important;
         }
 
         /* 4. SEMBUNYIKAN SEMUA GARIS PANDUAN INDENTASI (DEFAULT, HOVER, & ACTIVE) */
