@@ -173,7 +173,13 @@ jobs:
           """
 
           # 4. Fast-path model priority (instant execution without upfront ListModels roundtrip)
-          default_fast_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash", "gemini-1.5-flash"]
+          default_fast_models = [
+              "gemini-3.8-flash",
+              "gemini-3.6-flash",
+              "gemini-3.5-flash-lite",
+              "gemini-3.1-flash-lite",
+              "gemini-3-flash-preview"
+          ]
           candidate_models = []
           if preferred_model:
               candidate_models.append(preferred_model)
@@ -184,7 +190,7 @@ jobs:
           print(f"Fast-path model priority list: {candidate_models}")
 
           audit_report = None
-          last_err = None
+          model_errors = []
 
           for model_name in candidate_models:
               gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
@@ -196,36 +202,49 @@ jobs:
                   }
               }).encode("utf-8")
 
-              for attempt in range(1, 3):
+              model_succeeded = False
+              for attempt in range(1, 4):
                   req = urllib.request.Request(
                       gemini_url,
                       data=payload,
                       headers={"Content-Type": "application/json"}
                   )
                   try:
-                      print(f"Running deep security audit with {model_name} (attempt {attempt})...")
+                      print(f"Running deep security audit with {model_name} (attempt {attempt}/3)...")
                       with urllib.request.urlopen(req, timeout=45) as resp:
                           res = json.loads(resp.read().decode("utf-8"))
                           audit_report = res["candidates"][0]["content"]["parts"][0]["text"]
                           print(f"Security audit generated successfully via {model_name}")
+                          model_succeeded = True
                           break
                   except urllib.error.HTTPError as e:
                       err_body = e.read().decode("utf-8", errors="ignore")
-                      last_err = f"({e.code}): {err_body}"
+                      err_msg = f"Model {model_name} HTTP {e.code}: {err_body}"
                       if e.code in (503, 429) and attempt < 3:
-                          time.sleep(attempt * 5)
+                          backoff = attempt * 5
+                          print(f"::warning ::{err_msg} -> Retrying in {backoff}s (attempt {attempt}/3)...")
+                          time.sleep(backoff)
                           continue
-                      print(f"::warning ::Model {model_name} failed: {last_err}")
+                      print(f"::warning ::{err_msg}")
+                      model_errors.append(err_msg)
                       break
                   except Exception as e:
-                      last_err = str(e)
+                      err_msg = f"Model {model_name} Error: {str(e)}"
+                      if attempt < 3:
+                          backoff = attempt * 3
+                          print(f"::warning ::{err_msg} -> Retrying in {backoff}s (attempt {attempt}/3)...")
+                          time.sleep(backoff)
+                          continue
+                      print(f"::warning ::{err_msg}")
+                      model_errors.append(err_msg)
                       break
 
-              if audit_report:
+              if model_succeeded and audit_report:
                   break
 
           if not audit_report:
-              print(f"::error ::Security audit failed on all models: {last_err}")
+              all_errors = "\n".join(model_errors)
+              print(f"::error ::Security audit failed on all models.\n{all_errors}")
               sys.exit(1)
 
           # 5. Save report to artifact files
