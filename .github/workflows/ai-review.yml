@@ -31,6 +31,7 @@ jobs:
       - name: Run AI Architecture Review
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -41,10 +42,12 @@ jobs:
           import sys
           import json
           import subprocess
+          import time
           import urllib.request
           import urllib.error
 
           gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+          preferred_model = os.environ.get("GEMINI_MODEL", "").strip()
           github_token = os.environ.get("GITHUB_TOKEN", "").strip()
           repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
           pr_number = os.environ.get("PR_NUMBER", "").strip()
@@ -110,18 +113,41 @@ jobs:
           **Status**: `[APPROVED]` jika bersih dan patuh, atau `[REQUEST_CHANGES]` jika terdapat pelanggaran aturan inti.
           """
 
-          import time
+          # 4. Discover available models for this API key via ListModels
+          candidate_models = []
+          if preferred_model:
+              candidate_models.append(preferred_model)
 
-          # 4. Call Google Gemini API with retry on 503/429 spikes
-          models_to_try = [
-              os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
-              "gemini-3.8-pro"
-          ]
+          try:
+              list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={gemini_key}"
+              req_list = urllib.request.Request(list_url)
+              with urllib.request.urlopen(req_list, timeout=15) as resp:
+                  data = json.loads(resp.read().decode("utf-8"))
+                  discovered = [
+                      m["name"].replace("models/", "")
+                      for m in data.get("models", [])
+                      if "generateContent" in m.get("supportedGenerationMethods", [])
+                  ]
+                  print(f"Dynamically discovered models supporting generateContent: {discovered}")
+                  # Prioritize flash models, then pro models
+                  flash_models = [m for m in discovered if "flash" in m]
+                  other_models = [m for m in discovered if "flash" not in m]
+                  for m in flash_models + other_models:
+                      if m not in candidate_models:
+                          candidate_models.append(m)
+          except Exception as e:
+              print(f"::warning ::Dynamic model discovery failed ({e}), using default fallback list.")
+              for fallback in ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"]:
+                  if fallback not in candidate_models:
+                      candidate_models.append(fallback)
 
+          print(f"Model priority list: {candidate_models}")
+
+          # 5. Call Gemini API across models with retries on 503/429
           review_text = None
           last_err = None
 
-          for model_name in models_to_try:
+          for model_name in candidate_models:
               gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
               payload = json.dumps({
                   "contents": [{
@@ -139,7 +165,7 @@ jobs:
 
                   try:
                       print(f"Calling {model_name} (attempt {attempt})...")
-                      with urllib.request.urlopen(req, timeout=120) as resp:
+                      with urllib.request.urlopen(req, timeout=90) as resp:
                           result = json.loads(resp.read().decode("utf-8"))
                           review_text = result["candidates"][0]["content"]["parts"][0]["text"]
                           print(f"Successfully generated review using model: {model_name}")
@@ -148,8 +174,9 @@ jobs:
                       err_body = e.read().decode("utf-8", errors="ignore")
                       last_err = f"({e.code}): {err_body}"
                       if e.code in (503, 429) and attempt < 3:
-                          print(f"::warning ::Model {model_name} returned {e.code} high demand, retrying in 5s (attempt {attempt}/3)...")
-                          time.sleep(5)
+                          backoff = attempt * 5
+                          print(f"::warning ::Model {model_name} returned {e.code} high demand, retrying in {backoff}s...")
+                          time.sleep(backoff)
                           continue
                       print(f"::warning ::Model {model_name} failed: {last_err}")
                       break
