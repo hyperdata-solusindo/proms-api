@@ -197,7 +197,7 @@ jobs:
               payload = json.dumps({
                   "contents": [{"parts": [{"text": prompt}]}],
                   "generationConfig": {
-                      "maxOutputTokens": 2500,
+                      "maxOutputTokens": 8192,
                       "temperature": 0.2
                   }
               }).encode("utf-8")
@@ -213,8 +213,11 @@ jobs:
                       print(f"Running deep security audit with {model_name} (attempt {attempt}/3)...")
                       with urllib.request.urlopen(req, timeout=45) as resp:
                           res = json.loads(resp.read().decode("utf-8"))
-                          audit_report = res["candidates"][0]["content"]["parts"][0]["text"]
-                          print(f"Security audit generated successfully via {model_name}")
+                          candidate = res.get("candidates", [{}])[0]
+                          finish_reason = candidate.get("finishReason", "")
+                          parts = candidate.get("content", {}).get("parts", [])
+                          audit_report = "".join(p.get("text", "") for p in parts if not p.get("thought", False)).strip()
+                          print(f"Security audit generated successfully via {model_name} (finishReason: {finish_reason}, length: {len(audit_report)} chars)")
                           model_succeeded = True
                           break
                   except urllib.error.HTTPError as e:

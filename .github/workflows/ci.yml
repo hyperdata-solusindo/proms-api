@@ -259,7 +259,7 @@ jobs:
                       "parts": [{"text": prompt}]
                   }],
                   "generationConfig": {
-                      "maxOutputTokens": 2048,
+                      "maxOutputTokens": 8192,
                       "temperature": 0.2
                   }
               }).encode("utf-8")
@@ -276,8 +276,11 @@ jobs:
                       print(f"Calling {model_name} (attempt {attempt}/3)...")
                       with urllib.request.urlopen(req, timeout=30) as resp:
                           result = json.loads(resp.read().decode("utf-8"))
-                          review_text = result["candidates"][0]["content"]["parts"][0]["text"]
-                          print(f"Successfully generated review using model: {model_name}")
+                          candidate = result.get("candidates", [{}])[0]
+                          finish_reason = candidate.get("finishReason", "")
+                          parts = candidate.get("content", {}).get("parts", [])
+                          review_text = "".join(p.get("text", "") for p in parts if not p.get("thought", False)).strip()
+                          print(f"Successfully generated review using model: {model_name} (finishReason: {finish_reason}, length: {len(review_text)} chars)")
                           model_succeeded = True
                           break
                   except urllib.error.HTTPError as e:
