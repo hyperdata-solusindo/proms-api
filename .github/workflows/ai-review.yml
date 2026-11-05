@@ -110,30 +110,46 @@ jobs:
           **Status**: `[APPROVED]` jika bersih dan patuh, atau `[REQUEST_CHANGES]` jika terdapat pelanggaran aturan inti.
           """
 
-          # 4. Call Google Gemini API (gemini-2.5-flash)
-          gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
-          payload = json.dumps({
-              "contents": [{
-                  "parts": [{"text": prompt}]
-              }]
-          }).encode("utf-8")
+          # 4. Call Google Gemini API (gemini-3.8-flash)
+          models_to_try = [
+              os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
+              "gemini-1.5-flash",
+              "gemini-pro"
+          ]
 
-          req = urllib.request.Request(
-              gemini_url,
-              data=payload,
-              headers={"Content-Type": "application/json"}
-          )
+          review_text = None
+          last_err = None
 
-          try:
-              with urllib.request.urlopen(req, timeout=60) as resp:
-                  result = json.loads(resp.read().decode("utf-8"))
-                  review_text = result["candidates"][0]["content"]["parts"][0]["text"]
-          except urllib.error.HTTPError as e:
-              err_body = e.read().decode("utf-8", errors="ignore")
-              print(f"::error ::Gemini API error ({e.code}): {err_body}")
-              sys.exit(1)
-          except Exception as e:
-              print(f"::error ::Failed to call Gemini API: {e}")
+          for model_name in models_to_try:
+              gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+              payload = json.dumps({
+                  "contents": [{
+                      "parts": [{"text": prompt}]
+                  }]
+              }).encode("utf-8")
+
+              req = urllib.request.Request(
+                  gemini_url,
+                  data=payload,
+                  headers={"Content-Type": "application/json"}
+              )
+
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as resp:
+                      result = json.loads(resp.read().decode("utf-8"))
+                      review_text = result["candidates"][0]["content"]["parts"][0]["text"]
+                      print(f"Successfully generated review using model: {model_name}")
+                      break
+              except urllib.error.HTTPError as e:
+                  err_body = e.read().decode("utf-8", errors="ignore")
+                  last_err = f"({e.code}): {err_body}"
+                  print(f"::warning ::Model {model_name} failed: {last_err}, trying next model...")
+              except Exception as e:
+                  last_err = str(e)
+                  print(f"::warning ::Model {model_name} error: {last_err}, trying next model...")
+
+          if not review_text:
+              print(f"::error ::All Gemini models failed. Last error: {last_err}")
               sys.exit(1)
 
           # 5. Post review comment to GitHub Pull Request
