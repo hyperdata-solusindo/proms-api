@@ -240,65 +240,44 @@ jobs:
       - name: Checkout Source & Templates
         uses: actions/checkout@v4
 
-      - name: Execute Local Docker Deployment
+      - name: Execute Local Docker Deployment via Docker Compose
         env:
-          FULL_IMAGE: ghcr.io/${{ github.repository }}:${{ needs.resolve-intent.outputs.image_tag }}
+          IMAGE_NAME: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: ${{ needs.resolve-intent.outputs.image_tag }}
           GH_ACTOR: ${{ github.actor }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
         run: |
-          Write-Host "🚀 Deploying locally to Docker Desktop on Windows ($env:TARGET_ENV)..."
+          Write-Host "🚀 Deploying staging locally via Docker Compose ($env:TARGET_ENV)..."
 
           # 1. Login ke GHCR di Docker Windows
           $env:GH_TOKEN | docker login ghcr.io -u $env:GH_ACTOR --password-stdin
 
-          # 2. Buat network docker jika belum ada
-          docker network create proms-network 2>$null
+          # 2. Pull image aplikasi staging terbaru dari GHCR
+          Write-Host "📥 Pulling latest image ($env:IMAGE_NAME:$env:IMAGE_TAG)..."
+          docker compose -f docker-compose.staging.yml pull app
 
-          # 3. Pull image yang baru saja dibuild
-          Write-Host "📥 Pulling image: $env:FULL_IMAGE"
-          docker pull $env:FULL_IMAGE
+          # 3. Jalankan Postgres & App menggunakan Docker Compose
+          Write-Host "🔄 Starting services via Docker Compose..."
+          docker compose -f docker-compose.staging.yml up -d --remove-orphans
 
-          # 4. Siapkan file .env lokal jika belum ada
-          if (-not (Test-Path .env)) {
-            Write-Host "Membuat file .env dari .env.example..."
-            Copy-Item .env.example .env
-          }
-
-          # 5. Jalankan Database Migration Job (One-shot)
-          Write-Host "🛠️ Running Database Migration Job..."
-          docker run --rm --network proms-network --env-file .env -e LIQUIBASE_ENABLED=true $env:FULL_IMAGE db:migrate
-
-          # 6. Restart Container Aplikasi di Docker Lokal
-          Write-Host "🔄 Starting container $env:CONTAINER_NAME on port $env:HOST_PORT..."
-          docker stop $env:CONTAINER_NAME 2>$null
-          docker rm -f $env:CONTAINER_NAME 2>$null
-
-          docker run -d `
-            --name $env:CONTAINER_NAME `
-            --restart unless-stopped `
-            --network proms-network `
-            -p "$($env:HOST_PORT):8080" `
-            --env-file .env `
-            -e LIQUIBASE_ENABLED=false `
-            $env:FULL_IMAGE
-
-          # 7. Polling Health Check
+          # 4. Polling Health Check
           Write-Host "🔍 Verifying Actuator Health Check on port $env:HOST_PORT..."
           $healthy = $false
-          for ($i = 1; $i -le 12; $i++) {
+          for ($i = 1; $i -le 15; $i++) {
             $response = curl.exe -s "http://localhost:$($env:HOST_PORT)/actuator/health/liveness"
             if ($response -match '"status":"UP"') {
               Write-Host "✅ Spring Boot is UP and healthy on your local machine!"
               $healthy = $true
               break
             }
-            Write-Host "Waiting for app to start ($i/12)..."
+            Write-Host "Waiting for app to start ($i/15)..."
             Start-Sleep -Seconds 5
           }
 
           if (-not $healthy) {
-            Write-Host "⚠️ Health check timed out after 60s, showing logs:"
-            docker logs --tail 50 $env:CONTAINER_NAME
+            Write-Host "⚠️ Health check timed out! Dumping docker compose logs:"
+            docker compose -f docker-compose.staging.yml logs --tail 100
             exit 1
           }
 

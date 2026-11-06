@@ -37,7 +37,7 @@ services:
       DB_NAME: ${DB_NAME:-app_platform}
       DB_USER: ${DB_USER:-platform_user}
       DB_PASSWORD: ${DB_PASSWORD:-platform_password}
-      DB_APP_USER: ${DB_USER:-platform_user}
+      DB_APP_USER: ${DB_APP_USER:-platform_user}
       LIQUIBASE_ENABLED: "true"
       JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
     healthcheck:
