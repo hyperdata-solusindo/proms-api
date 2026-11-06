@@ -235,7 +235,7 @@ jobs:
       HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
     defaults:
       run:
-        shell: powershell
+        shell: powershell -ExecutionPolicy Bypass -Command "{0}"
     steps:
       - name: Checkout Source & Templates
         uses: actions/checkout@v4
