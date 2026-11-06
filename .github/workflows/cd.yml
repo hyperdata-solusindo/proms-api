@@ -231,12 +231,8 @@ jobs:
       IMAGE_TAG: ${{ needs.resolve-intent.outputs.image_tag }}
       PR_NUMBER: ${{ needs.resolve-intent.outputs.pr_number }}
       IS_PR: ${{ needs.resolve-intent.outputs.is_pr }}
-      FULL_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.resolve-intent.outputs.image_tag }}
       CONTAINER_NAME: proms-api-${{ needs.resolve-intent.outputs.target_env }}
       HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
-      REGISTRY: ${{ env.REGISTRY }}
-      GH_ACTOR: ${{ github.actor }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     defaults:
       run:
         shell: bash
@@ -245,6 +241,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Execute Local Docker Deployment
+        env:
+          FULL_IMAGE: ghcr.io/${{ github.repository }}:${{ needs.resolve-intent.outputs.image_tag }}
+          GH_ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
           echo "🚀 Deploying locally to Docker Desktop on Windows ($TARGET_ENV)..."
