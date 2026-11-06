@@ -182,15 +182,18 @@ jobs:
             type=raw,value=${{ needs.resolve-intent.outputs.image_tag }}
             type=raw,value=${{ needs.resolve-intent.outputs.target_env }}-latest
 
-      - name: Build local container image for security inspection
+      - name: Build and load container image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
-          push: false
           load: true
-          tags: proms-api-deploy-scan:inspect
+          tags: |
+            proms-api-deploy-scan:inspect
+            ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Enterprise Security Gate - Trivy Container Vulnerability Scan
         uses: aquasecurity/trivy-action@v0.36.0
@@ -202,16 +205,12 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL'
 
-      - name: Build and push Docker image to GHCR
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Push Docker image to GHCR
+        run: |
+          for tag in ${{ steps.meta.outputs.tags }}; do
+            echo "Pushing $tag to GHCR..."
+            docker push "$tag"
+          done
 
   # ============================================================================
   # Phase 4: Rollout Deployment to Target VPS
@@ -230,6 +229,17 @@ jobs:
     steps:
       - name: Checkout Compose Template
         uses: actions/checkout@v4
+
+      - name: Validate VPS SSH Deployment Credentials
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_USER" ] || [ -z "$VPS_KEY" ]; then
+            echo "::error ::Kredensial SSH VPS belum lengkap! Pastikan secrets VPS_HOST, VPS_USER, dan VPS_SSH_KEY sudah dikonfigurasi di GitHub Settings > Secrets."
+            exit 1
+          fi
 
       - name: Execute Remote Deployment via SSH
         uses: appleboy/ssh-action@v1.2.0
