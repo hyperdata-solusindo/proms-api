@@ -206,10 +206,14 @@ jobs:
           severity: 'CRITICAL'
 
       - name: Push Docker image to GHCR
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            echo "Pushing $tag to GHCR..."
-            docker push "$tag"
+          echo "$TAGS" | while IFS= read -r tag; do
+            if [ -n "$tag" ]; then
+              echo "Pushing $tag to GHCR..."
+              docker push "$tag"
+            fi
           done
 
   # ============================================================================
