@@ -235,7 +235,7 @@ jobs:
       HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
     defaults:
       run:
-        shell: bash
+        shell: powershell
     steps:
       - name: Checkout Source & Templates
         uses: actions/checkout@v4
@@ -246,58 +246,61 @@ jobs:
           GH_ACTOR: ${{ github.actor }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
-          echo "🚀 Deploying locally to Docker Desktop on Windows ($TARGET_ENV)..."
+          Write-Host "🚀 Deploying locally to Docker Desktop on Windows ($env:TARGET_ENV)..."
 
           # 1. Login ke GHCR di Docker Windows
-          echo "$GH_TOKEN" | docker login $REGISTRY -u "$GH_ACTOR" --password-stdin
+          $env:GH_TOKEN | docker login ghcr.io -u $env:GH_ACTOR --password-stdin
 
           # 2. Buat network docker jika belum ada
-          docker network create proms-network 2>/dev/null || true
+          docker network create proms-network 2>$null
 
           # 3. Pull image yang baru saja dibuild
-          echo "📥 Pulling image: $FULL_IMAGE"
-          docker pull "$FULL_IMAGE"
+          Write-Host "📥 Pulling image: $env:FULL_IMAGE"
+          docker pull $env:FULL_IMAGE
 
           # 4. Siapkan file .env lokal jika belum ada
-          if [ ! -f .env ]; then
-            echo "Membuat file .env dari .env.example..."
-            cp .env.example .env
-          fi
+          if (-not (Test-Path .env)) {
+            Write-Host "Membuat file .env dari .env.example..."
+            Copy-Item .env.example .env
+          }
 
           # 5. Jalankan Database Migration Job (One-shot)
-          echo "🛠️ Running Database Migration Job..."
-          docker run --rm --network proms-network --env-file .env -e LIQUIBASE_ENABLED=true "$FULL_IMAGE" db:migrate || true
+          Write-Host "🛠️ Running Database Migration Job..."
+          docker run --rm --network proms-network --env-file .env -e LIQUIBASE_ENABLED=true $env:FULL_IMAGE db:migrate
 
           # 6. Restart Container Aplikasi di Docker Lokal
-          echo "🔄 Starting container $CONTAINER_NAME on port $HOST_PORT..."
-          docker stop "$CONTAINER_NAME" 2>/dev/null || true
-          docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+          Write-Host "🔄 Starting container $env:CONTAINER_NAME on port $env:HOST_PORT..."
+          docker stop $env:CONTAINER_NAME 2>$null
+          docker rm -f $env:CONTAINER_NAME 2>$null
 
-          docker run -d \
-            --name "$CONTAINER_NAME" \
-            --restart unless-stopped \
-            --network proms-network \
-            -p $HOST_PORT:8080 \
-            --env-file .env \
-            -e LIQUIBASE_ENABLED=false \
-            "$FULL_IMAGE"
+          docker run -d `
+            --name $env:CONTAINER_NAME `
+            --restart unless-stopped `
+            --network proms-network `
+            -p "$($env:HOST_PORT):8080" `
+            --env-file .env `
+            -e LIQUIBASE_ENABLED=false `
+            $env:FULL_IMAGE
 
           # 7. Polling Health Check
-          echo "🔍 Verifying Actuator Health Check on port $HOST_PORT..."
-          for i in $(seq 1 12); do
-            HEALTH_STATUS=$(curl -s "http://localhost:$HOST_PORT/actuator/health/liveness" | grep -o '"status":"UP"' || true)
-            if [ -n "$HEALTH_STATUS" ]; then
-              echo "✅ Spring Boot is UP and healthy on your local machine!"
-              exit 0
-            fi
-            echo "Waiting for app to start ($i/12)..."
-            sleep 5
-          done
+          Write-Host "🔍 Verifying Actuator Health Check on port $env:HOST_PORT..."
+          $healthy = $false
+          for ($i = 1; $i -le 12; $i++) {
+            $response = curl.exe -s "http://localhost:$($env:HOST_PORT)/actuator/health/liveness"
+            if ($response -match '"status":"UP"') {
+              Write-Host "✅ Spring Boot is UP and healthy on your local machine!"
+              $healthy = $true
+              break
+            }
+            Write-Host "Waiting for app to start ($i/12)..."
+            Start-Sleep -Seconds 5
+          }
 
-          echo "⚠️ Health check timed out after 60s, showing logs:"
-          docker logs --tail 50 "$CONTAINER_NAME"
-          exit 1
+          if (-not $healthy) {
+            Write-Host "⚠️ Health check timed out after 60s, showing logs:"
+            docker logs --tail 50 $env:CONTAINER_NAME
+            exit 1
+          }
 
       # ========================================================================
       # Phase 5: Notify Pull Request
