@@ -336,16 +336,16 @@ jobs:
 
             const commentBody = `### 🚀 Deployment Preview Ready!
 
-| Parameter | Detail |
-| :--- | :--- |
-| **Environment** | \`${envName}\` |
-| **Commit** | \`${commitSha}\` |
-| **Docker Image** | \`ghcr.io/${context.repo.owner}/${context.repo.repo}:${imgTag}\` |
-| **Health Check** | 🟢 \`UP\` (/actuator/health/liveness) |
+            | Parameter | Detail |
+            | :--- | :--- |
+            | **Environment** | \`${envName}\` |
+            | **Commit** | \`${commitSha}\` |
+            | **Docker Image** | \`ghcr.io/${context.repo.owner}/${context.repo.repo}:${imgTag}\` |
+            | **Health Check** | 🟢 \`UP\` (/actuator/health/liveness) |
 
-> [!NOTE]
-> Environment slot \`${envName}\` saat ini sedang digunakan oleh PR ini.
-> Untuk melepaskan slot setelah selesai testing, copot label \`deploy:${envName}\`.`;
+            > [!NOTE]
+            > Environment slot \`${envName}\` saat ini sedang digunakan oleh PR ini.
+            > Untuk melepaskan slot setelah selesai testing, copot label \`deploy:${envName}\`.`;
 
             github.rest.issues.createComment({
               issue_number: prNum,
