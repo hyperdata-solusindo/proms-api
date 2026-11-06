@@ -41,6 +41,7 @@ public class SecurityConfig {
                     "/api-docs/**",
                     "/docs",
                     "/docs/**",
+                    "/actuator/**",
                     "/error")
                 .permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/logout")
