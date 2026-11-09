@@ -3,6 +3,7 @@ package com.hyperdata.proms.common.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+import com.hyperdata.proms.common.response.FieldErrorDetail;
 import com.hyperdata.proms.common.response.RestResponse;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.TraceContext;
@@ -35,10 +36,14 @@ class GlobalExceptionHandlerSentryTest {
     @DisplayName("Should handle ValidationException with 422 and return error envelope")
     void shouldHandleValidationException() {
         ValidationException ex = new ValidationException(Map.of("email", "Email is required"));
-        ResponseEntity<RestResponse<Map<String, String>>> response = handler.handleValidationException(ex);
+        ResponseEntity<RestResponse<Void>> response = handler.handleValidationException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
-        assertThat(response.getBody().data()).containsEntry("email", "Email is required");
+        assertThat(response.getBody().statusCode()).isEqualTo(422);
+        assertThat(response.getBody().data()).isNull();
+        assertThat(response.getBody().error()).isNotNull();
+        assertThat(response.getBody().error().code()).isEqualTo("VALIDATION");
+        assertThat(response.getBody().error().fields()).contains(new FieldErrorDetail("email", "Email is required"));
     }
 
     @Test
@@ -48,7 +53,10 @@ class GlobalExceptionHandlerSentryTest {
         ResponseEntity<RestResponse<Void>> response = handler.handleGenericException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().statusCode()).isEqualTo(500);
+        assertThat(response.getBody().data()).isNull();
         assertThat(response.getBody().message()).isEqualTo("An unexpected internal server error occurred");
+        assertThat(response.getBody().error().code()).isEqualTo("INTERNAL_SERVER_ERROR");
         assertThat(response.getBody().traceId()).isEqualTo("sample-trace-id-12345");
     }
 
@@ -59,18 +67,62 @@ class GlobalExceptionHandlerSentryTest {
         ResponseEntity<RestResponse<Void>> response = handler.handleBaseException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody().statusCode()).isEqualTo(404);
+        assertThat(response.getBody().data()).isNull();
         assertThat(response.getBody().message()).isEqualTo("User not found");
+        assertThat(response.getBody().error().code()).isEqualTo("RESOURCE_NOT_FOUND");
         assertThat(response.getBody().traceId()).isEqualTo("sample-trace-id-12345");
     }
 
     @Test
     @DisplayName("Should handle 5xx BaseException with 500 internal server error")
     void shouldHandle5xxBaseException() {
-        BaseException ex = new BusinessException("Storage disk full", HttpStatus.INTERNAL_SERVER_ERROR);
+        BaseException ex = new BusinessException(
+            "STORAGE_ERROR", "Storage disk full", "Disk quota exceeded", HttpStatus.INTERNAL_SERVER_ERROR);
         ResponseEntity<RestResponse<Void>> response = handler.handleBaseException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().statusCode()).isEqualTo(500);
+        assertThat(response.getBody().data()).isNull();
         assertThat(response.getBody().message()).isEqualTo("Storage disk full");
+        assertThat(response.getBody().error().code()).isEqualTo("STORAGE_ERROR");
+        assertThat(response.getBody().error().detail()).isEqualTo("Disk quota exceeded");
         assertThat(response.getBody().traceId()).isEqualTo("sample-trace-id-12345");
+    }
+
+    @Test
+    @DisplayName("Should handle AccessDeniedException with 403 FORBIDDEN")
+    void shouldHandleAccessDeniedException() {
+        org.springframework.security.access.AccessDeniedException ex = new org.springframework.security.access.AccessDeniedException(
+            "Access is denied");
+        ResponseEntity<RestResponse<Void>> response = handler.handleAccessDeniedException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().statusCode()).isEqualTo(403);
+        assertThat(response.getBody().error().code()).isEqualTo(CommonErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("Should handle StaleVersionException with 409 and current payload")
+    void shouldHandleStaleVersionException() {
+        Map<String, Object> currentData = Map.of("id", "board-1", "version", 3);
+        StaleVersionException ex = new StaleVersionException("Data sudah berubah", currentData);
+        ResponseEntity<RestResponse<Void>> response = handler.handleBaseException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().statusCode()).isEqualTo(409);
+        assertThat(response.getBody().error().code()).isEqualTo(CommonErrorCode.STALE_VERSION);
+        assertThat(response.getBody().error().current()).isEqualTo(currentData);
+    }
+
+    @Test
+    @DisplayName("Should handle IfMatchRequiredException with 428 IF_MATCH_REQUIRED")
+    void shouldHandleIfMatchRequiredException() {
+        IfMatchRequiredException ex = new IfMatchRequiredException();
+        ResponseEntity<RestResponse<Void>> response = handler.handleBaseException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PRECONDITION_REQUIRED);
+        assertThat(response.getBody().statusCode()).isEqualTo(428);
+        assertThat(response.getBody().error().code()).isEqualTo(CommonErrorCode.IF_MATCH_REQUIRED);
     }
 }

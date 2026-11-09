@@ -1,6 +1,8 @@
 package com.hyperdata.proms.common.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hyperdata.proms.common.exception.CommonErrorCode;
+import com.hyperdata.proms.common.response.ErrorDetail;
 import com.hyperdata.proms.common.response.RestResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,8 +25,10 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
+        ErrorDetail errorDetail = new ErrorDetail(
+            CommonErrorCode.UNAUTHENTICATED, "Token autentikasi tidak valid atau belum disertakan");
         RestResponse<Void> restResponse = RestResponse.error(
-            HttpStatus.UNAUTHORIZED, "Autentikasi diperlukan untuk mengakses endpoint ini");
+            HttpStatus.UNAUTHORIZED, "Autentikasi diperlukan untuk mengakses endpoint ini", errorDetail);
         response.getWriter().write(objectMapper.writeValueAsString(restResponse));
     }
 }

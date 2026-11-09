@@ -79,6 +79,16 @@ public class OpenApiConfig {
                             new MediaType().schema(apiResponseSchema))));
             }
 
+            if (!responses.containsKey("422")) {
+                responses.addApiResponse(
+                    "422",
+                    new ApiResponse()
+                        .description("Kesalahan validasi atau aturan bisnis (Unprocessable Entity)")
+                        .content(new Content().addMediaType(
+                            APPLICATION_JSON_VALUE,
+                            new MediaType().schema(apiResponseSchema))));
+            }
+
             if (!responses.containsKey("500")) {
                 responses.addApiResponse(
                     "500",

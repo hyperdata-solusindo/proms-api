@@ -27,6 +27,10 @@ class YaviValidatorTest {
 
         assertTrue(ex.getErrors().containsKey("name"));
         assertEquals("Name is mandatory", ex.getErrors().get("name"));
+        assertEquals("VALIDATION", ex.getCode());
+        assertEquals(1, ex.getFieldErrors().size());
+        assertEquals("name", ex.getFieldErrors().get(0).field());
+        assertEquals("Name is mandatory", ex.getFieldErrors().get(0).message());
     }
 
     @Test

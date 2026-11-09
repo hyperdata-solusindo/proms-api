@@ -20,6 +20,7 @@ public class SecurityConfig {
 
     private final TokenAuthenticationFilter tokenAuthenticationFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -31,7 +32,9 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler))
             .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/auth/login")
                 .permitAll()
                 .requestMatchers(
