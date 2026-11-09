@@ -7,9 +7,9 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "Detail informasi error standar")
 public record ErrorDetail(
-    @Schema(description = "Kode BR atau kode teknis", example = "BR-WF-09")
+    @Schema(description = "Kode BR atau kode teknis", example = "VALIDATION")
     String code,
-    @Schema(description = "Penjelasan tambahan (opsional)", example = "Isi alasan Blocked lalu coba lagi.")
+    @Schema(description = "Penjelasan tambahan (opsional)", example = "Periksa kembali field yang diisi.")
     String detail,
     @Schema(description = "Daftar kesalahan per field untuk 422 VALIDATION (opsional)")
     List<FieldErrorDetail> fields,

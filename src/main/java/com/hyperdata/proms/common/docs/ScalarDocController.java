@@ -1,10 +1,11 @@
 package com.hyperdata.proms.common.docs;
 
 import io.swagger.v3.oas.annotations.Hidden;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 @Hidden
 @Controller
@@ -118,9 +119,9 @@ public class ScalarDocController {
         """;
 
     @GetMapping(value = "/docs", produces = MediaType.TEXT_HTML_VALUE)
-    @ResponseBody
-    public String scalarDocs() {
-        return """
+    public ResponseEntity<String> scalarDocs() {
+        long timestamp = System.currentTimeMillis();
+        String html = """
             <!doctype html>
             <html>
               <head>
@@ -129,23 +130,39 @@ public class ScalarDocController {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <link rel="icon" type="image/svg+xml" href="https://scalar.com/favicon.svg" />
                 <style>
-            """ + SCALAR_CUSTOM_CSS + """
-                </style>
-              </head>
-              <body>
-                <script
-                  id="api-reference"
-                  data-url="/v3/api-docs"
-                  data-configuration='{
-                    "theme": "purple",
-                    "darkMode": true,
-                    "layout": "modern",
-                    "showSidebar": true
-                  }'>
-                </script>
-                <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-              </body>
-            </html>
-            """;
+            """ + SCALAR_CUSTOM_CSS
+            + """
+                  </style>
+                </head>
+                <body>
+                  <script
+                    id="api-reference"
+                    data-url="/v3/api-docs?v=""" + timestamp
+            + """
+                      "
+                      data-configuration='{
+                        "theme": "purple",
+                        "darkMode": true,
+                        "layout": "modern",
+                        "showSidebar": true
+                      }'>
+                    </script>
+                    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+                    <script>
+                      (function() {
+                        var script = document.createElement('script');
+                        script.src = 'http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1';
+                        script.onerror = function() {};
+                        document.head.appendChild(script);
+                      })();
+                    </script>
+                  </body>
+                </html>
+                """;
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+            .header(HttpHeaders.PRAGMA, "no-cache")
+            .header(HttpHeaders.EXPIRES, "0")
+            .body(html);
     }
 }

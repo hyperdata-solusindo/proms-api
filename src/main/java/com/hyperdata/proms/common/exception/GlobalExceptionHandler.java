@@ -60,6 +60,18 @@ public class GlobalExceptionHandler {
         this.tracerProvider = tracerProvider;
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<RestResponse<Void>> handleHttpMessageNotReadable(
+        org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        log.warn("Malformed HTTP request body: {}", ex.getMessage());
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(
+            CommonErrorCode.BAD_REQUEST, "Format payload request JSON tidak valid atau rusak", null, null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.BAD_REQUEST, "Format data tidak valid", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<RestResponse<Void>> handleValidationException(ValidationException ex) {
         log.warn("Validation failed: {}", ex.getMessage());

@@ -82,6 +82,8 @@ bin/
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 !.vscode/eclipse-java-formatter.xml
 !.vscode/org.eclipse.jdt.core.prefs
 

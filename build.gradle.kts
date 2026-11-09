@@ -29,6 +29,9 @@ val yaviVersion = "0.14.1"
 val archunitVersion = "1.3.0"
 
 dependencies {
+    // Development Hot-Reload & Fast Restart
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+
     // Spring Boot Starters
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-liquibase")

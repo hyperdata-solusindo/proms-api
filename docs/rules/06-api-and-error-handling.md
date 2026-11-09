@@ -83,6 +83,19 @@ Kolom `code` di bawah dibaca dari `error.code`.
 | 422 | `VALIDATION` | Pesan per field dari `error.fields` |
 | 428 | `IF_MATCH_REQUIRED` | Bug di app; tidak ditampilkan ke user |
 
+### Malformed Request Body (400 Bad Request)
+```json
+{
+  "statusCode": 400,
+  "message": "Format data tidak valid",
+  "data": null,
+  "error": {
+    "code": "BAD_REQUEST",
+    "detail": "Format payload request JSON tidak valid atau rusak"
+  }
+}
+```
+
 ### Client / Validation Error (422 Unprocessable Entity)
 ```json
 {
@@ -135,7 +148,15 @@ Kolom `code` di bawah dibaca dari `error.code`.
 ---
 
 ## 4. Exception Handling
-- Throw specific custom exceptions extending `BaseException` (`ResourceNotFoundException`, `DuplicateResourceException`, `BusinessException`, `ValidationException`).
+- Throw specific custom exceptions extending `BaseException`:
+  - `InvalidCredentialsException` (401 `UNAUTHENTICATED`)
+  - `ResourceNotFoundException` (404 `RESOURCE_NOT_FOUND`, `BOARD_NOT_FOUND`, dll)
+  - `DuplicateResourceException` (409 `DUPLICATE_RESOURCE`)
+  - `StaleVersionException` (409 `STALE_VERSION` dengan payload `current`)
+  - `IfMatchRequiredException` (428 `IF_MATCH_REQUIRED`)
+  - `ValidationException` (422 `VALIDATION` dengan `fieldErrors`)
+  - `BusinessException` (Aturan alur kerja bisnis dinamis, misal `BR-WF-06`, `BR-WF-08`)
+- Selalu gunakan konstanta dari `CommonErrorCode` untuk menghindari *typo* pada `code`.
 - ❌ **NEVER throw raw `RuntimeException`**.
 - All exceptions are captured automatically by `GlobalExceptionHandler`.
 - Always supply machine-readable business rule codes (`code`) on `BusinessException` for frontend state transitions.

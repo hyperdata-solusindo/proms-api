@@ -8,6 +8,9 @@ public final class CommonErrorCode {
     private CommonErrorCode() {
     }
 
+    // 400
+    public static final String BAD_REQUEST = "BAD_REQUEST";
+
     // 401
     public static final String UNAUTHENTICATED = "UNAUTHENTICATED";
 

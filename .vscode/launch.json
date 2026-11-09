@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "ApiApplication",
+      "request": "launch",
+      "mainClass": "com.hyperdata.proms.ApiApplication",
+      "projectName": "api",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "internalConsole"
+    }
+  ]
+}

@@ -68,6 +68,25 @@ class OpenApiConfigTest {
     }
 
     @Test
+    @DisplayName("Given bodyless endpoint like logout, when operation customized, then 400 and 422 are not added")
+    void givenBodylessEndpoint_whenOperationCustomized_then400And422AreNotAdded() throws Exception {
+        OpenApiConfig config = new OpenApiConfig();
+        var operationCustomizer = config.globalErrorResponsesCustomizer();
+
+        com.hyperdata.proms.module.identity.auth.controller.AuthController authController = new com.hyperdata.proms.module.identity.auth.controller.AuthController(
+            null);
+        Method logoutMethod = authController.getClass().getMethod("logout");
+        HandlerMethod authHandler = new HandlerMethod(authController, logoutMethod);
+
+        Operation logoutOp = new Operation();
+        operationCustomizer.customize(logoutOp, authHandler);
+
+        assertThat(logoutOp.getResponses()).containsKey("500");
+        assertThat(logoutOp.getResponses()).doesNotContainKey("400");
+        assertThat(logoutOp.getResponses()).doesNotContainKey("422");
+    }
+
+    @Test
     @DisplayName("ScalarDocController must be annotated with @Hidden")
     void scalarDocController_mustBeAnnotatedWithHidden() {
         assertThat(ScalarDocController.class.isAnnotationPresent(Hidden.class)).isTrue();

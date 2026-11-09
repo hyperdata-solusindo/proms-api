@@ -6,6 +6,7 @@ import com.hyperdata.proms.common.response.RestResponse;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
@@ -69,34 +70,93 @@ public class OpenApiConfig {
             var apiResponseSchema = new Schema<RestResponse<?>>()
                 .description("Envelope standar respon API");
 
-            if (!responses.containsKey("400")) {
+            boolean hasRequestBody = operation.getRequestBody() != null
+                || java.util.Arrays.stream(handlerMethod.getMethodParameters())
+                    .anyMatch(p -> p.hasParameterAnnotation(org.springframework.web.bind.annotation.RequestBody.class));
+
+            if (hasRequestBody && !responses.containsKey("400")) {
+                var badRequestMedia = new MediaType().schema(apiResponseSchema);
+                badRequestMedia.addExamples(
+                    "BadRequestExample",
+                    new Example()
+                        .summary("Format payload JSON tidak valid")
+                        .value(
+                            """
+                                {
+                                  "statusCode": 400,
+                                  "message": "Format data tidak valid",
+                                  "data": null,
+                                  "error": {
+                                    "code": "BAD_REQUEST",
+                                    "detail": "Format payload request JSON tidak valid atau rusak"
+                                  }
+                                }
+                                """));
+
                 responses.addApiResponse(
                     "400",
                     new ApiResponse()
-                        .description("Format request tidak valid / validasi YAVI gagal")
-                        .content(new Content().addMediaType(
-                            APPLICATION_JSON_VALUE,
-                            new MediaType().schema(apiResponseSchema))));
+                        .description("Format request tidak valid (Malformed JSON)")
+                        .content(new Content().addMediaType(APPLICATION_JSON_VALUE, badRequestMedia)));
             }
 
-            if (!responses.containsKey("422")) {
+            if (hasRequestBody && !responses.containsKey("422")) {
+                var validationMedia = new MediaType().schema(apiResponseSchema);
+                validationMedia.addExamples(
+                    "ValidationExample",
+                    new Example()
+                        .summary("Validasi gagal (YAVI / Field validation)")
+                        .value(
+                            """
+                                {
+                                  "statusCode": 422,
+                                  "message": "Validation failed",
+                                  "data": null,
+                                  "error": {
+                                    "code": "VALIDATION",
+                                    "detail": "Periksa kembali field yang diisi.",
+                                    "fields": [
+                                      {
+                                        "field": "email",
+                                        "message": "Format email tidak valid"
+                                      }
+                                    ]
+                                  }
+                                }
+                                """));
+
                 responses.addApiResponse(
                     "422",
                     new ApiResponse()
                         .description("Kesalahan validasi atau aturan bisnis (Unprocessable Entity)")
-                        .content(new Content().addMediaType(
-                            APPLICATION_JSON_VALUE,
-                            new MediaType().schema(apiResponseSchema))));
+                        .content(new Content().addMediaType(APPLICATION_JSON_VALUE, validationMedia)));
             }
 
             if (!responses.containsKey("500")) {
+                var serverErrorMedia = new MediaType().schema(apiResponseSchema);
+                serverErrorMedia.addExamples(
+                    "InternalServerErrorExample",
+                    new Example()
+                        .summary("Kesalahan internal server")
+                        .value(
+                            """
+                                {
+                                  "statusCode": 500,
+                                  "message": "An unexpected internal server error occurred",
+                                  "data": null,
+                                  "error": {
+                                    "code": "INTERNAL_SERVER_ERROR",
+                                    "detail": "Terjadi kesalahan internal pada server"
+                                  },
+                                  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+                                }
+                                """));
+
                 responses.addApiResponse(
                     "500",
                     new ApiResponse()
                         .description("Kesalahan internal server")
-                        .content(new Content().addMediaType(
-                            APPLICATION_JSON_VALUE,
-                            new MediaType().schema(apiResponseSchema))));
+                        .content(new Content().addMediaType(APPLICATION_JSON_VALUE, serverErrorMedia)));
             }
 
             return operation;

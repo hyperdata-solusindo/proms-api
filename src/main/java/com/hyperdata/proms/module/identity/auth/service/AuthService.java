@@ -1,6 +1,7 @@
 package com.hyperdata.proms.module.identity.auth.service;
 
 import com.hyperdata.proms.common.exception.BusinessException;
+import com.hyperdata.proms.common.exception.InvalidCredentialsException;
 import com.hyperdata.proms.common.validation.YaviValidator;
 import com.hyperdata.proms.module.identity.auth.dto.AuthUserDto;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
@@ -33,8 +34,7 @@ public class AuthService {
         var user = userFacade
             .findByEmailForAuth(request.email())
             .filter(u -> passwordEncoder.matches(request.password(), u.password()))
-            .orElseThrow(
-                () -> new BusinessException("Email atau kata sandi tidak sesuai", HttpStatus.UNAUTHORIZED));
+            .orElseThrow(InvalidCredentialsException::new);
 
         if (!user.isActive()) {
             throw new BusinessException("Akun Anda telah dinonaktifkan", HttpStatus.FORBIDDEN);

@@ -1,6 +1,26 @@
 {
   "java.settings.url": ".vscode/org.eclipse.jdt.core.prefs",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "/home/kholifan/.jdks/temurin-21",
+      "default": true
+    }
+  ],
+  "java.autobuild.enabled": true,
+  "java.debug.settings.hotCodeReplace": "never",
+  "java.debug.settings.console": "internalConsole",
   "java.compile.nullAnalysis.mode": "disabled",
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/*/**": true,
+    "**/target/**": true,
+    "**/build/**": true,
+    "**/bin/**": true,
+    "**/.gradle/**": true,
+    "**/.settings/**": true
+  },
   "editor.formatOnSave": true,
   "editor.formatOnPaste": false,
   "files.eol": "\n",
@@ -37,5 +57,6 @@
   "java.completion.importOrder": ["#", ""],
   "java.codeGeneration.toString.codeStyle": "STRING_BUILDER",
   "java.codeGeneration.hashCodeEquals.useJava7Objects": true,
-  "java.codeGeneration.useBlocks": true
+  "java.codeGeneration.useBlocks": true,
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

@@ -33,6 +33,21 @@ class GlobalExceptionHandlerSentryTest {
     }
 
     @Test
+    @DisplayName("Should handle HttpMessageNotReadableException with 400 and return error envelope")
+    void shouldHandleHttpMessageNotReadableException() {
+        org.springframework.http.converter.HttpMessageNotReadableException ex = new org.springframework.http.converter.HttpMessageNotReadableException(
+            "JSON parse error: Unexpected character", (org.springframework.http.HttpInputMessage) null);
+        ResponseEntity<RestResponse<Void>> response = handler.handleHttpMessageNotReadable(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().statusCode()).isEqualTo(400);
+        assertThat(response.getBody().data()).isNull();
+        assertThat(response.getBody().error().code()).isEqualTo(CommonErrorCode.BAD_REQUEST);
+        assertThat(response.getBody().message()).isEqualTo("Format data tidak valid");
+        assertThat(response.getBody().traceId()).isEqualTo("sample-trace-id-12345");
+    }
+
+    @Test
     @DisplayName("Should handle ValidationException with 422 and return error envelope")
     void shouldHandleValidationException() {
         ValidationException ex = new ValidationException(Map.of("email", "Email is required"));
