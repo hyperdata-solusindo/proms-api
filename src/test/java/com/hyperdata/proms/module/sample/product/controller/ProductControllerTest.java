@@ -98,7 +98,9 @@ class ProductControllerTest {
         mockMvc.perform(get("/api/v1/products/{id}", id))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.statusCode").value(404))
-            .andExpect(jsonPath("$.message").exists());
+            .andExpect(jsonPath("$.message").exists())
+            .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.nullValue()))
+            .andExpect(jsonPath("$.error.code").value("RESOURCE_NOT_FOUND"));
     }
 
     @Test

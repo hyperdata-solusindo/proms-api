@@ -37,6 +37,7 @@ permissions:
   packages: write
   pull-requests: write
   issues: write
+  checks: read
 
 env:
   REGISTRY: ghcr.io
@@ -114,7 +115,7 @@ jobs:
       - name: Wait and verify that CI workflow succeeds
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           echo "⏳ Checking CI status for commit $COMMIT_SHA..."
           # Polling status commit check dari GitHub API (maksimal 10 menit)
@@ -160,7 +161,7 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || github.ref }}
+          ref: ${{ github.event.inputs.ref || github.event.pull_request.head.sha || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -181,18 +182,21 @@ jobs:
             type=raw,value=${{ needs.resolve-intent.outputs.image_tag }}
             type=raw,value=${{ needs.resolve-intent.outputs.target_env }}-latest
 
-      - name: Build local container image for security inspection
+      - name: Build and load container image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
-          push: false
           load: true
-          tags: proms-api-deploy-scan:inspect
+          tags: |
+            proms-api-deploy-scan:inspect
+            ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Enterprise Security Gate - Trivy Container Vulnerability Scan
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'proms-api-deploy-scan:inspect'
           format: 'table'
@@ -201,24 +205,25 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL'
 
-      - name: Build and push Docker image to GHCR
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Push Docker image to GHCR
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          echo "$TAGS" | while IFS= read -r tag; do
+            if [ -n "$tag" ]; then
+              echo "Pushing $tag to GHCR..."
+              docker push "$tag"
+            fi
+          done
 
   # ============================================================================
-  # Phase 4: Rollout Deployment to Target VPS
+  # Phase 4: Rollout Deployment to Local Staging (Windows Self-Hosted)
   # ============================================================================
   deploy:
-    name: Deploy to Server
+    name: Deploy to Local Staging (Windows Self-Hosted)
     needs: [resolve-intent, build-and-push]
-    runs-on: ubuntu-latest
+    if: needs.resolve-intent.outputs.should_deploy == 'true'
+    runs-on: [self-hosted, Windows]
     timeout-minutes: 10
     environment: ${{ needs.resolve-intent.outputs.target_env }}
     env:
@@ -226,103 +231,58 @@ jobs:
       IMAGE_TAG: ${{ needs.resolve-intent.outputs.image_tag }}
       PR_NUMBER: ${{ needs.resolve-intent.outputs.pr_number }}
       IS_PR: ${{ needs.resolve-intent.outputs.is_pr }}
+      CONTAINER_NAME: proms-api-${{ needs.resolve-intent.outputs.target_env }}
+      HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
+    defaults:
+      run:
+        shell: powershell -ExecutionPolicy Bypass -Command "{0}"
     steps:
-      - name: Checkout Compose Template
+      - name: Checkout Source & Templates
         uses: actions/checkout@v4
 
-      - name: Execute Remote Deployment via SSH
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Execute Local Docker Deployment via Docker Compose
         env:
-          FULL_IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.resolve-intent.outputs.image_tag }}
-          TARGET_DIR: ${{ vars.VPS_DEPLOY_DIR || '/opt/proms/app' }}
-          CONTAINER_NAME: proms-api-${{ needs.resolve-intent.outputs.target_env }}
-          HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
-          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: ${{ needs.resolve-intent.outputs.image_tag }}
           GH_ACTOR: ${{ github.actor }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_SSH_PORT || 22 }}
-          envs: FULL_IMAGE,TARGET_DIR,CONTAINER_NAME,HOST_PORT,REGISTRY,GH_ACTOR,GH_TOKEN
-          script: |
-            set -e
-            echo "🚀 Starting deployment on remote VPS for environment: $TARGET_ENV..."
-            mkdir -p $TARGET_DIR
-            cd $TARGET_DIR
+          HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
+        run: |
+          Write-Host "🚀 Deploying staging locally via Docker Compose ($env:TARGET_ENV)..."
 
-            # Login ke GHCR di remote host
-            echo "$GH_TOKEN" | docker login $REGISTRY -u "$GH_ACTOR" --password-stdin
+          # 1. Login ke GHCR di Docker Windows
+          $env:GH_TOKEN | docker login ghcr.io -u $env:GH_ACTOR --password-stdin
 
-            # Pastikan network docker ada
-            docker network create proms-network 2>/dev/null || true
+          # 2. Pull image aplikasi staging terbaru dari GHCR
+          Write-Host "📥 Pulling latest image ($env:IMAGE_NAME:$env:IMAGE_TAG)..."
+          docker compose -f docker-compose.staging.yml pull app
 
-            if [ "$TARGET_ENV" = "production" ]; then
-              echo "🌟 Executing Production Zero-Downtime Blue/Green Deployment..."
-              if [ -f "$TARGET_DIR/scripts/deploy-blue-green.sh" ]; then
-                bash "$TARGET_DIR/scripts/deploy-blue-green.sh" "$FULL_IMAGE"
-              else
-                # Fallback jika skrip belum ter-copy ke VPS
-                echo "Downloading deployment script..."
-                mkdir -p scripts
-                # Jalankan migrasi terpisah sebelum update app
-                echo "Running Liquibase Migration..."
-                docker run --rm --network proms-network --env-file .env -e LIQUIBASE_ENABLED=true "$FULL_IMAGE" db:migrate || true
-                
-                # Update container
-                docker stop $CONTAINER_NAME 2>/dev/null || true
-                docker rm -f $CONTAINER_NAME 2>/dev/null || true
-                docker run -d \
-                  --name $CONTAINER_NAME \
-                  --restart unless-stopped \
-                  --network proms-network \
-                  -p $HOST_PORT:8080 \
-                  --env-file .env \
-                  -e LIQUIBASE_ENABLED=false \
-                  $FULL_IMAGE
-              fi
-            else
-              # Staging Environment (Fast Slot Update)
-              echo "📥 Pulling image: $FULL_IMAGE"
-              docker pull $FULL_IMAGE
+          # 3. Jalankan Postgres & App menggunakan Docker Compose
+          Write-Host "🔄 Starting services via Docker Compose..."
+          docker compose -f docker-compose.staging.yml up -d --remove-orphans
 
-              # Jalankan migrasi skema sebelum me-restart container
-              echo "🛠️ Running Staging Database Migration Job..."
-              docker run --rm --network proms-network --env-file .env -e LIQUIBASE_ENABLED=true "$FULL_IMAGE" db:migrate || true
+          # 4. Polling Health Check
+          Write-Host "🔍 Verifying Actuator Health Check on port $env:HOST_PORT..."
+          $healthy = $false
+          for ($i = 1; $i -le 15; $i++) {
+            $response = curl.exe -s "http://localhost:$($env:HOST_PORT)/actuator/health/liveness"
+            if ($response -match '"status":"UP"') {
+              Write-Host "✅ Spring Boot is UP and healthy on your local machine!"
+              $healthy = $true
+              break
+            }
+            Write-Host "Waiting for app to start ($i/15)..."
+            Start-Sleep -Seconds 5
+          }
 
-              echo "🔄 Updating Staging slot container $CONTAINER_NAME on port $HOST_PORT..."
-              docker stop $CONTAINER_NAME 2>/dev/null || true
-              docker rm -f $CONTAINER_NAME 2>/dev/null || true
-
-              docker run -d \
-                --name $CONTAINER_NAME \
-                --restart unless-stopped \
-                --network proms-network \
-                -p $HOST_PORT:8080 \
-                --env-file .env \
-                -e LIQUIBASE_ENABLED=false \
-                $FULL_IMAGE
-            fi
-
-            # Health Check Verification Gate (Polling Spring Boot Actuator)
-            echo "🔍 Verifying Actuator Health Check on port $HOST_PORT..."
-            for i in $(seq 1 12); do
-              HEALTH_STATUS=$(curl -s "http://localhost:$HOST_PORT/actuator/health/liveness" | grep -o '"status":"UP"' || true)
-              if [ -n "$HEALTH_STATUS" ]; then
-                echo "✅ Spring Boot is UP and healthy!"
-                exit 0
-              fi
-              echo "Waiting for application to boot ($i/12)..."
-              sleep 5
-            done
-
-            echo "❌ Health check failed after 60s! Review container logs:"
-            docker logs --tail 50 $CONTAINER_NAME
+          if (-not $healthy) {
+            Write-Host "⚠️ Health check timed out! Dumping docker compose logs:"
+            docker compose -f docker-compose.staging.yml logs --tail 100
             exit 1
+          }
 
       # ========================================================================
-      # Phase 4: Notify Pull Request
+      # Phase 5: Notify Pull Request
       # ========================================================================
       - name: Post Deployment URL Comment to Pull Request
         if: env.IS_PR == 'true' && env.PR_NUMBER != ''
@@ -332,20 +292,22 @@ jobs:
             const envName = process.env.TARGET_ENV;
             const prNum = process.env.PR_NUMBER;
             const imgTag = process.env.IMAGE_TAG;
+            const hostPort = process.env.HOST_PORT || '8080';
             const commitSha = context.sha.substring(0, 7);
 
-            const commentBody = `### 🚀 Deployment Preview Ready!
+            const commentBody = `### 🚀 Local Staging Deployment Ready!
 
-| Parameter | Detail |
-| :--- | :--- |
-| **Environment** | \`${envName}\` |
-| **Commit** | \`${commitSha}\` |
-| **Docker Image** | \`ghcr.io/${context.repo.owner}/${context.repo.repo}:${imgTag}\` |
-| **Health Check** | 🟢 \`UP\` (/actuator/health/liveness) |
+            | Parameter | Detail |
+            | :--- | :--- |
+            | **Environment** | \`${envName}\` |
+            | **Runner Target** | Local Windows Self-Hosted (\`${process.env.RUNNER_NAME || 'Windows-Runner'}\`) |
+            | **Local URL** | [http://localhost:${hostPort}](http://localhost:${hostPort}) |
+            | **Commit** | \`${commitSha}\` |
+            | **Docker Image** | \`ghcr.io/${context.repo.owner}/${context.repo.repo}:${imgTag}\` |
+            | **Health Check** | 🟢 \`UP\` (/actuator/health/liveness) |
 
-> [!NOTE]
-> Environment slot \`${envName}\` saat ini sedang digunakan oleh PR ini.
-> Untuk melepaskan slot setelah selesai testing, copot label \`deploy:${envName}\`.`;
+            > [!NOTE]
+            > Container sedang berjalan di Docker Desktop PC lokal Anda pada port \`${hostPort}\`.`;
 
             github.rest.issues.createComment({
               issue_number: prNum,

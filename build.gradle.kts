@@ -29,6 +29,9 @@ val yaviVersion = "0.14.1"
 val archunitVersion = "1.3.0"
 
 dependencies {
+    // Development Hot-Reload & Fast Restart
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+
     // Spring Boot Starters
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-liquibase")
@@ -42,11 +45,12 @@ dependencies {
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // Observability: OpenTelemetry & Micrometer Tracing
+    // Observability: OpenTelemetry & Micrometer Tracing / Metrics
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
     // Sentry Core & Logback Integration (Spring Boot 4 compatible)
     implementation("io.sentry:sentry:7.18.0")

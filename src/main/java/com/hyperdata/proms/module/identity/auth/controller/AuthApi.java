@@ -5,6 +5,7 @@ import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
 import com.hyperdata.proms.module.identity.auth.dto.LoginResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -24,7 +25,23 @@ public interface AuthApi {
         @ApiResponse(
             responseCode = "401",
             description = "Email atau kata sandi salah",
-            content = @Content(schema = @Schema(implementation = RestResponse.class)))
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = RestResponse.class),
+                examples = @ExampleObject(
+                    name = "InvalidCredentials",
+                    summary = "Email atau kata sandi salah",
+                    value = """
+                        {
+                          "statusCode": 401,
+                          "message": "Email atau kata sandi tidak sesuai",
+                          "data": null,
+                          "error": {
+                            "code": "UNAUTHENTICATED",
+                            "detail": "Pastikan email dan kata sandi yang Anda masukkan sudah benar."
+                          }
+                        }
+                        """)))
     })
     @SecurityRequirements
     @PostMapping("/auth/login")
@@ -39,7 +56,23 @@ public interface AuthApi {
         @ApiResponse(
             responseCode = "401",
             description = "Tidak terautentikasi atau token tidak valid",
-            content = @Content(schema = @Schema(implementation = RestResponse.class)))
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = RestResponse.class),
+                examples = @ExampleObject(
+                    name = "Unauthenticated",
+                    summary = "Token tidak valid atau tidak disertakan",
+                    value = """
+                        {
+                          "statusCode": 401,
+                          "message": "Autentikasi diperlukan untuk mengakses endpoint ini",
+                          "data": null,
+                          "error": {
+                            "code": "UNAUTHENTICATED",
+                            "detail": "Token autentikasi tidak valid atau belum disertakan"
+                          }
+                        }
+                        """)))
     })
     @PostMapping("/auth/logout")
     RestResponse<Void> logout();

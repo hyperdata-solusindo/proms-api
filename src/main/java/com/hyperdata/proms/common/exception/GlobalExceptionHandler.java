@@ -1,11 +1,13 @@
 package com.hyperdata.proms.common.exception;
 
+import com.hyperdata.proms.common.response.ErrorDetail;
+import com.hyperdata.proms.common.response.FieldErrorDetail;
 import com.hyperdata.proms.common.response.RestResponse;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import io.sentry.Sentry;
 import io.sentry.SentryLevel;
-import java.util.Map;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -57,13 +60,56 @@ public class GlobalExceptionHandler {
         this.tracerProvider = tracerProvider;
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<RestResponse<Void>> handleHttpMessageNotReadable(
+        org.springframework.http.converter.HttpMessageNotReadableException ex) {
+        log.warn("Malformed HTTP request body: {}", ex.getMessage());
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(
+            CommonErrorCode.BAD_REQUEST, "Format payload request JSON tidak valid atau rusak", null, null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.BAD_REQUEST, "Format data tidak valid", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<RestResponse<Map<String, String>>> handleValidationException(ValidationException ex) {
+    public ResponseEntity<RestResponse<Void>> handleValidationException(ValidationException ex) {
         log.warn("Validation failed: {}", ex.getMessage());
         String traceId = resolveCurrentTraceId();
-        RestResponse<Map<String, String>> response = RestResponse.error(
-            HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), ex.getErrors(), traceId);
+        String code = ex.getCode() != null ? ex.getCode() : CommonErrorCode.VALIDATION;
+        ErrorDetail errorDetail = new ErrorDetail(code, ex.getDetail(), ex.getFieldErrors(), null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), errorDetail, traceId);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<RestResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        log.warn("Method argument validation failed: {}", ex.getMessage());
+        List<FieldErrorDetail> fieldErrors = ex.getBindingResult()
+            .getFieldErrors()
+            .stream()
+            .map(fe -> new FieldErrorDetail(fe.getField(), fe.getDefaultMessage()))
+            .toList();
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(CommonErrorCode.VALIDATION, "Format request atau field tidak valid",
+            fieldErrors,
+            null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.UNPROCESSABLE_ENTITY, "Format request tidak valid", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<RestResponse<Void>> handleAccessDeniedException(
+        org.springframework.security.access.AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(
+            CommonErrorCode.FORBIDDEN, "Anda tidak memiliki izin untuk mengakses resource ini", null, null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.FORBIDDEN, "Akses ditolak", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(BaseException.class)
@@ -76,7 +122,9 @@ public class GlobalExceptionHandler {
             log.warn("Client exception [{}]: {}", ex.getHttpStatus(), ex.getMessage());
         }
 
-        RestResponse<Void> response = RestResponse.error(ex.getHttpStatus(), ex.getMessage(), traceId);
+        String code = ex.getCode() != null ? ex.getCode() : ex.getHttpStatus().name();
+        ErrorDetail errorDetail = new ErrorDetail(code, ex.getDetail(), null, ex.getCurrent());
+        RestResponse<Void> response = RestResponse.error(ex.getHttpStatus(), ex.getMessage(), errorDetail, traceId);
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
     }
 
@@ -86,8 +134,10 @@ public class GlobalExceptionHandler {
         captureToSentry(ex, SentryLevel.ERROR, "unhandled_internal");
 
         String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(
+            CommonErrorCode.INTERNAL_SERVER_ERROR, "Terjadi kesalahan internal pada server", null, null);
         RestResponse<Void> response = RestResponse.error(
-            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal server error occurred", traceId);
+            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal server error occurred", errorDetail, traceId);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
