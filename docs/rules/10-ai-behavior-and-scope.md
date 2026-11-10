@@ -6,7 +6,29 @@
 - **ZERO DEAD / UNUSED CODE**: Do NOT declare unused fields, variables, methods, parameters, or imports. Do NOT inject dependencies (repositories, services, facades) that are not actively used by the class.
 - **YAGNI (You Aren't Gonna Need It)**: Do NOT create premature abstractions, empty interfaces for internal services, or generic base classes with only one implementation. Use concrete service classes directly. Interfaces are strictly reserved for cross-module `Facade`.
 
-## 2. Conventional Commits
+## 2. Branching Strategy & Git Workflow (Mandatory)
+
+Setiap pengembangan fitur baru, perbaikan bug, atau tugas refactoring **wajib diisolasi ke dalam branch baru**. Dilarang keras melakukan commit atau push langsung ke branch utama (`main` atau `dev`).
+
+### A. Konvensi Penamaan Branch
+Format penamaan branch adalah: `<tipe>/<nama-singkat-deskriptif>`
+- **`feat/<nama-fitur>`**: Untuk penambahan fitur atau kapabilitas baru (contoh: `feat/endpoint-boards`, `feat/auth-google-oauth`).
+- **`fix/<nama-bug>`**: Untuk perbaikan bug atau error (contoh: `fix/unauthenticated-security-context`, `fix/null-pointer-tenant`).
+- **`refactor/<nama-modul>`**: Untuk refactoring kode tanpa mengubah behavior API (contoh: `refactor/user-facade-lookups`).
+- **`chore/<task>`**: Untuk tugas pemeliharaan build, dependencies, atau tooling (contoh: `chore/update-gradle-wrapper`).
+- **`docs/<topik>`**: Untuk penambahan atau pembaruan dokumentasi (contoh: `docs/branching-strategy`).
+
+### B. Alur Kerja (Workflow) untuk AI & Manusia
+1. **Pre-Flight Branch Check**: Sebelum membuat atau mengedit file implementasi apa pun, AI Agent dan developer wajib memverifikasi branch aktif saat ini (`git branch --show-current`).
+2. **Checkout dari `dev`**: Jika branch aktif adalah `main` atau `dev`, wajib menarik versi terbaru (`git pull origin dev`) dan membuat branch baru:
+   ```bash
+   git checkout dev && git pull origin dev
+   git checkout -b <tipe>/<nama-deskriptif>
+   ```
+3. **Isolasi Pengerjaan**: Semua perubahan kode, commit, dan pengujian dilakukan di branch terisolasi tersebut.
+4. **Pull Request ke `dev`**: Setelah seluruh checklist DoD terpenuhi, ajukan Pull Request (PR) ke branch `dev`.
+
+## 3. Conventional Commits
 Format messages as:
 `<type>(<scope>): <short description in present tense>`
 - Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
@@ -19,7 +41,7 @@ Setiap kali AI Agent atau developer membuat Pull Request (PR):
 - **Checklist Kepatuhan**: Seluruh butir checklist Definition of Done pada template PR wajib diverifikasi dan dicentang (`[x]`).
 - **Dilarang PR Kosong**: Dilarang membuat PR dengan flag `--fill` default atau body kosong/ringkas tanpa struktur template resmi.
 
-## 3. Self-Correction Loop
+## 4. Self-Correction Loop
 Before concluding a task, run the verification commands:
 1. `./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"` (Targeted inner loop)
 2. `./gradlew spotlessApply` (Automated formatting)
@@ -30,7 +52,7 @@ Fix any compiler, formatting, or test failures autonomously before reporting com
 
 ---
 
-## 4. Runtime Verification & Process Hygiene (Anti-Stale & Ghost Process Protocol)
+## 5. Runtime Verification & Process Hygiene (Anti-Stale & Ghost Process Protocol)
 
 When verifying changes against live endpoints (`bootRun` or HTTP requests):
 1. **Source Integrity First**: Always verify `git status` or `git diff <file>` to ensure source changes are truly present on disk before running builds or tests.
@@ -40,7 +62,7 @@ When verifying changes against live endpoints (`bootRun` or HTTP requests):
 
 ---
 
-## 5. DOs and DON'Ts for AI Agents
+## 6. DOs and DON'Ts for AI Agents
 
 ### DOs:
 - **DO verify disk state with `git status` / `git diff`** before concluding that a fix or code change is ready.
@@ -50,9 +72,15 @@ When verifying changes against live endpoints (`bootRun` or HTTP requests):
 - **DO kill any background process spawned by yourself during testing** immediately after verification is finished so the developer's workspace remains clean.
 - **DO verify response bodies and headers (`curl -i`)** end-to-end to confirm both HTTP status code and payload structure match expectations.
 - **DO use synthetic / dummy data** for testing and seeding to comply with personal data privacy laws (UU PDP No. 27/2022).
+- **DO use variable-based Lookups** (3 steps: `extractIds` -> `facade call` -> `Lookups.toMap`) for all in-memory cross-module data enrichment.
+- **DO use Java 21 Record DTO projections** (`SELECT new com...Dto(...)`) for all repository aggregations and partial column projections.
+- **DO specify `Collection<ID>`** on Facade batch lookup methods for caller compatibility.
 - **DO ask explicit confirmation before running destructive commands** (e.g., `./scripts/db.sh fresh`, `rollback`, database drop/truncate/reset).
 
 ### DON'Ts:
+- **DON'T return raw `Object[]` or `List<Object[]>` from repositories** or access projection rows via index/casting (`row[0]`, `((Number) row[1]).intValue()`).
+- **DON'T write fluent Lookups pipelines (`Lookups.of(...)` / `loadMap(...)`)** in service classes; always use explicit variable-based steps.
+- **DON'T write derived query methods with `OrderBy` or soft-delete (`DeletedAtIsNull`)** in repositories; use Level 2 `@Query` with Ubiquitous Language names.
 - **DON'T execute blind `kill -9`** (`lsof -ti :<port> | xargs kill -9`) against processes not spawned by the agent. Always ask the user first.
 - **DON'T read, print, or expose secret files or credentials** (`.env`, private keys, authentication tokens, connection passwords) into chat, logs, or commit history.
 - **DON'T include real personal identifiable information (PII)** like real user emails, NIK, phone numbers, or addresses in code, test fixtures, logs, or prompts (UU PDP No. 27/2022).

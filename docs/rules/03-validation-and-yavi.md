@@ -85,3 +85,23 @@ When invalid, `YaviValidator.validateAndThrow()` throws `ValidationException`. `
   "timestamp": "2026-10-30T10:00:00Z"
 }
 ```
+
+### Pattern 7: Whitelist Validation using Centralized Constants / Sets
+When validating categorical string inputs (such as status, role, tab, or type), **STRICTLY PROHIBITED to write magic strings in the validator**. Always refer to centralized constant classes or pre-built `Set<String>`:
+
+```java
+// ✅ DO: Centralized Set referencing Constant class
+public record FilterBoardRequest(String tab) {
+    private static final Set<String> ALLOWED_TABS = Set.of(BoardTab.MINE, BoardTab.SHARED, BoardTab.ARCHIVED);
+
+    public static final Validator<FilterBoardRequest> validator = ValidatorBuilder.<FilterBoardRequest>of()
+        .constraintOnCondition((req, ctx) -> req.tab() != null, b -> b
+            .predicate(req -> ALLOWED_TABS.contains(req.tab().toLowerCase()), "tab", "tab must be one of: mine, shared, archived")
+        )
+        .build();
+}
+
+// ❌ DON'T: Hardcoded magic string literals in validator
+.predicate(req -> List.of("mine", "shared", "archived").contains(req.tab()), "tab", "Invalid tab")
+```
+

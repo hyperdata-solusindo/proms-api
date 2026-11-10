@@ -3,9 +3,11 @@ package com.hyperdata.proms.module.identity.user.facade.internal;
 import com.hyperdata.proms.module.identity.user.facade.UserFacade;
 import com.hyperdata.proms.module.identity.user.facade.dto.UserAuthDto;
 import com.hyperdata.proms.module.identity.user.facade.dto.UserMembershipDto;
+import com.hyperdata.proms.module.identity.user.facade.dto.UserSummaryDto;
 import com.hyperdata.proms.module.identity.user.mapper.UserMapper;
 import com.hyperdata.proms.module.identity.user.repository.TenantMemberRepository;
 import com.hyperdata.proms.module.identity.user.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +46,16 @@ public class DefaultUserFacade implements UserFacade {
         }
         var first = activeMemberships.get(0);
         return Optional.of(new UserMembershipDto(first.getTenantId(), first.getRole()));
+    }
+
+    @Override
+    public List<UserSummaryDto> findSummariesByIds(java.util.Collection<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findAllById(userIds)
+            .stream()
+            .map(u -> new UserSummaryDto(u.getId(), u.getFullName(), u.getEmail(), u.getAvatarUrl()))
+            .toList();
     }
 }

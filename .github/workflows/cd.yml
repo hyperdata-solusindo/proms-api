@@ -257,11 +257,19 @@ jobs:
           Write-Host "📥 Pulling latest image ($env:IMAGE_NAME:$env:IMAGE_TAG)..."
           docker compose -f docker-compose.staging.yml pull app
 
-          # 3. Jalankan Postgres & App menggunakan Docker Compose
-          Write-Host "🔄 Starting services via Docker Compose..."
-          docker compose -f docker-compose.staging.yml up -d --remove-orphans
+          # 3. Jalankan database Postgres terlebih dahulu
+          Write-Host "🔄 Starting postgres database..."
+          docker compose -f docker-compose.staging.yml up -d postgres
 
-          # 4. Polling Health Check
+          # 4. Jalankan Dedicated One-Shot Database Migration Runner
+          Write-Host "📦 Executing dedicated one-shot database migration..."
+          docker compose -f docker-compose.staging.yml run --rm migrator
+
+          # 5. Jalankan Service App (Aman di-scale tanpa lock contention)
+          Write-Host "🚀 Starting application via Docker Compose..."
+          docker compose -f docker-compose.staging.yml up -d --remove-orphans app
+
+          # 6. Polling Health Check
           Write-Host "🔍 Verifying Actuator Health Check on port $env:HOST_PORT..."
           $healthy = $false
           for ($i = 1; $i -le 15; $i++) {

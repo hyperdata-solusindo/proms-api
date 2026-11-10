@@ -8,11 +8,11 @@ services:
       POSTGRES_USER: ${DB_USER:-platform_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-platform_password}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres_staging_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-platform_user} -d ${DB_NAME:-app_platform}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-platform_user} -d ${DB_NAME:-app_platform}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,7 +28,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${HOST_PORT:-8080}:8080"
+      - '${HOST_PORT:-8080}:8080'
     environment:
       SERVER_PORT: 8080
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-staging}
@@ -38,14 +38,96 @@ services:
       DB_USER: ${DB_USER:-platform_user}
       DB_PASSWORD: ${DB_PASSWORD:-platform_password}
       DB_APP_USER: ${DB_APP_USER:-platform_user}
-      LIQUIBASE_ENABLED: "true"
-      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+      LIQUIBASE_ENABLED: 'false'
+      JAVA_OPTS: '-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError'
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health/liveness || exit 1"]
+      test: ['CMD-SHELL', 'curl -f http://localhost:8080/actuator/health/liveness || exit 1']
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - proms-staging-net
+
+  # ============================================================================
+  # ONE-SHOT RUNNER: Dedicated Database Migrations (DDL)
+  # Profiles 'ops': Tidak akan dijalankan saat 'docker compose up -d' biasa.
+  # Jalankan: docker compose -f docker-compose.staging.yml run --rm migrator
+  # ============================================================================
+  migrator:
+    image: ${IMAGE_NAME:-ghcr.io/hyperdata-solusindo/proms-api-java}:${IMAGE_TAG:-staging-1-latest}
+    profiles: ['ops']
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - '--spring.main.web-application-type=none'
+      - '--spring.liquibase.enabled=true'
+      - '--spring.liquibase.change-log=classpath:db/changelog/db.changelog-master.yaml'
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-staging}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-platform_user}
+      JAVA_OPTS: '-XX:+UseG1GC -XX:MaxRAMPercentage=75.0'
+    networks:
+      - proms-staging-net
+
+  # ============================================================================
+  # ONE-SHOT RUNNER: System Config Seeder (Master Plans, etc.)
+  # Jalankan: docker compose -f docker-compose.staging.yml run --rm seeder-config
+  # ============================================================================
+  seeder-config:
+    image: ${IMAGE_NAME:-ghcr.io/hyperdata-solusindo/proms-api-java}:${IMAGE_TAG:-staging-1-latest}
+    profiles: ['ops']
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - '--spring.main.web-application-type=none'
+      - '--spring.liquibase.enabled=true'
+      - '--spring.liquibase.change-log=classpath:db/seed/db.seed-config-master.yaml'
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-staging}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-platform_user}
+      JAVA_OPTS: '-XX:+UseG1GC -XX:MaxRAMPercentage=75.0'
+    networks:
+      - proms-staging-net
+
+  # ============================================================================
+  # ONE-SHOT RUNNER: Dummy Data Seeder (Tenant & Test Users - DEV/STAGING ONLY)
+  # Jalankan: docker compose -f docker-compose.staging.yml run --rm seeder-dummy
+  # ============================================================================
+  seeder-dummy:
+    image: ${IMAGE_NAME:-ghcr.io/hyperdata-solusindo/proms-api-java}:${IMAGE_TAG:-staging-1-latest}
+    profiles: ['ops']
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - '--spring.main.web-application-type=none'
+      - '--spring.liquibase.enabled=true'
+      - '--spring.liquibase.change-log=classpath:db/seed/db.seed-dummy-master.yaml'
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-staging}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-platform_user}
+      JAVA_OPTS: '-XX:+UseG1GC -XX:MaxRAMPercentage=75.0'
     networks:
       - proms-staging-net
 
