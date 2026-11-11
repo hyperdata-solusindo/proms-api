@@ -57,8 +57,8 @@ public class UserService {
             .toList();
 
         Set<UUID> otherTenantIds = Lookups.extractIds(otherMemberships, TenantMember::getTenantId);
-        Map<UUID, TenantSummaryDto> tenantSummaryMap = Lookups.loadMap(otherTenantIds, tenantFacade::getTenantSummaries,
-            TenantSummaryDto::id);
+        List<TenantSummaryDto> tenantSummaries = tenantFacade.getTenantSummaries(otherTenantIds);
+        Map<UUID, TenantSummaryDto> tenantSummaryMap = Lookups.toMap(tenantSummaries, TenantSummaryDto::id);
 
         List<OtherTenantDto> otherTenants = otherMemberships.stream()
             .map(m -> tenantSummaryMap.get(m.getTenantId()))

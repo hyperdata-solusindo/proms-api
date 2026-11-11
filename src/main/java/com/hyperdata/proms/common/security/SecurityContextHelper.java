@@ -1,5 +1,6 @@
 package com.hyperdata.proms.common.security;
 
+import com.hyperdata.proms.common.exception.UnauthenticatedException;
 import java.util.Optional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,6 @@ public final class SecurityContextHelper {
 
     public static CurrentUser getRequiredCurrentUser() {
         return getCurrentUser()
-            .orElseThrow(() -> new IllegalStateException("No authenticated user found in security context"));
+            .orElseThrow(UnauthenticatedException::new);
     }
 }

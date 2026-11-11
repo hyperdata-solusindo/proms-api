@@ -13,7 +13,7 @@ Example:
 Inside each `<feature>` directory, strictly maintain this folder structure:
 ```text
 <feature>/
-├── constant/                         # Feature constants & cache names (<Feature>CacheNames.java)
+├── constant/                         # Feature domain constants (<Feature>Status.java, <Feature>Role.java, <Feature>Tab.java) & cache names (<Feature>CacheNames.java)
 ├── controller/                       # Web REST controllers & API contracts
 │   ├── <Feature>Api.java             # Contract Interface (Routing & OpenAPI Specs)
 │   └── <Feature>Controller.java      # Implementation Class (@RestController)
@@ -50,3 +50,7 @@ Inside each `<feature>` directory, strictly maintain this folder structure:
    - Controller dilarang meng-inject Repository.
 5. **Transactional Boundary**: Anotasi `@Transactional` hanya boleh digunakan di layer Service atau Facade implementation, dilarang di Controller.
 6. **The Golden Stack for Cross-Module Enrichment**: Datatable atau listing queries **DILARANG** melakukan SQL `JOIN` lintas tabel modul lain. Wajib menerapkan **The Golden Stack** (L1 Cache + `Lookups` in-memory batch extraction/map + MapStruct DTO assembly). Lihat [Rule 11](11-the-golden-stack.md).
+7. **Domain Constants Encapsulation & Declaration Pattern**:
+   - Seluruh konstanta status, roles, tabs, dan types wajib berada di `module.<domain>.<feature>.constant`.
+   - Wajib dideklarasikan sebagai `public final class` dengan **private constructor** (`private <Feature>Status() {}`) dan `public static final String` fields. Dilarang keras menggunakan *Constant Interface Anti-pattern* (`public interface <Feature>Constants`).
+   - Modul luar dilarang mengimpor kelas dari sub-package `constant/` modul lain. Jika modul luar perlu memvalidasi status/perilaku, lakukan melalui Facade interface (misal: `boardFacade.validateForTaskCreation(...)`).

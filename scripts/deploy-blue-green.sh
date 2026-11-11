@@ -52,8 +52,10 @@ docker run --rm \
   --name proms-db-migrator \
   --network "$NETWORK_NAME" \
   --env-file .env \
-  -e LIQUIBASE_ENABLED=true \
-  "$IMAGE" db:migrate || {
+  "$IMAGE" \
+  --spring.main.web-application-type=none \
+  --spring.liquibase.enabled=true \
+  --spring.liquibase.change-log=classpath:db/changelog/db.changelog-master.yaml || {
     echo "❌ FATAL: Database migration failed! Aborting deployment."
     exit 1
   }

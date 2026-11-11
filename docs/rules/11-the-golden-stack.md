@@ -68,19 +68,12 @@ public PageResponse<ProductListItemResponse> getProducts(ProductFilter filter, P
 
     // STEP 2: Batch extract foreign IDs & load relations (Zero N+1)
     Set<UUID> categoryIds = Lookups.extractIds(products, Product::getCategoryId);
-    Set<UUID> supplierIds = Lookups.extractIds(products, Product::getSupplierId);
+    List<CategorySummaryDto> categories = categoryFacade.findAllByIds(categoryIds);
+    Map<UUID, CategorySummaryDto> categoryMap = Lookups.toMap(categories, CategorySummaryDto::id);
 
-    // Call target module facades in batch (never loop or join tables!)
-    Map<UUID, CategorySummaryDto> categoryMap = Lookups.loadMap(
-            categoryIds,
-            categoryFacade::findAllByIds,
-            CategorySummaryDto::id
-    );
-    Map<UUID, SupplierSummaryDto> supplierMap = Lookups.loadMap(
-            supplierIds,
-            supplierFacade::findAllByIds,
-            SupplierSummaryDto::id
-    );
+    Set<UUID> supplierIds = Lookups.extractIds(products, Product::getSupplierId);
+    List<SupplierSummaryDto> suppliers = supplierFacade.findAllByIds(supplierIds);
+    Map<UUID, SupplierSummaryDto> supplierMap = Lookups.toMap(suppliers, SupplierSummaryDto::id);
 
     // STEP 3: In-Memory O(1) Assembly
     List<ProductListItemResponse> items = products.stream()
@@ -162,4 +155,75 @@ Map<UUID, CategorySummaryDto> categoryMap = Lookups.of(products)
 - **DO NOT** hardcode cache names with string literals or store feature-specific cache names in `common`; use `<Feature>CacheNames` in `module.<domain>.<feature>.constant`.
 - **DO NOT** use `!#result.isPresent()` in Spring Cache SpEL `unless` expressions; use `unless = "#result == null"` because Spring Cache unwraps `Optional`.
 - **DO NOT** use `Collectors.toMap` for multi-item lists where keys could collide; use `Lookups.toMap`.
+- **PREFER VARIABLE-BASED LOOKUPS**: Always use the explicit 3-step variable-based pattern (`Lookups.extractIds` -> `facade call` -> `Lookups.toMap`) in service layers. Avoid fluent chaining (`Lookups.of(...)` / `loadMap(...)`) in business services for transparency, direct debuggability, and compile-time type clarity.
+- **FACADE BATCH LOOKUP CONTRACT**: Batch lookup methods on `*Facade` interfaces **MUST** accept `Collection<ID> ids` (NOT `Set<ID>` or array) and return `List<Dto>` to ensure broad compatibility with callers.
+- **ZERO `Object[]` PROJECTION**: Repository aggregations and projections must return Java 21 Record DTOs (`SELECT new com...Dto(...)`), never raw `Object[]` or `List<Object[]>`.
 - **ALWAYS** use `Lookups` from `com.hyperdata.proms.common.util.Lookups`.
+
+---
+
+## 5. Code Examples: DOs and DON'Ts
+
+### A. Service Layer In-Memory Enrichment
+
+```java
+// ❌ DON'T: Manual Java Streams boilerplate atau fluent chaining yang sulit di-debug
+Map<UUID, UserSummaryDto> pmMap = userFacade.findSummariesByIds(
+    page.getContent().stream().map(Board::getPmId).filter(Objects::nonNull).collect(Collectors.toSet())
+).stream().collect(Collectors.toMap(UserSummaryDto::id, Function.identity(), (a, b) -> a));
+
+// ❌ DON'T: Fluent chaining tersembunyi yang rentan masalah tipe generic
+Map<UUID, UserSummaryDto> pmMap = Lookups.of(page.getContent())
+    .extractIds(Board::getPmId)
+    .loadMap(userFacade::findSummariesByIds, UserSummaryDto::id);
+
+// ✅ DO: Variable-based 3 langkah eksplisit (mudah di-debug, type-safe, bersih)
+Set<UUID> pmIds = Lookups.extractIds(page.getContent(), Board::getPmId);
+List<UserSummaryDto> pmUsers = userFacade.findSummariesByIds(pmIds);
+Map<UUID, UserSummaryDto> pmMap = Lookups.toMap(pmUsers, UserSummaryDto::id);
+```
+
+### B. Repository Aggregations & Projections
+
+```java
+// ❌ DON'T: Mengembalikan Object[] atau List<Object[]> mentah
+// Rawan ArrayIndexOutOfBoundsException, ClassCastException, dan NPE saat unboxing
+@Query("SELECT bm.boardId, COUNT(bm.id) FROM BoardMember bm WHERE bm.boardId IN :boardIds GROUP BY bm.boardId")
+List<Object[]> countMembersGroupedByBoardIds(@Param("boardIds") Collection<UUID> boardIds);
+
+// Service caller (ANTI-PATTERN):
+Map<UUID, Integer> memberCounts = Lookups.toMap(
+    repo.countMembersGroupedByBoardIds(boardIds),
+    row -> (UUID) row[0],
+    row -> ((Number) row[1]).intValue() // ⚠️ Bahaya NPE dan ClassCastException
+);
+
+// ✅ DO: Gunakan Java 21 Record DTO Projection (Constructor Expression)
+public record BoardMemberCountDto(UUID boardId, long count) {}
+
+@Query("""
+    SELECT new com.hyperdata.proms.module.pm.board.dto.BoardMemberCountDto(bm.boardId, COUNT(bm.id))
+    FROM BoardMember bm
+    WHERE bm.boardId IN :boardIds
+    GROUP BY bm.boardId
+""")
+List<BoardMemberCountDto> countMembersGroupedByBoardIds(@Param("boardIds") Collection<UUID> boardIds);
+
+// Service caller (TYPE-SAFE):
+List<BoardMemberCountDto> countDtos = repo.countMembersGroupedByBoardIds(boardIds);
+Map<UUID, Integer> memberCounts = Lookups.toMap(
+    countDtos,
+    BoardMemberCountDto::boardId,
+    dto -> (int) dto.count() // 🛡️ 100% aman dan divalidasi compiler
+);
+```
+
+### C. Facade Batch Lookup Interface Contract
+
+```java
+// ❌ DON'T: Menggunakan Set<UUID> atau array spesifik yang membatasi caller
+List<UserSummaryDto> findSummariesByIds(Set<UUID> userIds);
+
+// ✅ DO: Menggunakan Collection<UUID> agar kompatibel dengan Set, List, atau LinkedHashSet
+List<UserSummaryDto> findSummariesByIds(Collection<UUID> userIds);
+```

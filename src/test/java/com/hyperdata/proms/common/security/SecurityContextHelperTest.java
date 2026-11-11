@@ -37,4 +37,12 @@ class SecurityContextHelperTest {
         assertThat(result.get().workspaceRole()).isEqualTo("member");
         assertThat(result.get().tokenId()).isEqualTo(1L);
     }
+
+    @Test
+    @DisplayName("GIVEN empty SecurityContext WHEN getRequiredCurrentUser THEN throws UnauthenticatedException")
+    void givenEmptySecurityContext_whenGetRequiredCurrentUser_thenThrowsUnauthenticatedException() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(SecurityContextHelper::getRequiredCurrentUser)
+            .isInstanceOf(com.hyperdata.proms.common.exception.UnauthenticatedException.class)
+            .hasMessage("Autentikasi diperlukan untuk mengakses endpoint ini");
+    }
 }
