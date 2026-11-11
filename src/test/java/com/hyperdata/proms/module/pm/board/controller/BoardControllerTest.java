@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,6 +18,7 @@ import com.hyperdata.proms.module.communication.chat.facade.dto.ChatChannelSumma
 import com.hyperdata.proms.module.pm.board.dto.BoardDetailResponse;
 import com.hyperdata.proms.module.pm.board.dto.BoardSummaryResponse;
 import com.hyperdata.proms.module.pm.board.dto.CreateBoardTaskRequest;
+import com.hyperdata.proms.module.pm.board.dto.UpdateBoardRequest;
 import com.hyperdata.proms.module.pm.board.service.BoardService;
 import com.hyperdata.proms.module.pm.task.facade.dto.TaskCreatedDto;
 import com.hyperdata.proms.module.pm.task.facade.dto.TaskSummaryDto;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -247,5 +250,34 @@ class BoardControllerTest {
             .andExpect(jsonPath("$.statusCode").value(401))
             .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"))
             .andExpect(jsonPath("$.message").value("Autentikasi diperlukan untuk mengakses endpoint ini"));
+    }
+
+    @Test
+    @DisplayName("GIVEN valid payload and header WHEN PUT /api/v1/boards/{boardId} THEN returns 200 updated envelope")
+    void givenValidPayload_whenUpdateBoard_thenReturns200Envelope() throws Exception {
+        UUID boardId = UUID.randomUUID();
+        UpdateBoardRequest request = new UpdateBoardRequest("Updated Board Name", "New description");
+        BoardDetailResponse updatedDetail = new BoardDetailResponse(
+            boardId,
+            "PRJ",
+            "Updated Board Name",
+            "active",
+            List.of(),
+            List.of(),
+            List.of(),
+            new BoardDetailResponse.BoardPermissionResponse(true, true, true),
+            Instant.now());
+
+        given(boardService.updateBoard(eq(boardId), eq(currentUser), any(UpdateBoardRequest.class)))
+            .willReturn(updatedDetail);
+
+        mockMvc.perform(put("/api/v1/boards/{boardId}", boardId)
+            .header(HttpHeaders.IF_MATCH, "\"2026-11-10T10:00:00Z\"")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.name").value("Updated Board Name"))
+            .andExpect(jsonPath("$.message").value("Board berhasil diperbarui"));
     }
 }

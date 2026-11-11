@@ -5,10 +5,12 @@ import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.security.SecurityContextHelper;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.communication.chat.facade.dto.ChatChannelSummaryDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardDetailResponse;
 import com.hyperdata.proms.module.pm.board.dto.BoardSummaryResponse;
 import com.hyperdata.proms.module.pm.board.dto.CreateBoardTaskRequest;
+import com.hyperdata.proms.module.pm.board.dto.UpdateBoardRequest;
 import com.hyperdata.proms.module.pm.board.service.BoardService;
 import com.hyperdata.proms.module.pm.task.facade.dto.BoardTaskFilterDto;
 import com.hyperdata.proms.module.pm.task.facade.dto.TaskCreatedDto;
@@ -29,13 +31,22 @@ public class BoardController implements BoardApi {
     public RestResponse<PageResponse<BoardSummaryResponse>> listBoards(String tab, String q, Pageable pageable) {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
         return RestResponse.ok(boardService.listBoards(currentUser, tab, q, pageable),
-            "Berhasil mengambil daftar board");
+            Messages.get("board.list.retrieved"));
     }
 
     @Override
     public RestResponse<BoardDetailResponse> getBoardDetail(UUID boardId) {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
-        return RestResponse.ok(boardService.getBoardDetail(boardId, currentUser), "Berhasil mengambil detail board");
+        return RestResponse.ok(boardService.getBoardDetail(boardId, currentUser),
+            Messages.get("board.detail.retrieved"));
+    }
+
+    @Override
+    public RestResponse<BoardDetailResponse> updateBoard(UUID boardId, UpdateBoardRequest request) {
+        UpdateBoardRequest.validator.validate(request).throwIfInvalid(ValidationException::new);
+        CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
+        return RestResponse.ok(boardService.updateBoard(boardId, currentUser, request),
+            Messages.get("board.updated.success"));
     }
 
     @Override

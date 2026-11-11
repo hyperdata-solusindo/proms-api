@@ -5,6 +5,8 @@ import com.hyperdata.proms.common.exception.CommonErrorCode;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
+import com.hyperdata.proms.common.security.TenantScoped;
+import com.hyperdata.proms.common.util.ConcurrencyGuard;
 import com.hyperdata.proms.common.util.Lookups;
 import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.communication.chat.facade.ChatFacade;
@@ -19,6 +21,7 @@ import com.hyperdata.proms.module.pm.board.dto.BoardMemberCountDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardMemberRoleDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardSummaryResponse;
 import com.hyperdata.proms.module.pm.board.dto.CreateBoardTaskRequest;
+import com.hyperdata.proms.module.pm.board.dto.UpdateBoardRequest;
 import com.hyperdata.proms.module.pm.board.entity.Board;
 import com.hyperdata.proms.module.pm.board.entity.BoardColumn;
 import com.hyperdata.proms.module.pm.board.entity.BoardMember;
@@ -34,12 +37,14 @@ import com.hyperdata.proms.module.pm.task.facade.dto.BoardTaskFilterDto;
 import com.hyperdata.proms.module.pm.task.facade.dto.CreateTaskCommand;
 import com.hyperdata.proms.module.pm.task.facade.dto.TaskCreatedDto;
 import com.hyperdata.proms.module.pm.task.facade.dto.TaskSummaryDto;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +54,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@TenantScoped
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class BoardService {
@@ -251,6 +257,54 @@ public class BoardService {
             currentUser.userId());
 
         return taskFacade.createTask(boardId, command);
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = BoardCacheNames.BOARD_DETAIL, key = "#boardId")
+    public BoardDetailResponse updateBoard(
+        UUID boardId,
+        CurrentUser currentUser,
+        UpdateBoardRequest request) {
+        Board board = boardRepository.findActiveById(boardId)
+            .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
+
+        if (!board.getTenantId().equals(currentUser.activeTenantId())) {
+            throw new ResourceNotFoundException("Board", boardId);
+        }
+
+        if (BoardStatus.ARCHIVED.equalsIgnoreCase(board.getStatus())) {
+            throw new BusinessException(
+                CommonErrorCode.BOARD_ARCHIVED,
+                Messages.get("board.error.archived"),
+                HttpStatus.CONFLICT);
+        }
+
+        Optional<BoardMember> memberOpt = boardMemberRepository.findByBoardIdAndUserId(boardId, currentUser.userId());
+        boolean isOwner = board.getOwnerId().equals(currentUser.userId()) ||
+            (memberOpt.isPresent() && Boolean.TRUE.equals(memberOpt.get().getIsOwner()));
+
+        if (!isOwner && memberOpt.isEmpty()) {
+            throw new BusinessException(
+                CommonErrorCode.FORBIDDEN,
+                Messages.get("board.error.access_denied"),
+                HttpStatus.FORBIDDEN);
+        }
+
+        if (memberOpt.isPresent() && BoardMemberRole.VIEWER.equalsIgnoreCase(memberOpt.get().getRole())) {
+            throw new BusinessException(
+                CommonErrorCode.FORBIDDEN,
+                Messages.get("board.error.viewer_cannot_update"),
+                HttpStatus.FORBIDDEN);
+        }
+
+        ConcurrencyGuard.requireMatch(board.getUpdatedAt(), () -> getBoardDetail(boardId, currentUser));
+
+        board.setName(request.name());
+        board.setDescription(request.description());
+        board.setUpdatedAt(Instant.now());
+
+        boardRepository.save(board);
+        return getBoardDetail(boardId, currentUser);
     }
 
     public List<ChatChannelSummaryDto> getBoardChatChannels(UUID boardId, CurrentUser currentUser) {

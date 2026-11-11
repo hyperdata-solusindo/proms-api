@@ -151,11 +151,39 @@ Kolom `code` di bawah dibaca dari `error.code`.
     "detail": "Silakan muat ulang data terbaru sebelum menyimpan kembali.",
     "current": {
       "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-      "version": 4
+      "version": 1731301234000
     }
   }
 }
 ```
+
+### 4.4 Standar Optimistic Concurrency Control (`ConcurrencyGuard`)
+Untuk seluruh operasi mutasi (update/patch) pada resource bersama, service layer **WAJIB** memvalidasi versi konkurensi data menggunakan helper terpusat `ConcurrencyGuard`:
+
+```java
+// Contoh penggunaan di Service
+@Transactional
+public BoardDetailResponse updateBoard(UUID boardId, UpdateBoardRequest request, CurrentUser currentUser) {
+    Board board = boardRepository.findByIdAndTenantId(boardId, currentUser.tenantId())
+        .orElseThrow(() -> new ResourceNotFoundException("board.not.found", boardId));
+
+    // Verifikasi If-Match terhadap updatedAt entity dengan snapshot data terkini (lazy)
+    ConcurrencyGuard.requireMatch(board.getUpdatedAt(), () -> getBoardDetail(boardId, currentUser));
+
+    board.updateInfo(request.name(), request.description());
+    boardRepository.save(board);
+    return getBoardDetail(boardId, currentUser);
+}
+```
+
+#### DOs and DONTs Concurrency Control:
+- ✅ **DO**: Gunakan `ConcurrencyGuard.requireMatch(entity.getUpdatedAt(), () -> snapshotSupplier)` di awal method mutasi sebelum entity diubah.
+- ✅ **DO**: Gunakan lambda supplier `() -> toDetailResponse(...)` agar proses perakitan response DTO hanya dieksekusi bila terjadi konflik (lazy evaluation).
+- ✅ **DO**: Dukung fleksibilitas header `If-Match` baik berupa string Epoch Milliseconds (`"1731301234000"`) maupun ISO-8601 (`"2026-11-10T10:15:30.123456Z"`). `ConcurrencyGuard` otomatis membersihkan quotes (`"..."`) dan prefix weak ETag (`W/"..."`).
+- ✅ **DO**: Selalu bandingkan timestamp dengan presisi mikrodetik (`ChronoUnit.MICROS`) untuk mencegah false-positive pergeseran presisi antara PostgreSQL `timestamptz` (6 digit) dan Java `Instant` (9 digit).
+- ❌ **DON'T**: Jangan membaca header `@RequestHeader("If-Match") String ifMatch` secara manual di setiap controller method. `ConcurrencyGuard` otomatis mengambilnya dari `RequestContextHolder`.
+- ❌ **DON'T**: Jangan melempar exception generik atau custom 409 tanpa payload `current`. Frontend membutuhkan snapshot data terkini untuk meresolusi konflik atau me-reload state UI pengguna.
+- ❌ **DON'T**: Jangan biarkan operasi mutasi berjalan tanpa validasi `If-Match` jika resource dapat diedit secara kolaboratif oleh multi-pengguna.
 
 ---
 

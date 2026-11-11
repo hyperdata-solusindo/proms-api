@@ -1,5 +1,6 @@
 package com.hyperdata.proms.module.pm.board.dto;
 
+import com.hyperdata.proms.common.docs.annotation.VersionEpochSchema;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -17,6 +18,7 @@ public record BoardSummaryResponse(
     Integer memberCount,
     String myRole,
     Instant archivedAt,
+    @VersionEpochSchema
     Instant version) {
 
     public record PmSummaryResponse(UUID id, String fullName) {

@@ -125,10 +125,15 @@ rule 06, lalu seragamkan.
 > 2. Seluruh string pesan dipindahkan ke arsitektur modular i18n terpusat (`messages/{domain}/{feature}.properties`) dan di-resolve dinamis via `Messages.get(...)` berdasarkan header `Accept-Language` (default: `id-ID`).
 > 3. Seluruh route distandarisasi ke prefix `/api/v1/...` dengan backward-compatibility alias untuk endpoint legacy (`/auth/login`, `/auth/logout`, `/me`).
 
-#### 8. Optimistic locking setengah jadi
+#### 8. Optimistic locking setengah jadi `[RESOLVED]`
 
 `STALE_VERSION`, `IF_MATCH_REQUIRED`, `StaleVersionException`, dan `IfMatchRequiredException` sudah ada,
 tapi entity tidak punya `@Version` dan endpoint `PUT` tidak membaca header `If-Match`.
+
+> **Status Perbaikan (2026-11-11)**:
+> 1. Dibuat helper terpusat `ConcurrencyGuard.requireMatch(...)` yang otomatis membaca header `If-Match`, mendukung Epoch Milliseconds (`"1731301234000"`) & ISO-8601 (`"2026-11-10T10:15:30.123456Z"`), menormalisasi quotes (`"..."`) dan weak ETag (`W/"..."`), serta memotong presisi mikrodetik (`ChronoUnit.MICROS`) untuk menyelaraskan `timestamptz` PostgreSQL dengan Java `Instant`.
+> 2. Diterapkan pada endpoint `PUT /api/v1/boards/{boardId}` di `BoardService` dan `BoardController` dengan proteksi 428 (`IF_MATCH_REQUIRED`) dan 409 (`STALE_VERSION` beserta snapshot `current`).
+> 3. Dibuat reusable OpenAPI annotations: `@ApiConcurrencyControl`, `@IfMatchHeader`, `@ApiResponseNotFound`, `@ApiResponseStaleVersion`, `@ApiResponseIfMatchRequired`, dan `@VersionEpochSchema` yang otomatis terintegrasi dengan `OpenApiConfig`.
 
 #### 9. Unique constraint global, bukan per tenant
 
