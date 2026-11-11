@@ -2,6 +2,7 @@ package com.hyperdata.proms.module.sample.employee.controller;
 
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.response.RestResponse;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.sample.employee.dto.CreateEmployeeRequest;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeDetailResponse;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeFilter;
@@ -22,20 +23,20 @@ public class EmployeeController implements EmployeeApi {
     @Override
     public RestResponse<EmployeeDetailResponse> createEmployee(CreateEmployeeRequest request) {
         EmployeeDetailResponse response = employeeService.createEmployee(request);
-        return RestResponse.created(response, "Employee created successfully");
+        return RestResponse.created(response, Messages.get("employee.created"));
     }
 
     @Override
     public RestResponse<EmployeeDetailResponse> getEmployeeById(UUID id) {
         EmployeeDetailResponse response = employeeService.getEmployeeById(id);
-        return RestResponse.ok(response, "Employee retrieved successfully");
+        return RestResponse.ok(response, Messages.get("employee.retrieved"));
     }
 
     @Override
-    public PageResponse<EmployeeListItemResponse> getEmployees(
+    public RestResponse<PageResponse<EmployeeListItemResponse>> getEmployees(
         EmployeeFilter filter,
         Pageable pageable) {
-        return employeeService.getEmployees(filter, pageable);
+        return RestResponse.ok(employeeService.getEmployees(filter, pageable), Messages.get("employee.list.retrieved"));
     }
 
     @Override
@@ -43,12 +44,12 @@ public class EmployeeController implements EmployeeApi {
         UUID id,
         UpdateEmployeeRequest request) {
         EmployeeDetailResponse response = employeeService.updateEmployee(id, request);
-        return RestResponse.ok(response, "Employee updated successfully");
+        return RestResponse.ok(response, Messages.get("employee.updated"));
     }
 
     @Override
     public RestResponse<Void> deleteEmployee(UUID id) {
         employeeService.deleteEmployee(id);
-        return RestResponse.ok(null, "Employee deleted successfully");
+        return RestResponse.ok(null, Messages.get("employee.deleted"));
     }
 }

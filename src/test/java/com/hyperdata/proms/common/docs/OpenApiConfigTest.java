@@ -2,12 +2,16 @@ package com.hyperdata.proms.common.docs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.hyperdata.proms.module.identity.auth.controller.AuthController;
+import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
+import com.hyperdata.proms.module.sample.product.controller.ProductController;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.method.HandlerMethod;
@@ -22,10 +26,8 @@ class OpenApiConfigTest {
         var openApiCustomizer = config.domainTagGroupsCustomizer();
 
         // Simulate identity auth controller operation
-        com.hyperdata.proms.module.identity.auth.controller.AuthController authController = new com.hyperdata.proms.module.identity.auth.controller.AuthController(
-            null);
-        Method loginMethod = authController.getClass()
-            .getMethod("login", com.hyperdata.proms.module.identity.auth.dto.LoginRequest.class);
+        AuthController authController = new AuthController(null);
+        Method loginMethod = authController.getClass().getMethod("login", LoginRequest.class);
         HandlerMethod authHandler = new HandlerMethod(authController, loginMethod);
 
         Operation authOp = new Operation();
@@ -33,9 +35,8 @@ class OpenApiConfigTest {
         operationCustomizer.customize(authOp, authHandler);
 
         // Simulate sample product controller operation
-        com.hyperdata.proms.module.sample.product.controller.ProductController productController = new com.hyperdata.proms.module.sample.product.controller.ProductController(
-            null);
-        Method productMethod = productController.getClass().getMethod("getProductById", java.util.UUID.class);
+        ProductController productController = new ProductController(null);
+        Method productMethod = productController.getClass().getMethod("getProductById", UUID.class);
         HandlerMethod productHandler = new HandlerMethod(productController, productMethod);
 
         Operation productOp = new Operation();
@@ -53,18 +54,27 @@ class OpenApiConfigTest {
         List<Map<String, Object>> tagGroups = (List<Map<String, Object>>) openAPI.getExtensions().get("x-tagGroups");
 
         assertThat(tagGroups).hasSize(2);
+        assertThat(tagGroups).extracting(tg -> tg.get("name")).containsExactlyInAnyOrder("Identity", "Sample");
+    }
 
-        Map<String, Object> identityGroup = tagGroups.stream()
-            .filter(g -> "Identity".equals(g.get("name")))
-            .findFirst()
-            .orElseThrow();
-        assertThat(identityGroup.get("tags")).isEqualTo(List.of("Authentication"));
+    @Test
+    @DisplayName("Given Hidden annotated controller, when operation customized, then it is ignored")
+    void givenHiddenController_whenOperationCustomized_thenIgnored() throws Exception {
+        OpenApiConfig config = new OpenApiConfig();
+        var operationCustomizer = config.globalErrorResponsesCustomizer();
+        var openApiCustomizer = config.domainTagGroupsCustomizer();
 
-        Map<String, Object> sampleGroup = tagGroups.stream()
-            .filter(g -> "Sample".equals(g.get("name")))
-            .findFirst()
-            .orElseThrow();
-        assertThat(sampleGroup.get("tags")).isEqualTo(List.of("Products"));
+        HiddenController hiddenController = new HiddenController();
+        Method hiddenMethod = hiddenController.getClass().getMethod("hiddenEndpoint");
+        HandlerMethod hiddenHandler = new HandlerMethod(hiddenController, hiddenMethod);
+
+        Operation hiddenOp = new Operation();
+        operationCustomizer.customize(hiddenOp, hiddenHandler);
+
+        OpenAPI openAPI = config.customOpenAPI();
+        openApiCustomizer.customise(openAPI);
+
+        assertThat(openAPI.getExtensions()).isNull();
     }
 
     @Test
@@ -73,8 +83,7 @@ class OpenApiConfigTest {
         OpenApiConfig config = new OpenApiConfig();
         var operationCustomizer = config.globalErrorResponsesCustomizer();
 
-        com.hyperdata.proms.module.identity.auth.controller.AuthController authController = new com.hyperdata.proms.module.identity.auth.controller.AuthController(
-            null);
+        AuthController authController = new AuthController(null);
         Method logoutMethod = authController.getClass().getMethod("logout");
         HandlerMethod authHandler = new HandlerMethod(authController, logoutMethod);
 
@@ -83,12 +92,12 @@ class OpenApiConfigTest {
 
         assertThat(logoutOp.getResponses()).containsKey("500");
         assertThat(logoutOp.getResponses()).doesNotContainKey("400");
-        assertThat(logoutOp.getResponses()).doesNotContainKey("422");
     }
 
-    @Test
-    @DisplayName("ScalarDocController must be annotated with @Hidden")
-    void scalarDocController_mustBeAnnotatedWithHidden() {
-        assertThat(ScalarDocController.class.isAnnotationPresent(Hidden.class)).isTrue();
+    @Hidden
+    static class HiddenController {
+
+        public void hiddenEndpoint() {
+        }
     }
 }

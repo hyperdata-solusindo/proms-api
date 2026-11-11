@@ -1,5 +1,6 @@
 package com.hyperdata.proms.common.exception;
 
+import com.hyperdata.proms.common.util.Messages;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -8,11 +9,14 @@ import org.springframework.http.HttpStatus;
 public class TenantRequiredException extends BaseException {
 
     public TenantRequiredException() {
-        this("Operasi ini memerlukan konteks tenant aktif yang valid.");
+        this(Messages.get("error.forbidden.tenant_required"));
     }
 
     public TenantRequiredException(String message) {
-        super(CommonErrorCode.FORBIDDEN, message, "activeTenantId bernilai null atau belum dipilih",
+        super(
+            CommonErrorCode.FORBIDDEN,
+            message,
+            Messages.get("error.forbidden.tenant_required.detail"),
             HttpStatus.FORBIDDEN);
     }
 }

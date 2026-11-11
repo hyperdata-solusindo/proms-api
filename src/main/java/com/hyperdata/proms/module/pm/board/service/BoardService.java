@@ -6,6 +6,7 @@ import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.util.Lookups;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.communication.chat.facade.ChatFacade;
 import com.hyperdata.proms.module.communication.chat.facade.dto.ChatChannelSummaryDto;
 import com.hyperdata.proms.module.identity.user.facade.UserFacade;
@@ -128,7 +129,10 @@ public class BoardService {
             (memberOpt.isPresent() && Boolean.TRUE.equals(memberOpt.get().getIsOwner()));
 
         if (!isOwner && memberOpt.isEmpty()) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN, "Access denied to board", HttpStatus.FORBIDDEN);
+            throw new BusinessException(
+                CommonErrorCode.FORBIDDEN,
+                Messages.get("board.error.access_denied"),
+                HttpStatus.FORBIDDEN);
         }
 
         List<BoardColumn> columns = boardColumnRepository.findActiveColumnsByBoardId(boardId);
@@ -204,7 +208,9 @@ public class BoardService {
         }
 
         if (BoardStatus.ARCHIVED.equalsIgnoreCase(board.getStatus())) {
-            throw new BusinessException(CommonErrorCode.BOARD_ARCHIVED, "Cannot create task on archived board",
+            throw new BusinessException(
+                CommonErrorCode.BOARD_ARCHIVED,
+                Messages.get("board.error.archived"),
                 HttpStatus.CONFLICT);
         }
 
@@ -213,11 +219,17 @@ public class BoardService {
             (memberOpt.isPresent() && Boolean.TRUE.equals(memberOpt.get().getIsOwner()));
 
         if (!isOwner && memberOpt.isEmpty()) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN, "Access denied to board", HttpStatus.FORBIDDEN);
+            throw new BusinessException(
+                CommonErrorCode.FORBIDDEN,
+                Messages.get("board.error.access_denied"),
+                HttpStatus.FORBIDDEN);
         }
 
         if (memberOpt.isPresent() && BoardMemberRole.VIEWER.equalsIgnoreCase(memberOpt.get().getRole())) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN, "Viewers cannot create tasks", HttpStatus.FORBIDDEN);
+            throw new BusinessException(
+                CommonErrorCode.FORBIDDEN,
+                Messages.get("board.error.viewer_cannot_create"),
+                HttpStatus.FORBIDDEN);
         }
 
         boardColumnRepository.findActiveColumnById(request.columnId(), boardId)
@@ -256,7 +268,10 @@ public class BoardService {
 
         boolean isOwner = board.getOwnerId().equals(currentUser.userId());
         if (!isOwner && boardMemberRepository.findByBoardIdAndUserId(boardId, currentUser.userId()).isEmpty()) {
-            throw new BusinessException(CommonErrorCode.FORBIDDEN, "Access denied to board", HttpStatus.FORBIDDEN);
+            throw new BusinessException(
+                CommonErrorCode.FORBIDDEN,
+                Messages.get("board.error.access_denied"),
+                HttpStatus.FORBIDDEN);
         }
     }
 

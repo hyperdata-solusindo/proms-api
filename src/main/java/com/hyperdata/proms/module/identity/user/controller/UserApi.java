@@ -23,6 +23,6 @@ public interface UserApi {
             description = "Tidak terautentikasi atau token tidak valid",
             content = @Content(schema = @Schema(implementation = RestResponse.class)))
     })
-    @GetMapping("/me")
+    @GetMapping(path = {"/api/v1/me", "/me"})
     RestResponse<MeResponse> getMe();
 }

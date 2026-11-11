@@ -65,7 +65,7 @@ public interface EmployeeApi {
         @ApiResponse(responseCode = "200", description = "Daftar karyawan berhasil diambil")
     })
     @GetMapping
-    PageResponse<EmployeeListItemResponse> getEmployees(
+    RestResponse<PageResponse<EmployeeListItemResponse>> getEmployees(
         EmployeeFilter filter,
         @PageableDefault(size = 20)
         Pageable pageable);

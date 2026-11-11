@@ -44,7 +44,7 @@ public interface AuthApi {
                         """)))
     })
     @SecurityRequirements
-    @PostMapping("/auth/login")
+    @PostMapping(path = {"/api/v1/auth/login", "/auth/login"})
     RestResponse<LoginResponse> login(@RequestBody
     LoginRequest request);
 
@@ -74,6 +74,6 @@ public interface AuthApi {
                         }
                         """)))
     })
-    @PostMapping("/auth/logout")
+    @PostMapping(path = {"/api/v1/auth/logout", "/auth/logout"})
     RestResponse<Void> logout();
 }

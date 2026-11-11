@@ -1,7 +1,10 @@
 package com.hyperdata.proms.module.pm.board.entity;
 
 import com.hyperdata.proms.module.pm.board.constant.BoardStatus;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;

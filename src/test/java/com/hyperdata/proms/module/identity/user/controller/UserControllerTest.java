@@ -79,11 +79,17 @@ class UserControllerTest {
         mockMvc.perform(get("/me"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.statusCode").value(200))
-            .andExpect(jsonPath("$.message").value("Berhasil"))
+            .andExpect(jsonPath("$.message").value("Data profil berhasil diambil"))
             .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"))
             .andExpect(jsonPath("$.data.tenant.slug").value("hyperdata"))
             .andExpect(jsonPath("$.data.workspaceRole").value("member"))
             .andExpect(jsonPath("$.data.features.points").value(true))
             .andExpect(jsonPath("$.data.otherTenants[0].slug").value("telemedis"));
+
+        // Test backward-compatible v1 URI
+        mockMvc.perform(get("/api/v1/me"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"));
     }
 }

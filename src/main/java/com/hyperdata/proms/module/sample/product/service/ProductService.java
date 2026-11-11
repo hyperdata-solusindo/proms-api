@@ -3,7 +3,9 @@ package com.hyperdata.proms.module.sample.product.service;
 import com.hyperdata.proms.common.exception.DuplicateResourceException;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
+import com.hyperdata.proms.common.security.TenantScoped;
 import com.hyperdata.proms.common.util.Lookups;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.common.validation.YaviValidator;
 import com.hyperdata.proms.module.sample.product.constant.ProductCacheNames;
 import com.hyperdata.proms.module.sample.product.dto.CreateProductRequest;
@@ -17,7 +19,6 @@ import com.hyperdata.proms.module.sample.product.repository.ProductRepository;
 import com.hyperdata.proms.module.sample.product.repository.spec.ProductSpecs;
 import java.util.Collections;
 import java.util.List;
-import com.hyperdata.proms.common.security.TenantScoped;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -40,7 +41,8 @@ public class ProductService {
         YaviValidator.validateAndThrow(CreateProductRequest.validator, request);
 
         if (productRepository.existsBySku(request.sku())) {
-            throw new DuplicateResourceException(String.format("Product with SKU [%s] already exists", request.sku()));
+            throw new DuplicateResourceException(
+                Messages.get("product.error.duplicate_sku", request.sku()));
         }
 
         Product product = productMapper.toEntity(request);

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
+import com.hyperdata.proms.common.exception.InvalidCredentialsException;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
 import com.hyperdata.proms.module.identity.auth.repository.PersonalAccessTokenRepository;
 import com.hyperdata.proms.module.identity.auth.service.AuthService;
@@ -55,7 +56,7 @@ class AuthServiceTest {
         given(passwordEncoder.matches("WrongPass!", "$2a$10$hashed")).willReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
-            .isInstanceOf(com.hyperdata.proms.common.exception.InvalidCredentialsException.class)
+            .isInstanceOf(InvalidCredentialsException.class)
             .hasMessage("Email atau kata sandi tidak sesuai");
     }
 

@@ -2,6 +2,7 @@ package com.hyperdata.proms.module.sample.product.controller;
 
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.response.RestResponse;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.sample.product.dto.CreateProductRequest;
 import com.hyperdata.proms.module.sample.product.dto.ProductDetailResponse;
 import com.hyperdata.proms.module.sample.product.dto.ProductFilter;
@@ -22,20 +23,20 @@ public class ProductController implements ProductApi {
     @Override
     public RestResponse<ProductDetailResponse> createProduct(CreateProductRequest request) {
         ProductDetailResponse response = productService.createProduct(request);
-        return RestResponse.created(response, "Product created successfully");
+        return RestResponse.created(response, Messages.get("product.created"));
     }
 
     @Override
     public RestResponse<ProductDetailResponse> getProductById(UUID id) {
         ProductDetailResponse response = productService.getProductById(id);
-        return RestResponse.ok(response, "Product retrieved successfully");
+        return RestResponse.ok(response, Messages.get("product.retrieved"));
     }
 
     @Override
-    public PageResponse<ProductListItemResponse> getProducts(
+    public RestResponse<PageResponse<ProductListItemResponse>> getProducts(
         ProductFilter filter,
         Pageable pageable) {
-        return productService.getProducts(filter, pageable);
+        return RestResponse.ok(productService.getProducts(filter, pageable), Messages.get("product.list.retrieved"));
     }
 
     @Override
@@ -43,12 +44,12 @@ public class ProductController implements ProductApi {
         UUID id,
         UpdateProductRequest request) {
         ProductDetailResponse response = productService.updateProduct(id, request);
-        return RestResponse.ok(response, "Product updated successfully");
+        return RestResponse.ok(response, Messages.get("product.updated"));
     }
 
     @Override
     public RestResponse<Void> deleteProduct(UUID id) {
         productService.deleteProduct(id);
-        return RestResponse.ok(null, "Product deleted successfully");
+        return RestResponse.ok(null, Messages.get("product.deleted"));
     }
 }

@@ -45,9 +45,10 @@ public class Customer {
 - ❌ **DILARANG menginjeksi dependensi spekulatif** (*"untuk jaga-jaga di masa depan"*). Tambahkan dependensi (seperti `Repository`, `Service`, atau `Facade`) hanya saat fiturnya benar-benar diimplementasikan.
 - Pastikan kode bersih dari compiler/IDE warning (seperti `The value of the field ... is not used` atau `The method ... is never used locally`).
 
-## 6. Strict Explicit Imports & Strict No-FQCN Rule
+## 6. Strict Explicit Imports & Strict No-FQCN Rule (Enforced by Checkstyle)
 - ❌ **DILARANG KERAS menuliskan Fully Qualified Class Name (FQCN)** di dalam kode Java (misal: `com.hyperdata.proms.common.response.RestResponse.class` atau `java.util.UUID`).
 - Seluruh kelas dari library atau paket lain **WAJIB di-import secara eksplisit** di header file (`import ...;`).
+- **Enforcement Otomatis di Pipeline**: Aturan ini ditegakkan secara ketat pada level AST compiler via **Checkstyle** (`config/checkstyle/checkstyle.xml`). Pelanggaran penggunaan FQCN internal (`com.hyperdata...`) di luar klausa `import` atau `package` akan langsung menggagalkan build (`maxErrors = 0`).
 - **Pengecualian Tunggal**: FQCN hanya diizinkan jika terjadi *class name collision* (konflik nama kelas yang identik) dari dua package berbeda dalam file yang sama (misalnya `java.util.Date` vs `java.sql.Date`). Di luar kasus tabrakan nama tersebut, FQCN dianggap sebagai pelanggaran standar kode (*code smell*).
 
 ## 7. Zero Magic Strings (Centralized Constants for Status, Roles, Types, and Tabs)

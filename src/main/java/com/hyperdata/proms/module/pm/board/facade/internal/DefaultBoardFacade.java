@@ -3,6 +3,7 @@ package com.hyperdata.proms.module.pm.board.facade.internal;
 import com.hyperdata.proms.common.exception.BusinessException;
 import com.hyperdata.proms.common.exception.CommonErrorCode;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.pm.board.constant.BoardMemberRole;
 import com.hyperdata.proms.module.pm.board.constant.BoardStatus;
 import com.hyperdata.proms.module.pm.board.entity.Board;
@@ -68,7 +69,9 @@ public class DefaultBoardFacade implements BoardFacade {
             .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
 
         if (BoardStatus.ARCHIVED.equalsIgnoreCase(board.getStatus())) {
-            throw new BusinessException(CommonErrorCode.BOARD_ARCHIVED, "Cannot create task on archived board",
+            throw new BusinessException(
+                CommonErrorCode.BOARD_ARCHIVED,
+                Messages.get("board.error.archived"),
                 HttpStatus.CONFLICT);
         }
 

@@ -2,6 +2,7 @@ package com.hyperdata.proms.module.identity.auth.service;
 
 import com.hyperdata.proms.common.exception.BusinessException;
 import com.hyperdata.proms.common.exception.InvalidCredentialsException;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.common.validation.YaviValidator;
 import com.hyperdata.proms.module.identity.auth.dto.AuthUserDto;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
@@ -37,17 +38,19 @@ public class AuthService {
             .orElseThrow(InvalidCredentialsException::new);
 
         if (!user.isActive()) {
-            throw new BusinessException("Akun Anda telah dinonaktifkan", HttpStatus.FORBIDDEN);
+            throw new BusinessException(
+                Messages.get("auth.error.account_disabled"), HttpStatus.FORBIDDEN);
         }
 
         var membership = userFacade
             .resolveUserMembership(user.id(), Optional.empty())
-            .orElseThrow(() -> new BusinessException("Pengguna tidak memiliki workspace/tenant aktif",
-                HttpStatus.FORBIDDEN));
+            .orElseThrow(() -> new BusinessException(
+                Messages.get("auth.error.no_active_tenant"), HttpStatus.FORBIDDEN));
 
         TenantSummaryDto tenant = tenantFacade
             .getTenantSummary(membership.tenantId())
-            .orElseThrow(() -> new BusinessException("Tenant tidak ditemukan", HttpStatus.NOT_FOUND));
+            .orElseThrow(() -> new BusinessException(
+                Messages.get("tenant.error.not_found"), HttpStatus.NOT_FOUND));
 
         String token = tokenService.createToken(user.id(), membership.tenantId());
 
