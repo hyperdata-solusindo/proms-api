@@ -26,6 +26,9 @@ public final class CommonErrorCode {
     public static final String BOARD_NOT_FOUND = "BOARD_NOT_FOUND";
     public static final String TASK_NOT_FOUND = "TASK_NOT_FOUND";
 
+    // 405
+    public static final String METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
+
     // 409
     public static final String DUPLICATE_RESOURCE = "DUPLICATE_RESOURCE";
     public static final String STALE_VERSION = "STALE_VERSION";

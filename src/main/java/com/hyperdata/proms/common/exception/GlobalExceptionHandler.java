@@ -12,12 +12,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -55,6 +60,7 @@ public class GlobalExceptionHandler {
         });
     }
 
+    @Autowired
     public GlobalExceptionHandler(@Nullable
     ObjectProvider<Tracer> tracerProvider) {
         this.tracerProvider = tracerProvider;
@@ -126,6 +132,65 @@ public class GlobalExceptionHandler {
         ErrorDetail errorDetail = new ErrorDetail(code, ex.getDetail(), null, ex.getCurrent());
         RestResponse<Void> response = RestResponse.error(ex.getHttpStatus(), ex.getMessage(), errorDetail, traceId);
         return ResponseEntity.status(ex.getHttpStatus()).body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<RestResponse<Void>> handleMethodArgumentTypeMismatch(
+        MethodArgumentTypeMismatchException ex) {
+        String paramName = ex.getName();
+        String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
+        String detail = String.format("Parameter '%s' harus berupa tipe data %s yang valid", paramName, requiredType);
+
+        log.warn("Parameter type mismatch: {}", detail);
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(CommonErrorCode.BAD_REQUEST, detail, null, null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.BAD_REQUEST, "Parameter request tidak valid", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<RestResponse<Void>> handleNoResourceFound(NoResourceFoundException ex) {
+        String detail = String.format("Endpoint [%s %s] tidak ditemukan", ex.getHttpMethod(), ex.getResourcePath());
+        log.warn("Route not found: {}", detail);
+
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(CommonErrorCode.RESOURCE_NOT_FOUND, detail, null, null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.NOT_FOUND, "Resource tidak ditemukan", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<RestResponse<Void>> handleMethodNotSupported(
+        HttpRequestMethodNotSupportedException ex) {
+        String detail = String.format(
+            "HTTP Method '%s' tidak didukung untuk endpoint ini. Method yang didukung: %s",
+            ex.getMethod(), ex.getSupportedHttpMethods());
+        log.warn("Method not supported: {}", detail);
+
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(CommonErrorCode.METHOD_NOT_ALLOWED, detail, null, null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.METHOD_NOT_ALLOWED, "HTTP Method tidak didukung", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<RestResponse<Void>> handleDataIntegrityViolation(
+        DataIntegrityViolationException ex) {
+        String cause = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        log.warn("Database constraint violation (duplicate/conflict): {}", cause);
+
+        String traceId = resolveCurrentTraceId();
+        ErrorDetail errorDetail = new ErrorDetail(
+            CommonErrorCode.DUPLICATE_RESOURCE,
+            "Operasi gagal karena terjadi konflik data atau pelanggaran batasan unik di database",
+            null,
+            null);
+        RestResponse<Void> response = RestResponse.error(
+            HttpStatus.CONFLICT, "Terjadi konflik data", errorDetail, traceId);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(Exception.class)

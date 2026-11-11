@@ -17,6 +17,7 @@ import com.hyperdata.proms.module.sample.product.repository.ProductRepository;
 import com.hyperdata.proms.module.sample.product.repository.spec.ProductSpecs;
 import java.util.Collections;
 import java.util.List;
+import com.hyperdata.proms.common.security.TenantScoped;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@TenantScoped
 @RequiredArgsConstructor
 public class ProductService {
 

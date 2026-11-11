@@ -17,6 +17,7 @@ import com.hyperdata.proms.module.sample.employee.entity.Employee;
 import com.hyperdata.proms.module.sample.employee.mapper.EmployeeMapper;
 import com.hyperdata.proms.module.sample.employee.repository.EmployeeRepository;
 import com.hyperdata.proms.module.sample.employee.repository.spec.EmployeeSpecs;
+import com.hyperdata.proms.common.security.TenantScoped;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@TenantScoped
 @RequiredArgsConstructor
 public class EmployeeService {
 
