@@ -25,6 +25,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,7 +55,39 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run verification (Spotless, JUnit, ArchUnit, JaCoCo)
+        id: verification
         run: ./gradlew check --build-cache
+
+      - name: Post Verification Status Comment to PR
+        if: always() && github.event_name == 'pull_request' && !github.event.pull_request.draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERIFY_STATUS: ${{ steps.verification.outcome }}
+        run: |
+          if [ "$VERIFY_STATUS" = "success" ]; then
+            COMMENT_BODY="### ✅ CI Verification Status: SUCCESS
+
+> [!NOTE]
+> **Build & Quality Gates Passed**
+> - **Spotless Formatting**: Clean
+> - **Unit & Integration Tests**: 100% Passed
+> - **ArchUnit Architecture Guardrails**: Compliant
+> - **JaCoCo Coverage**: Generated
+
+Workflow Run: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          else
+            COMMENT_BODY="### ❌ CI Verification Status: FAILED
+
+> [!CAUTION]
+> **Build / Verification Failed**
+> Ada langkah verifikasi (Spotless, ArchUnit, JUnit Tests, atau Build) yang tidak lolos. Silakan periksa log detail pada tautan workflow di bawah ini.
+
+Workflow Run: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+Log & Artifacts: [Lihat Laporan Test & Coverage](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)"
+          fi
+
+          gh pr comment "$PR_NUMBER" --body "$COMMENT_BODY"
 
       - name: Upload Test & Coverage Reports
         if: always()
