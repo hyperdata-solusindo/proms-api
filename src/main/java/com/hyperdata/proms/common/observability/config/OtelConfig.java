@@ -45,7 +45,7 @@ public class OtelConfig {
 
     @Bean
     @ConditionalOnMissingBean(OtlpHttpSpanExporter.class)
-    @ConditionalOnProperty(name = "management.tracing.enabled", matchIfMissing = true)
+    @ConditionalOnProperty(name = "management.tracing.export.otlp.enabled", matchIfMissing = true)
     public OtlpHttpSpanExporter otlpHttpSpanExporter(
         @Value("${management.opentelemetry.tracing.export.otlp.endpoint:${management.otlp.tracing.endpoint:${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}}}")
         String endpoint,
@@ -54,8 +54,9 @@ public class OtelConfig {
         ObjectProvider<OtlpHttpSpanExporterBuilderCustomizer> customizers) {
 
         String normalized = (endpoint != null && !endpoint.isBlank()) ? endpoint.trim() : "http://localhost:4318";
+        normalized = normalized.replaceAll("/+$", "");
         if (!normalized.endsWith("/v1/traces")) {
-            normalized = normalized.replaceAll("/+$", "") + "/v1/traces";
+            normalized = normalized + "/v1/traces";
         }
 
         log.info("[OpenTelemetry] Initializing OtlpHttpSpanExporter with endpoint: {}", normalized);
