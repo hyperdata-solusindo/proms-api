@@ -16,19 +16,32 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
-@RequiredArgsConstructor
 public class PreAuthRateLimitingFilter extends OncePerRequestFilter {
 
     private final EdgeRateLimitResolver edgeResolver;
     private final RateLimitService rateLimitService;
     private final ObjectMapper objectMapper;
+
+    @Autowired
+    public PreAuthRateLimitingFilter(EdgeRateLimitResolver edgeResolver, RateLimitService rateLimitService) {
+        this(edgeResolver, rateLimitService, new ObjectMapper());
+    }
+
+    public PreAuthRateLimitingFilter(
+        EdgeRateLimitResolver edgeResolver,
+        RateLimitService rateLimitService,
+        ObjectMapper objectMapper) {
+        this.edgeResolver = edgeResolver;
+        this.rateLimitService = rateLimitService;
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+    }
 
     @Override
     protected void doFilterInternal(

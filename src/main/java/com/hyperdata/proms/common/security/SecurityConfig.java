@@ -17,6 +17,7 @@ import com.hyperdata.proms.common.ratelimit.filter.PreAuthRateLimitingFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -90,9 +91,9 @@ public class SecurityConfig {
                 .authenticated()
                 .anyRequest()
                 .permitAll())
-            .addFilterBefore(preAuthRateLimitingFilter, TokenAuthenticationFilter.class)
+            .addFilterBefore(preAuthRateLimitingFilter, LogoutFilter.class)
             .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(postAuthRateLimitingFilter, TokenAuthenticationFilter.class);
+            .addFilterAfter(postAuthRateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
