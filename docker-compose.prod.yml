@@ -46,6 +46,9 @@ services:
       DB_APP_USER: ${DB_APP_USER:-platform_user}
       # CRITICAL: Auto-migration dinonaktifkan agar container aman di-scale tanpa lock contention
       LIQUIBASE_ENABLED: "false"
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-platform_redis_pass}
       JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health/liveness || exit 1"]
@@ -112,8 +115,27 @@ services:
     networks:
       - proms-prod-net
 
+  redis:
+    image: redis:7-alpine
+    container_name: proms-redis-prod
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-platform_redis_pass}"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-platform_redis_pass} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - proms-prod-net
+
 volumes:
   postgres_prod_data:
+    driver: local
+  redis_prod_data:
     driver: local
 
 networks:
