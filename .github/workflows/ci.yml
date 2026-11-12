@@ -66,25 +66,9 @@ jobs:
           VERIFY_STATUS: ${{ steps.verification.outcome }}
         run: |
           if [ "$VERIFY_STATUS" = "success" ]; then
-            COMMENT_BODY="### ✅ CI Verification Status: SUCCESS
-
-> [!NOTE]
-> **Build & Quality Gates Passed**
-> - **Spotless Formatting**: Clean
-> - **Unit & Integration Tests**: 100% Passed
-> - **ArchUnit Architecture Guardrails**: Compliant
-> - **JaCoCo Coverage**: Generated
-
-Workflow Run: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            COMMENT_BODY=$(printf "### ✅ CI Verification Status: SUCCESS\n\n> [!NOTE]\n> **Build & Quality Gates Passed**\n> - **Spotless Formatting**: Clean\n> - **Unit & Integration Tests**: 100%%%% Passed\n> - **ArchUnit Architecture Guardrails**: Compliant\n> - **JaCoCo Coverage**: Generated\n\nWorkflow Run: [#%s](%s/%s/actions/runs/%s)" "${{ github.run_number }}" "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}")
           else
-            COMMENT_BODY="### ❌ CI Verification Status: FAILED
-
-> [!CAUTION]
-> **Build / Verification Failed**
-> Ada langkah verifikasi (Spotless, ArchUnit, JUnit Tests, atau Build) yang tidak lolos. Silakan periksa log detail pada tautan workflow di bawah ini.
-
-Workflow Run: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-Log & Artifacts: [Lihat Laporan Test & Coverage](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)"
+            COMMENT_BODY=$(printf "### ❌ CI Verification Status: FAILED\n\n> [!CAUTION]\n> **Build / Verification Failed**\n> Ada langkah verifikasi (Spotless, ArchUnit, JUnit Tests, atau Build) yang tidak lolos. Silakan periksa log detail pada tautan workflow di bawah ini.\n\nWorkflow Run: [#%s](%s/%s/actions/runs/%s)\nLog & Artifacts: [Lihat Laporan Test & Coverage](%s/%s/actions/runs/%s#artifacts)" "${{ github.run_number }}" "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}" "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}")
           fi
 
           gh pr comment "$PR_NUMBER" --body "$COMMENT_BODY"
