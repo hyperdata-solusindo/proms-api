@@ -42,6 +42,11 @@ dependencies {
     // Cache Provider (Caffeine L1 Cache)
     implementation("com.github.ben-manes.caffeine:caffeine")
 
+    // Redis & Distributed Rate Limiting (Bucket4j)
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("com.bucket4j:bucket4j-core:8.10.1")
+    implementation("com.bucket4j:bucket4j-redis:8.10.1")
+
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
 

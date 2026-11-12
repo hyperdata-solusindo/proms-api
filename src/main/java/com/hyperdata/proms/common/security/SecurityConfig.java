@@ -12,6 +12,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.hyperdata.proms.common.ratelimit.filter.PostAuthRateLimitingFilter;
+import com.hyperdata.proms.common.ratelimit.filter.PreAuthRateLimitingFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -24,7 +26,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final PreAuthRateLimitingFilter preAuthRateLimitingFilter;
     private final TokenAuthenticationFilter tokenAuthenticationFilter;
+    private final PostAuthRateLimitingFilter postAuthRateLimitingFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
 
@@ -86,7 +90,9 @@ public class SecurityConfig {
                 .authenticated()
                 .anyRequest()
                 .permitAll())
-            .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(preAuthRateLimitingFilter, TokenAuthenticationFilter.class)
+            .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(postAuthRateLimitingFilter, TokenAuthenticationFilter.class);
 
         return http.build();
     }
