@@ -20,5 +20,5 @@ private static final Logger log = LoggerFactory.getLogger(TargetClass.class);
 - Extensible custom keys can be defined via `.env` (`MASKING_ADDITIONAL_KEYS=key1,key2`).
 
 ## 4. Distributed Tracing & AOP Auto-Trace
-- Public methods in `module..service` and `module..facade.internal` are automatically traced into child spans.
+- Public methods in `module..service` and `module..client.impl` are automatically traced into child spans.
 - `X-Trace-Id` response header is automatically attached to all HTTP REST responses.

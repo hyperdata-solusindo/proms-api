@@ -5,8 +5,8 @@ import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.util.Lookups;
 import com.hyperdata.proms.common.validation.YaviValidator;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import com.hyperdata.proms.module.sample.employee.constant.EmployeeCacheNames;
 import com.hyperdata.proms.module.sample.employee.dto.CreateEmployeeRequest;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeDetailResponse;
@@ -35,7 +35,7 @@ public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
-    private final TenantFacade tenantFacade;
+    private final TenantClient tenantClient;
 
     @Transactional
     public EmployeeDetailResponse createEmployee(CreateEmployeeRequest request) {
@@ -62,7 +62,7 @@ public class EmployeeService {
     public EmployeeDetailResponse getEmployeeById(UUID id) {
         Employee employee = employeeRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Employee", id));
-        TenantSummaryDto tenant = tenantFacade.getTenantSummary(employee.getTenantId()).orElse(null);
+        TenantSummaryDto tenant = tenantClient.getTenantSummary(employee.getTenantId()).orElse(null);
         return employeeMapper.toDetailResponse(employee, tenant);
     }
 
@@ -75,7 +75,7 @@ public class EmployeeService {
         }
 
         Set<UUID> tenantIds = Lookups.extractIds(employees, Employee::getTenantId);
-        List<TenantSummaryDto> tenants = tenantFacade.getTenantSummaries(tenantIds);
+        List<TenantSummaryDto> tenants = tenantClient.getTenantSummaries(tenantIds);
         Map<UUID, TenantSummaryDto> tenantMap = Lookups.toMap(tenants, TenantSummaryDto::id);
 
         List<EmployeeListItemResponse> items = Lookups.map(
@@ -126,7 +126,7 @@ public class EmployeeService {
     }
 
     private TenantSummaryDto requireTenant(UUID tenantId) {
-        return tenantFacade.getTenantSummary(tenantId)
+        return tenantClient.getTenantSummary(tenantId)
             .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId));
     }
 }

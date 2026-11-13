@@ -6,10 +6,10 @@ import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.util.Lookups;
-import com.hyperdata.proms.module.communication.chat.facade.ChatFacade;
-import com.hyperdata.proms.module.communication.chat.facade.dto.ChatChannelSummaryDto;
-import com.hyperdata.proms.module.identity.user.facade.UserFacade;
-import com.hyperdata.proms.module.identity.user.facade.dto.UserSummaryDto;
+import com.hyperdata.proms.module.communication.client.contract.ChatClient;
+import com.hyperdata.proms.module.communication.client.dto.ChatChannelSummaryDto;
+import com.hyperdata.proms.module.identity.client.contract.UserClient;
+import com.hyperdata.proms.module.identity.client.dto.UserSummaryDto;
 import com.hyperdata.proms.module.pm.board.constant.BoardCacheNames;
 import com.hyperdata.proms.module.pm.board.constant.BoardMemberRole;
 import com.hyperdata.proms.module.pm.board.constant.BoardStatus;
@@ -28,11 +28,11 @@ import com.hyperdata.proms.module.pm.board.repository.BoardMemberRepository;
 import com.hyperdata.proms.module.pm.board.repository.BoardRepository;
 import com.hyperdata.proms.module.pm.board.repository.WorkstreamRepository;
 import com.hyperdata.proms.module.pm.board.repository.spec.BoardSpecs;
-import com.hyperdata.proms.module.pm.task.facade.TaskFacade;
-import com.hyperdata.proms.module.pm.task.facade.dto.BoardTaskFilterDto;
-import com.hyperdata.proms.module.pm.task.facade.dto.CreateTaskCommand;
-import com.hyperdata.proms.module.pm.task.facade.dto.TaskCreatedDto;
-import com.hyperdata.proms.module.pm.task.facade.dto.TaskSummaryDto;
+import com.hyperdata.proms.module.pm.client.contract.TaskClient;
+import com.hyperdata.proms.module.pm.client.dto.BoardTaskFilterDto;
+import com.hyperdata.proms.module.pm.client.dto.CreateTaskCommand;
+import com.hyperdata.proms.module.pm.client.dto.TaskCreatedDto;
+import com.hyperdata.proms.module.pm.client.dto.TaskSummaryDto;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -56,9 +56,9 @@ public class BoardService {
     private final BoardMemberRepository boardMemberRepository;
     private final BoardColumnRepository boardColumnRepository;
     private final WorkstreamRepository workstreamRepository;
-    private final UserFacade userFacade;
-    private final TaskFacade taskFacade;
-    private final ChatFacade chatFacade;
+    private final UserClient userClient;
+    private final TaskClient taskClient;
+    private final ChatClient chatClient;
     private final BoardMapper boardMapper;
 
     public PageResponse<BoardSummaryResponse> listBoards(
@@ -78,7 +78,7 @@ public class BoardService {
         }
 
         Set<UUID> pmIds = Lookups.extractIds(page.getContent(), Board::getPmId);
-        List<UserSummaryDto> pmUsers = userFacade.findSummariesByIds(pmIds);
+        List<UserSummaryDto> pmUsers = userClient.findSummariesByIds(pmIds);
         Map<UUID, UserSummaryDto> pmMap = Lookups.toMap(pmUsers, UserSummaryDto::id);
 
         Set<UUID> boardIds = Lookups.extractIds(page.getContent(), Board::getId);
@@ -141,7 +141,7 @@ public class BoardService {
 
         List<BoardMember> members = boardMemberRepository.findByBoardId(boardId);
         Set<UUID> memberUserIds = Lookups.extractIds(members, BoardMember::getUserId);
-        List<UserSummaryDto> memberUsers = userFacade.findSummariesByIds(memberUserIds);
+        List<UserSummaryDto> memberUsers = userClient.findSummariesByIds(memberUserIds);
         Map<UUID, UserSummaryDto> userMap = Lookups.toMap(memberUsers, UserSummaryDto::id);
 
         List<BoardDetailResponse.BoardMemberResponse> memberResponses = members.stream().map(m -> {
@@ -188,7 +188,7 @@ public class BoardService {
         CurrentUser currentUser,
         BoardTaskFilterDto filter) {
         checkBoardAccess(boardId, currentUser);
-        return taskFacade.getTasksByBoard(boardId, filter);
+        return taskClient.getTasksByBoard(boardId, filter);
     }
 
     @Transactional
@@ -238,12 +238,12 @@ public class BoardService {
             request.priority(),
             currentUser.userId());
 
-        return taskFacade.createTask(boardId, command);
+        return taskClient.createTask(boardId, command);
     }
 
     public List<ChatChannelSummaryDto> getBoardChatChannels(UUID boardId, CurrentUser currentUser) {
         checkBoardAccess(boardId, currentUser);
-        return chatFacade.listChannelsByBoardId(currentUser.activeTenantId(), boardId);
+        return chatClient.listChannelsByBoardId(currentUser.activeTenantId(), boardId);
     }
 
     public void checkBoardAccess(UUID boardId, CurrentUser currentUser) {

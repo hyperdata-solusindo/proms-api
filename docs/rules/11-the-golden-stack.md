@@ -9,14 +9,14 @@
 ```mermaid
 flowchart LR
     A["1. Datatable Root Query<br/>(Primary Entity Page)"] --> B["2. Lookups Engine<br/>(Batch Extract Foreign IDs)"]
-    B --> C["3. Target Module Facade<br/>(Caffeine / L1 Cache)"]
+    B --> C["3. Target Module Client<br/>(Caffeine / L1 Cache)"]
     C --> D["4. Lookups Engine<br/>(Index to O(1) Map)"]
     D --> E["5. MapStruct / Assembly<br/>(Enrich Record DTOs)"]
     E --> F["PageResponse&lt;DTO&gt;<br/>(Zero N+1, Zero SQL JOIN)"]
 ```
 
 ### Pillar 1: In-Memory / L1 Caching (Caffeine & Spring Cache)
-- Read-heavy master data (e.g. `CompanyInfo`, `UserInfo`, `CategorySummaryDto`, `TenantDetailDto`) should be cached at the `*Facade` boundary or service queries.
+- Read-heavy master data (e.g. `CompanyInfo`, `UserInfo`, `CategorySummaryDto`, `TenantDetailDto`) should be cached at the `*Client` boundary or service queries.
 - Eliminates database round-trips for repetitive lookups, bringing lookup latency down to sub-microsecond memory reads (`< 0.001 ms`).
 - **Dedicated Module Cache Names**: Dilarang menggunakan string literal acak atau mengumpulkan cache names di `common`. Wajib mendeklarasikan cache names pada class konstanta khusus di masing-masing modul: `module.<domain>.<feature>.constant.<Feature>CacheNames`.
 - **Tenant-Scoped Cache Isolation (Anti-RLS Bypass)**:
@@ -68,11 +68,11 @@ public PageResponse<ProductListItemResponse> getProducts(ProductFilter filter, P
 
     // STEP 2: Batch extract foreign IDs & load relations (Zero N+1)
     Set<UUID> categoryIds = Lookups.extractIds(products, Product::getCategoryId);
-    List<CategorySummaryDto> categories = categoryFacade.findAllByIds(categoryIds);
+    List<CategorySummaryDto> categories = categoryClient.findAllByIds(categoryIds);
     Map<UUID, CategorySummaryDto> categoryMap = Lookups.toMap(categories, CategorySummaryDto::id);
 
     Set<UUID> supplierIds = Lookups.extractIds(products, Product::getSupplierId);
-    List<SupplierSummaryDto> suppliers = supplierFacade.findAllByIds(supplierIds);
+    List<SupplierSummaryDto> suppliers = supplierClient.findAllByIds(supplierIds);
     Map<UUID, SupplierSummaryDto> supplierMap = Lookups.toMap(suppliers, SupplierSummaryDto::id);
 
     // STEP 3: In-Memory O(1) Assembly
@@ -134,7 +134,7 @@ Map<String, Long> countByCategory = Lookups.countingBy(products, Product::getCat
 String name = Lookups.find(categoryMap, catId, CategorySummaryDto::name, "Default");
 
 // Safe resolve single entity unwrapping Optional
-CategorySummaryDto category = Lookups.resolve(categoryId, categoryFacade::findById);
+CategorySummaryDto category = Lookups.resolve(categoryId, categoryClient::findById);
 ```
 
 ### E. Fluent Chaining Pipeline (`Lookups.of(...)`)
@@ -142,7 +142,7 @@ CategorySummaryDto category = Lookups.resolve(categoryId, categoryFacade::findBy
 Map<UUID, CategorySummaryDto> categoryMap = Lookups.of(products)
         .activeOnly()
         .extractIds(Product::getCategoryId)
-        .loadMap(categoryFacade::findAllByIds, CategorySummaryDto::id);
+        .loadMap(categoryClient::findAllByIds, CategorySummaryDto::id);
 ```
 
 ---
@@ -150,13 +150,13 @@ Map<UUID, CategorySummaryDto> categoryMap = Lookups.of(products)
 ## 4. Strict Guardrails for Agents
 
 - **DO NOT** write SQL `JOIN` across tables belonging to different feature packages or modules.
-- **DO NOT** inject a foreign repository or service into another module; call its `*Facade` instead.
-- **DO NOT** call a facade inside a loop (`for (var item : list) facade.findById(item.getId())`). Always use `Lookups.extractIds` and a batch facade method `facade.findAllByIds(ids)`.
+- **DO NOT** inject a foreign repository or service into another module; call its `*Client` instead.
+- **DO NOT** call a client inside a loop (`for (var item : list) client.findById(item.getId())`). Always use `Lookups.extractIds` and a batch client method `client.findAllByIds(ids)`.
 - **DO NOT** hardcode cache names with string literals or store feature-specific cache names in `common`; use `<Feature>CacheNames` in `module.<domain>.<feature>.constant`.
 - **DO NOT** use `!#result.isPresent()` in Spring Cache SpEL `unless` expressions; use `unless = "#result == null"` because Spring Cache unwraps `Optional`.
 - **DO NOT** use `Collectors.toMap` for multi-item lists where keys could collide; use `Lookups.toMap`.
-- **PREFER VARIABLE-BASED LOOKUPS**: Always use the explicit 3-step variable-based pattern (`Lookups.extractIds` -> `facade call` -> `Lookups.toMap`) in service layers. Avoid fluent chaining (`Lookups.of(...)` / `loadMap(...)`) in business services for transparency, direct debuggability, and compile-time type clarity.
-- **FACADE BATCH LOOKUP CONTRACT**: Batch lookup methods on `*Facade` interfaces **MUST** accept `Collection<ID> ids` (NOT `Set<ID>` or array) and return `List<Dto>` to ensure broad compatibility with callers.
+- **PREFER VARIABLE-BASED LOOKUPS**: Always use the explicit 3-step variable-based pattern (`Lookups.extractIds` -> `client call` -> `Lookups.toMap`) in service layers. Avoid fluent chaining (`Lookups.of(...)` / `loadMap(...)`) in business services for transparency, direct debuggability, and compile-time type clarity.
+- **CLIENT BATCH LOOKUP CONTRACT**: Batch lookup methods on `*Client` interfaces **MUST** accept `Collection<ID> ids` (NOT `Set<ID>` or array) and return `List<Dto>` to ensure broad compatibility with callers.
 - **ZERO `Object[]` PROJECTION**: Repository aggregations and projections must return Java 21 Record DTOs (`SELECT new com...Dto(...)`), never raw `Object[]` or `List<Object[]>`.
 - **ALWAYS** use `Lookups` from `com.hyperdata.proms.common.util.Lookups`.
 
@@ -168,18 +168,18 @@ Map<UUID, CategorySummaryDto> categoryMap = Lookups.of(products)
 
 ```java
 // ❌ DON'T: Manual Java Streams boilerplate atau fluent chaining yang sulit di-debug
-Map<UUID, UserSummaryDto> pmMap = userFacade.findSummariesByIds(
+Map<UUID, UserSummaryDto> pmMap = userClient.findSummariesByIds(
     page.getContent().stream().map(Board::getPmId).filter(Objects::nonNull).collect(Collectors.toSet())
 ).stream().collect(Collectors.toMap(UserSummaryDto::id, Function.identity(), (a, b) -> a));
 
 // ❌ DON'T: Fluent chaining tersembunyi yang rentan masalah tipe generic
 Map<UUID, UserSummaryDto> pmMap = Lookups.of(page.getContent())
     .extractIds(Board::getPmId)
-    .loadMap(userFacade::findSummariesByIds, UserSummaryDto::id);
+    .loadMap(userClient::findSummariesByIds, UserSummaryDto::id);
 
 // ✅ DO: Variable-based 3 langkah eksplisit (mudah di-debug, type-safe, bersih)
 Set<UUID> pmIds = Lookups.extractIds(page.getContent(), Board::getPmId);
-List<UserSummaryDto> pmUsers = userFacade.findSummariesByIds(pmIds);
+List<UserSummaryDto> pmUsers = userClient.findSummariesByIds(pmIds);
 Map<UUID, UserSummaryDto> pmMap = Lookups.toMap(pmUsers, UserSummaryDto::id);
 ```
 
@@ -218,7 +218,7 @@ Map<UUID, Integer> memberCounts = Lookups.toMap(
 );
 ```
 
-### C. Facade Batch Lookup Interface Contract
+### C. Client Batch Lookup Interface Contract
 
 ```java
 // ❌ DON'T: Menggunakan Set<UUID> atau array spesifik yang membatasi caller

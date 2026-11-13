@@ -21,7 +21,7 @@ public class AutoTraceAspect {
     }
 
     @Pointcut("execution(public * com.hyperdata.proms.module..service..*(..)) || " +
-        "execution(public * com.hyperdata.proms.module..facade.internal..*(..))")
+        "execution(public * com.hyperdata.proms.module..client.impl..*(..))")
     public void businessMethods() {
     }
 

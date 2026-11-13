@@ -42,7 +42,7 @@ public class Customer {
 ## 5. Zero Unused Code & Clean Dependencies (YAGNI & Dead Code Prohibition)
 - ❌ **DILARANG mendeklarasikan variabel, field, parameter, method, atau import yang tidak pernah digunakan (Dead Code)**.
 - Setiap field `private final` yang diinjeksi via `@RequiredArgsConstructor` **wajib** digunakan secara nyata di dalam method class.
-- ❌ **DILARANG menginjeksi dependensi spekulatif** (*"untuk jaga-jaga di masa depan"*). Tambahkan dependensi (seperti `Repository`, `Service`, atau `Facade`) hanya saat fiturnya benar-benar diimplementasikan.
+- ❌ **DILARANG menginjeksi dependensi spekulatif** (*"untuk jaga-jaga di masa depan"*). Tambahkan dependensi (seperti `Repository`, `Service`, atau `Client`) hanya saat fiturnya benar-benar diimplementasikan.
 - Pastikan kode bersih dari compiler/IDE warning (seperti `The value of the field ... is not used` atau `The method ... is never used locally`).
 
 ## 6. Strict Explicit Imports & Strict No-FQCN Rule
@@ -51,7 +51,7 @@ public class Customer {
 - **Pengecualian Tunggal**: FQCN hanya diizinkan jika terjadi *class name collision* (konflik nama kelas yang identik) dari dua package berbeda dalam file yang sama (misalnya `java.util.Date` vs `java.sql.Date`). Di luar kasus tabrakan nama tersebut, FQCN dianggap sebagai pelanggaran standar kode (*code smell*).
 
 ## 7. Zero Magic Strings (Centralized Constants for Status, Roles, Types, and Tabs)
-- ❌ **DILARANG KERAS menuliskan magic strings / string literal langsung di kode logika bisnis, repository spec, entity default, facade, service, atau controller** (contoh pelanggaran: `"archived"`, `"active"`, `"owner"`, `"viewer"`, `"admin"`, `"lead"`).
+- ❌ **DILARANG KERAS menuliskan magic strings / string literal langsung di kode logika bisnis, repository spec, entity default, client, service, atau controller** (contoh pelanggaran: `"archived"`, `"active"`, `"owner"`, `"viewer"`, `"admin"`, `"lead"`).
 - Seluruh nilai status, roles, tabs, tipe kategori, atau state machine **WAJIB didefinisikan secara terpusat** di dalam package `constant/` pada feature modul terkait (misal: `BoardStatus`, `BoardMemberRole`, `BoardTab`) atau sebagai `Enum` jika memiliki perilaku/state.
 - Class konstanta harus berupa `public final class` dengan **private constructor** dan `public static final String` constant fields.
 - Nilai konstanta tersebut wajib digunakan di seluruh layer:

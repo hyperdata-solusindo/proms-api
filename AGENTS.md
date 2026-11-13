@@ -18,8 +18,8 @@
 ## 2. The 14 Golden Rules (Quick Summary)
 
 1. **2-Layer Modular Monolith**: Code resides in `com.hyperdata.proms.module.<domain>.<feature>`.
-2. **Inter-Module Facade Rule**: Module A calling Module B **MUST** use `facade/<Feature>Facade.java` (Interface). Never inject foreign `Service` or `Repository`.
-3. **No JPA Entity Leakage**: Facade and Controller **NEVER** return JPA `@Entity`. Always return Java 21 `record` DTOs.
+2. **Inter-Module Client Contract Rule**: Module A calling Module B **MUST** use `client/contract/<Feature>Client.java` (Interface) and `client/dto/`. Never inject foreign `Service` or `Repository`.
+3. **No JPA Entity Leakage**: Client Contract and Controller **NEVER** return JPA `@Entity`. Always return Java 21 `record` DTOs.
 4. **DTO Immutability**: All DTOs are Java 21 `record`.
 5. **No `@Data` on Entities**: JPA Entities use `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor(access = AccessLevel.PROTECTED)`.
 6. **Constructor Injection Only**: Use `@RequiredArgsConstructor` on final fields. No `@Autowired` fields.
@@ -29,13 +29,13 @@
    - **Level 1 (Derived)**: STRICTLY max 1–2 entity properties (max 1 `And`). STRICTLY FORBIDDEN to include `OrderBy` or soft-delete (`DeletedAtIsNull`) in derived method names. For dynamic sorting in simple queries, pass Spring Data `Sort`/`Pageable`.
    - **Level 2 (Explicit `@Query` JPQL)**: MANDATORY for any query involving `deletedAt IS NULL`, fixed business sorting, >2 filter criteria, or `JOIN FETCH`. MUST use Java Text Blocks `"""..."""` and Ubiquitous Language domain names (e.g. `findActiveColumnsByBoardId`, NOT SQL technical soup).
    - **Level 3 (`JpaSpecificationExecutor`)**: MANDATORY for dynamic multi-filter ERP search tables.
-10. **The Golden Stack (Anti-N+1 In-Memory Datatables)**: Datatables and cross-module enrichment **MUST** use the Golden Stack (L1 Cache + Variable-Based `Lookups` 3-step pattern: `extractIds` -> `facade call` -> `toMap` + MapStruct assembly). Facade batch lookups must accept `Collection<ID> ids`. Repositories must NEVER return raw `Object[]` (use Java 21 Record DTO projections with `SELECT new ...`). Never write cross-module SQL joins or call facades inside loops.
+10. **The Golden Stack (Anti-N+1 In-Memory Datatables)**: Datatables and cross-module enrichment **MUST** use the Golden Stack (L1 Cache + Variable-Based `Lookups` 3-step pattern: `extractIds` -> `client call` -> `toMap` + MapStruct assembly). Client batch lookups must accept `Collection<ID> ids`. Repositories must NEVER return raw `Object[]` (use Java 21 Record DTO projections with `SELECT new ...`). Never write cross-module SQL joins or call clients inside loops.
 11. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`).
 12. **OpenAPI & Scalar Documentation**: All `@RestController` endpoints must have `@Tag`, `@Operation`, and `@ApiResponses`. Tags must be hierarchically organized 1:1 per `<domain>` via `x-tagGroups` in Scalar UI, and non-business controllers must use `@Hidden`.
-13. **Observability & Sensitive Data Masking**: All logs must follow SLF4J standards with zero plain credential leakage. Methods in Service and Facade are auto-traced via OTel, and error responses attach an `X-Trace-Id` header.
+13. **Observability & Sensitive Data Masking**: All logs must follow SLF4J standards with zero plain credential leakage. Methods in Service and Client are auto-traced via OTel, and error responses attach an `X-Trace-Id` header.
 14. **Security & Multi-Tenancy Standards**: Tenant data isolation enforced via PostgreSQL Row Level Security (RLS) with session context (`SET LOCAL app.tenant_id`). Cache keys for tenant data must include tenant prefix (`#tenantId + ':' + #id`). Zero secret leakage (`.env`), UU PDP compliance (synthetic dummy data only), and mandatory confirmation for destructive commands and external process termination.
 15. **CI/CD, Container & Deployment Standards**: Dedicated Liquibase migration runner before app booting (`LIQUIBASE_ENABLED=false` on backend server for dynamic scaling); Production zero-downtime via Nginx Blue/Green; Staging slots via PR labels (`deploy:staging-*`); Trivy container vulnerability gate exclusively during CD deployment before pushing to GHCR; and mandatory PR template compliance (`.github/pull_request_template.md`).
-16. **Zero Magic Strings (Domain Constants & Enums)**: All status, roles, tabs, and categorical state values **MUST** be declared as centralized constants in `constant/<Feature>Status.java` or `constant/<Feature>Role.java` (`public final class` with private constructor) or Enums. Strictly FORBIDDEN to write hardcoded string literals across services, entities, facades, YAVI validators, or JPA criteria specifications.
+16. **Zero Magic Strings (Domain Constants & Enums)**: All status, roles, tabs, and categorical state values **MUST** be declared as centralized constants in `constant/<Feature>Status.java` or `constant/<Feature>Role.java` (`public final class` with private constructor) or Enums. Strictly FORBIDDEN to write hardcoded string literals across services, entities, clients, YAVI validators, or JPA criteria specifications.
 
 ---
 
@@ -52,14 +52,14 @@ com.hyperdata.proms/
 │   ├── util/                                   # Lookups (Anti-N+1 in-memory engine)
 │   └── validation/                             # YaviValidator helper
 └── module/
-    └── <domain>/                               # e.g., inventory, sales, identity
-        └── <feature>/                          # e.g., product, order, auth
+    └── <domain>/                               # e.g., inventory, sales, identity, pm
+        ├── client/                             # 🌐 Public Contract for other modules / services
+        │   ├── contract/                       # 📜 Public Interface (<Feature>Client.java)
+        │   ├── dto/                            # 📦 Public Record DTOs returned by Client
+        │   └── impl/                           # 🔒 Hidden implementation (@Component <Feature>ClientImpl)
+        └── <feature>/                          # ⚙️ Private domain feature (e.g. board, task, user, auth)
             ├── constant/                       # Domain constants (<Feature>Status, <Feature>Role, <Feature>Tab) & cache names (<Feature>CacheNames)
             ├── controller/                     # REST API Controllers (for web/mobile clients)
-            ├── facade/                         # 👉 Public Contract for other modules
-            │   ├── <Feature>Facade.java        # Public Interface (ONLY contract exposed)
-            │   ├── dto/                        # Public Record DTOs returned by Facade
-            │   └── internal/                   # Hidden implementation (@Component Default<Feature>Facade)
             ├── service/                        # Internal business logic (Private to feature)
             ├── repository/                     # Spring Data JPA Repository + Specs
             ├── entity/                         # JPA Entities
@@ -127,11 +127,11 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Code is placed in `module.<domain>.<feature>/` or `common/`.
 - [ ] DTOs are Java 21 `record`.
 - [ ] Entity uses Lombok `@Getter`, `@Setter`, `@NoArgsConstructor`, and NOT `@Data`.
-- [ ] Facade public contract uses interface in `facade/` and implementation in `facade/internal/`.
-- [ ] No JPA `@Entity` returned from Facade or Controller.
-- [ ] Cross-module calls only use foreign `*Facade`, not foreign `*Service` or `*Repository``.
-- [ ] Datatables / DTO enrichment across modules uses The Golden Stack with variable-based `Lookups` (`extractIds` -> `facade call` -> `toMap`), without cross-module SQL joins or loop queries.
-- [ ] Facade batch lookup methods accept `Collection<ID> ids` and return `List<Dto>`.
+- [ ] Client public contract uses interface in `client/contract/`, DTO in `client/dto/`, and implementation in `client/impl/`.
+- [ ] No JPA `@Entity` returned from Client Contract or Controller.
+- [ ] Cross-module calls only use foreign `*Client`, not foreign `*Service` or `*Repository`.
+- [ ] Datatables / DTO enrichment across modules uses The Golden Stack with variable-based `Lookups` (`extractIds` -> `client call` -> `toMap`), without cross-module SQL joins or loop queries.
+- [ ] Client batch lookup methods accept `Collection<ID> ids` and return `List<Dto>`.
 - [ ] Zero dead code: No unused variables, fields, methods, or unused injected dependencies.
 - [ ] Validation implemented using YAVI.
 - [ ] Zero Magic Strings: All status, roles, tabs, and categories use centralized constants/enums in `constant/` (e.g. `BoardStatus`, `BoardMemberRole`, `BoardTab`), NEVER hardcoded string literals.

@@ -14,7 +14,7 @@ import com.hyperdata.proms.module.identity.auth.dto.AuthUserDto;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
 import com.hyperdata.proms.module.identity.auth.dto.LoginResponse;
 import com.hyperdata.proms.module.identity.auth.service.AuthService;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;

@@ -3,7 +3,7 @@ package com.hyperdata.proms.module.sample.employee.mapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeDetailResponse;
 import com.hyperdata.proms.module.sample.employee.entity.Employee;
 import com.hyperdata.proms.module.sample.employee.constant.EmployeeStatus;

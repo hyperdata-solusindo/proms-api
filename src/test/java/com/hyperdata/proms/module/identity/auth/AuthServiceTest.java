@@ -8,11 +8,11 @@ import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
 import com.hyperdata.proms.module.identity.auth.repository.PersonalAccessTokenRepository;
 import com.hyperdata.proms.module.identity.auth.service.AuthService;
 import com.hyperdata.proms.module.identity.auth.service.TokenService;
-import com.hyperdata.proms.module.identity.user.facade.UserFacade;
-import com.hyperdata.proms.module.identity.user.facade.dto.UserAuthDto;
-import com.hyperdata.proms.module.identity.user.facade.dto.UserMembershipDto;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.identity.client.contract.UserClient;
+import com.hyperdata.proms.module.identity.client.dto.UserAuthDto;
+import com.hyperdata.proms.module.identity.client.dto.UserMembershipDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -27,10 +27,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class AuthServiceTest {
 
     @Mock
-    private UserFacade userFacade;
+    private UserClient userClient;
 
     @Mock
-    private TenantFacade tenantFacade;
+    private TenantClient tenantClient;
 
     @Mock
     private TokenService tokenService;
@@ -51,7 +51,7 @@ class AuthServiceTest {
         UserAuthDto userDto = new UserAuthDto(
             UUID.randomUUID(), "test@hyperdata.co.id", "$2a$10$hashed", "Fariz", "id", "Asia/Jakarta", true);
 
-        given(userFacade.findByEmailForAuth("test@hyperdata.co.id")).willReturn(Optional.of(userDto));
+        given(userClient.findByEmailForAuth("test@hyperdata.co.id")).willReturn(Optional.of(userDto));
         given(passwordEncoder.matches("WrongPass!", "$2a$10$hashed")).willReturn(false);
 
         assertThatThrownBy(() -> authService.login(request))
@@ -70,10 +70,10 @@ class AuthServiceTest {
         UserMembershipDto membership = new UserMembershipDto(tenantId, "member");
         TenantSummaryDto tenantSummary = new TenantSummaryDto(tenantId, "hyperdata", "Hyperdata");
 
-        given(userFacade.findByEmailForAuth("test@hyperdata.co.id")).willReturn(Optional.of(userDto));
+        given(userClient.findByEmailForAuth("test@hyperdata.co.id")).willReturn(Optional.of(userDto));
         given(passwordEncoder.matches("Secret123!", "$2a$10$hashed")).willReturn(true);
-        given(userFacade.resolveUserMembership(userId, Optional.empty())).willReturn(Optional.of(membership));
-        given(tenantFacade.getTenantSummary(tenantId)).willReturn(Optional.of(tenantSummary));
+        given(userClient.resolveUserMembership(userId, Optional.empty())).willReturn(Optional.of(membership));
+        given(tenantClient.getTenantSummary(tenantId)).willReturn(Optional.of(tenantSummary));
         given(tokenService.createToken(userId, tenantId)).willReturn("12|PlainTokenSecret");
 
         var response = authService.login(request);

@@ -36,23 +36,23 @@ public class ArchitectureTest {
         .resideInAPackage("..repository..");
 
     @ArchTest
-    static final ArchRule facades_must_be_interfaces = classes()
+    static final ArchRule client_contracts_must_be_interfaces = classes()
         .that()
-        .resideInAPackage("com.hyperdata.proms.module.*.*.facade")
+        .resideInAPackage("..client.contract..")
         .should()
         .beInterfaces();
 
     @ArchTest
-    static final ArchRule facade_implementations_must_reside_in_internal_and_be_component = classes().that()
-        .resideInAPackage("..facade.internal..")
+    static final ArchRule client_implementations_must_reside_in_impl_and_be_component = classes().that()
+        .resideInAPackage("..client.impl..")
         .should()
         .beAnnotatedWith(Component.class);
 
     @ArchTest
-    static final ArchRule facades_must_not_return_entities = methods()
+    static final ArchRule client_contracts_must_not_return_entities = methods()
         .that()
         .areDeclaredInClassesThat()
-        .resideInAPackage("..facade..")
+        .resideInAPackage("..client.contract..")
         .should()
         .notHaveRawReturnType(resideInAPackage("..entity.."));
 
@@ -225,30 +225,30 @@ public class ArchitectureTest {
     static final ArchRule modules_must_not_access_internal_packages_of_other_modules = classes()
         .that()
         .resideInAPackage("com.hyperdata.proms..")
-        .should(new ArchCondition<JavaClass>("only access public facades and facade DTOs of other modules") {
+        .should(new ArchCondition<JavaClass>("only access public client contracts and DTOs of other modules") {
 
             @Override
             public void check(JavaClass javaClass, ConditionEvents events) {
                 String callerPackage = javaClass.getPackageName();
-                String callerFeature = extractFeaturePackage(callerPackage);
+                String callerDomain = extractDomainPackage(callerPackage);
 
                 for (Dependency dependency : javaClass.getDirectDependenciesFromSelf()) {
                     JavaClass targetClass = dependency.getTargetClass();
                     String targetPackage = targetClass.getPackageName();
-                    String targetFeature = extractFeaturePackage(targetPackage);
+                    String targetDomain = extractDomainPackage(targetPackage);
 
-                    if (targetFeature != null && !targetFeature.equals(callerFeature)) {
-                        boolean isFacade = targetPackage.equals(targetFeature + ".facade");
-                        boolean isFacadeDto = targetPackage.startsWith(targetFeature + ".facade.dto");
+                    if (targetDomain != null && !targetDomain.equals(callerDomain)) {
+                        boolean isContract = targetPackage.startsWith(targetDomain + ".client.contract");
+                        boolean isDto = targetPackage.startsWith(targetDomain + ".client.dto");
 
-                        if (!isFacade && !isFacadeDto) {
+                        if (!isContract && !isDto) {
                             String message = String.format(
-                                "Class %s illegally accesses %s in internal package %s (cross-module access must go through %s.facade or %s.facade.dto)",
+                                "Class %s illegally accesses %s in internal package %s (cross-domain access must go through %s.client.contract or %s.client.dto)",
                                 javaClass.getName(),
                                 targetClass.getName(),
                                 targetPackage,
-                                targetFeature,
-                                targetFeature);
+                                targetDomain,
+                                targetDomain);
                             events.add(SimpleConditionEvent.violated(dependency, message));
                         }
                     }
@@ -256,14 +256,14 @@ public class ArchitectureTest {
             }
         });
 
-    private static String extractFeaturePackage(String packageName) {
+    private static String extractDomainPackage(String packageName) {
         if (!packageName.startsWith("com.hyperdata.proms.module.")) {
             return null;
         }
         String rest = packageName.substring("com.hyperdata.proms.module.".length());
         String[] parts = rest.split("\\.");
-        if (parts.length >= 2) {
-            return "com.hyperdata.proms.module." + parts[0] + "." + parts[1];
+        if (parts.length >= 1) {
+            return "com.hyperdata.proms.module." + parts[0];
         }
         return null;
     }

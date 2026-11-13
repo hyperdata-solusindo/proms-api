@@ -44,13 +44,13 @@ Located in `src/test/java/com/hyperdata/proms/architecture/ArchitectureTest.java
 
 ArchUnit strictly enforces:
 1. Controllers do not depend on Repositories.
-2. Facades in `module.*.*.facade` must be Java interfaces.
-3. Facade implementations must reside in `*.facade.internal.*` dan carry `@Component`.
-4. Facade methods must not return JPA `@Entity` types.
+2. Client Contracts in `module.<domain>.client.contract..` must be Java interfaces.
+3. Client implementations must reside in `..client.impl..` and carry `@Component`.
+4. Client contract methods must not return JPA `@Entity` types.
 5. Controllers (excluding interfaces) must be annotated with `@RestController`.
 6. Controllers must implement their `<Feature>Api` contract interface.
 7. Services must be annotated with `@Service`.
-8. Inter-Module Boundary: Modul luar (`module` lain maupun `common`) dilarang mengakses package internal modul (`service`, `repository`, `entity`, `mapper`, `constant`, `controller`, internal `dto`, dan `facade.internal`). Komunikasi lintas modul HANYA boleh melalui `facade` dan `facade.dto`.
+8. Inter-Module Boundary: Modul luar (`module` lain maupun `common`) dilarang mengakses package internal modul (`service`, `repository`, `entity`, `mapper`, `constant`, `controller`, internal `dto`, dan `client.impl`). Komunikasi lintas domain HANYA boleh melalui `client.contract` dan `client.dto`.
 9. Field Injection Prohibition: Dilarang menggunakan field injection `@Autowired`.
 10. Entity Lombok Prohibition: JPA Entities dilarang menggunakan `@Data` (juga diblokir pada level compiler via `lombok.config`).
 11. Transactional Boundary: Dilarang menggunakan anotasi `@Transactional` pada level class maupun method di controller.
