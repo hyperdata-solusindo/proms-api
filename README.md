@@ -4,6 +4,23 @@ Spring Boot backend service untuk platform ERP.
 
 ---
 
+## Arsitektur & Blueprint Sistem (Architecture Blueprints)
+
+Repositori ini mengadopsi pola **Package-Enforced Modular Monolith** dengan panduan transisi ke microservices yang terdokumentasi lengkap dalam visual whiteboard blueprint (PDF & Web):
+
+| Dokumen Blueprint | Format | Deskripsi |
+| :---------------- | :----: | :-------- |
+| **[Spesifikasi Final Arsitektur Modular Monolith](docs/superpowers/specs/2026-11-13-proms-final-architecture-blueprint.pdf)** | PDF (A4 Landscape) | Blueprint arsitektur modular monolith `proms-api-java`, aturan batas paket, public contract `Client`, guardrail ArchUnit, dan observability. |
+| **[SOP Migrasi Feature ke Microservices](docs/superpowers/specs/2026-11-13-microservice-migration-sop-blueprint.pdf)** | PDF (A4 Landscape) | Standar operasional prosedur (SOP) migrasi end-to-end: evaluasi kesiapan 6-parameter, isolasi DB & CDC Kafka, substitusi remote client (Resilience4j), canary cutover, dan rollback instan (RTO < 60s). |
+
+> 💡 **Dokumentasi Pendukung Terkait**:
+> - Playbook Teknis SOP Migrasi: [`docs/superpowers/specs/2026-11-13-microservice-migration-sop-playbook.md`](docs/superpowers/specs/2026-11-13-microservice-migration-sop-playbook.md)
+> - Versi Interaktif Web SOP Migrasi: [`docs/superpowers/specs/2026-11-13-microservice-migration-sop-blueprint.html`](docs/superpowers/specs/2026-11-13-microservice-migration-sop-blueprint.html)
+> - Versi Interaktif Web Arsitektur: [`docs/superpowers/specs/2026-11-13-proms-final-architecture-blueprint.html`](docs/superpowers/specs/2026-11-13-proms-final-architecture-blueprint.html)
+> - Panduan Arsitektur & Batas Paket: [`docs/rules/01-architecture-and-structure.md`](docs/rules/01-architecture-and-structure.md)
+
+---
+
 ## Konfigurasi IDE & Editor (VS Code / Antigravity)
 
 Project ini telah dikonfigurasi agar ramah bagi developer yang menggunakan **VS Code** atau **Antigravity** dengan integrasi pemformatan kode (_code formatter_) otomatis yang selaras antara editor lokal dan build pipeline.
