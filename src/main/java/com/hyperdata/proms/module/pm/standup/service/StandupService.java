@@ -7,7 +7,7 @@ import com.hyperdata.proms.common.exception.IfMatchRequiredException;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.exception.StaleVersionException;
 import com.hyperdata.proms.common.security.CurrentUser;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
 import com.hyperdata.proms.module.pm.standup.constant.StandupRequirementReason;
 import com.hyperdata.proms.module.pm.standup.dto.CreateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.dto.StandupDetailResponse;
@@ -46,7 +46,7 @@ public class StandupService {
     private final StandupPoliciesRepository policiesRepository;
     private final StandupReportRepository reportsRepository;
     private final StandupReminderRunsRepository standupReminderRunsRepository;
-    private final TenantFacade tenantFacade;
+    private final TenantClient tenantClient;
     private final StandupMapper standupMapper;
     private final EntityManager entityManager;
 
@@ -150,7 +150,7 @@ public class StandupService {
     }
 
     private ZonedDateTime tenantNow(UUID tenantId, Instant now) {
-        String timezone = tenantFacade.getTenantDetail(tenantId)
+        String timezone = tenantClient.getTenantDetail(tenantId)
             .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantId))
             .timezone();
         return now.atZone(ZoneId.of(timezone));
