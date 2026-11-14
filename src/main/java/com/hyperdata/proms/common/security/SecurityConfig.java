@@ -12,9 +12,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.hyperdata.proms.common.ratelimit.filter.PostAuthRateLimitingFilter;
+import com.hyperdata.proms.common.ratelimit.filter.PreAuthRateLimitingFilter;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -24,7 +27,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final PreAuthRateLimitingFilter preAuthRateLimitingFilter;
     private final TokenAuthenticationFilter tokenAuthenticationFilter;
+    private final PostAuthRateLimitingFilter postAuthRateLimitingFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
 
@@ -78,7 +83,9 @@ public class SecurityConfig {
                 .permitAll()
                 .anyRequest()
                 .authenticated())
-            .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(preAuthRateLimitingFilter, LogoutFilter.class)
+            .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(postAuthRateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

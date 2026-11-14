@@ -42,6 +42,9 @@ public final class CommonErrorCode {
     // 428
     public static final String IF_MATCH_REQUIRED = "IF_MATCH_REQUIRED";
 
+    // 429
+    public static final String RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED";
+
     // 500
     public static final String INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";
 }
