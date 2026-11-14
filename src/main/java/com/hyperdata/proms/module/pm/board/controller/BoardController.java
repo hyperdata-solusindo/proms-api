@@ -5,6 +5,7 @@ import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.security.SecurityContextHelper;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.communication.client.dto.ChatChannelSummaryDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardDetailResponse;
 import com.hyperdata.proms.module.pm.board.dto.BoardSummaryResponse;
