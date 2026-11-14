@@ -69,28 +69,20 @@ public class SecurityConfig {
                 .authenticationEntryPoint(authenticationEntryPoint)
                 .accessDeniedHandler(accessDeniedHandler))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**")
-                .permitAll()
-                .requestMatchers(HttpMethod.POST, "/auth/login")
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/auth/login")
                 .permitAll()
                 .requestMatchers(
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**",
                     "/api-docs/**",
-                    "/docs",
                     "/docs/**",
+                    "/docs",
                     "/actuator/**",
                     "/error")
                 .permitAll()
-                .requestMatchers(HttpMethod.POST, "/auth/logout")
-                .authenticated()
-                .requestMatchers(HttpMethod.GET, "/me")
-                .authenticated()
-                .requestMatchers("/api/**")
-                .authenticated()
                 .anyRequest()
-                .permitAll())
+                .authenticated())
             .addFilterBefore(preAuthRateLimitingFilter, LogoutFilter.class)
             .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(postAuthRateLimitingFilter, UsernamePasswordAuthenticationFilter.class);

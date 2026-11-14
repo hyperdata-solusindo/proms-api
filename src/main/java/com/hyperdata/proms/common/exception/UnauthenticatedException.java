@@ -1,22 +1,19 @@
 package com.hyperdata.proms.common.exception;
 
+import com.hyperdata.proms.common.util.Messages;
 import org.springframework.http.HttpStatus;
 
 public class UnauthenticatedException extends BaseException {
 
     public UnauthenticatedException() {
-        super(
-            CommonErrorCode.UNAUTHENTICATED,
-            "Autentikasi diperlukan untuk mengakses endpoint ini",
-            "Token autentikasi tidak valid atau belum disertakan",
-            HttpStatus.UNAUTHORIZED);
+        this(Messages.get("error.unauthorized"));
     }
 
     public UnauthenticatedException(String message) {
         super(
             CommonErrorCode.UNAUTHENTICATED,
             message,
-            "Token autentikasi tidak valid atau belum disertakan",
+            Messages.get("error.unauthorized.detail"),
             HttpStatus.UNAUTHORIZED);
     }
 }

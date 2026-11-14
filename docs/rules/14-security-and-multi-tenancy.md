@@ -45,6 +45,28 @@ For RLS policies to evaluate correctly, every database transaction executing ten
 - ❌ **DILARANG mengeksekusi query entitas ber-tenant saat tenant context kosong**. Jika sebuah request mengakses resource tenant tetapi `activeTenantId` bernilai `null`, sistem wajib menolak request dengan HTTP 403 Forbidden (*Fail-Closed*).
 - ❌ **DILARANG menggunakan superuser database (`postgres`) untuk koneksi aplikasi runtime**. Aplikasi harus terkoneksi menggunakan role `platform_app` atau `proms_app` agar bypass RLS tidak dapat terjadi.
 
+### 2.4. Penerapan Anotasi `@TenantScoped` & `TenantRlsAspect`
+Untuk menjamin prinsip Fail-Closed dan integrasi session PostgreSQL RLS berjalan otomatis tanpa boilerplate:
+1. **Kewajiban Penggunaan `@TenantScoped`**:
+   - Seluruh class `Service` atau `Facade` yang mengelola entitas ber-tenant (contoh: `EmployeeService`, `ProductService`, `BoardService`) **WAJIB dianotasi `@TenantScoped`** (di level class atau method).
+   ```java
+   @Service
+   @TenantScoped
+   @RequiredArgsConstructor
+   public class ProductService { ... }
+   ```
+2. **Automated Guardrail oleh `TenantRlsAspect`**:
+   - **Fail-Closed Gate**: Jika method bertanda `@TenantScoped` dipanggil saat `activeTenantId == null`, aspek langsung melempar `TenantRequiredException` (diterjemahkan menjadi HTTP 403 Forbidden dengan kode `TENANT_REQUIRED`).
+   - **Automated PostgreSQL RLS Session Injection**: Pada setiap transaksi aktif (`@Transactional`), aspek secara otomatis mengeksekusi:
+     ```sql
+     SELECT set_config('app.tenant_id', ?, true),
+            set_config('app.workspace_role', ?, true),
+            set_config('app.user_id', ?, true)
+     ```
+     Parameter di-scope per transaksi dan flag `PROMS_RLS_APPLIED_TX` memastikan perintah ini hanya dieksekusi 1 kali per transaksi.
+3. **Pengecualian**:
+   - Class/method publik atau cross-tenant tanpa konteks tenant (misal: `AuthService#login`, endpoint registrasi) **DILARANG** menggunakan `@TenantScoped`.
+
 ---
 
 ## 3. Tenant-Aware Caching Standards (Anti-RLS Bypass)

@@ -3,6 +3,7 @@ package com.hyperdata.proms.module.identity.user.service;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.util.Lookups;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.identity.user.constant.UserCacheNames;
 import com.hyperdata.proms.module.identity.user.dto.MeResponse;
 import com.hyperdata.proms.module.identity.user.dto.OtherTenantDto;
@@ -43,11 +44,11 @@ public class UserService {
 
         var user = userRepository
             .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
+            .orElseThrow(() -> new ResourceNotFoundException(Messages.get("user.error.not_found")));
 
         TenantDetailDto tenantDetail = tenantFacade
             .getTenantDetail(currentTenantId)
-            .orElseThrow(() -> new ResourceNotFoundException("Tenant tidak ditemukan"));
+            .orElseThrow(() -> new ResourceNotFoundException(Messages.get("tenant.error.not_found")));
 
         var features = tenantFacade.getTenantFeatures(currentTenantId);
 

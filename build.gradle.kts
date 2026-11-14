@@ -1,6 +1,7 @@
 plugins {
     java
     jacoco
+    checkstyle
     id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.asciidoctor.jvm.convert") version "4.0.5"
@@ -105,6 +106,22 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
+    }
+}
+
+// Checkstyle Quality Gate Configuration
+checkstyle {
+    toolVersion = "10.12.5"
+    configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+    isIgnoreFailures = false
+    maxWarnings = 0
+    maxErrors = 0
+}
+
+tasks.withType<Checkstyle> {
+    reports {
+        xml.required.set(false)
+        html.required.set(true)
     }
 }
 

@@ -65,7 +65,7 @@ public interface ProductApi {
         @ApiResponse(responseCode = "200", description = "Daftar produk berhasil diambil")
     })
     @GetMapping
-    PageResponse<ProductListItemResponse> getProducts(
+    RestResponse<PageResponse<ProductListItemResponse>> getProducts(
         ProductFilter filter,
         @PageableDefault(size = 20)
         Pageable pageable);

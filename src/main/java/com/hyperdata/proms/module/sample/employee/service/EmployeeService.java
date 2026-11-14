@@ -3,7 +3,9 @@ package com.hyperdata.proms.module.sample.employee.service;
 import com.hyperdata.proms.common.exception.DuplicateResourceException;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
+import com.hyperdata.proms.common.security.TenantScoped;
 import com.hyperdata.proms.common.util.Lookups;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.common.validation.YaviValidator;
 import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
 import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
@@ -30,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@TenantScoped
 @RequiredArgsConstructor
 public class EmployeeService {
 
@@ -45,11 +48,11 @@ public class EmployeeService {
 
         if (employeeRepository.existsByEmployeeNumber(request.employeeNumber())) {
             throw new DuplicateResourceException(
-                String.format("Employee with number [%s] already exists", request.employeeNumber()));
+                Messages.get("employee.error.duplicate_number", request.employeeNumber()));
         }
         if (employeeRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException(
-                String.format("Employee with email [%s] already exists", request.email()));
+                Messages.get("employee.error.duplicate_email", request.email()));
         }
 
         Employee employee = employeeMapper.toEntity(request);
@@ -96,11 +99,11 @@ public class EmployeeService {
 
         if (employeeRepository.existsByEmployeeNumberAndIdNot(request.employeeNumber(), id)) {
             throw new DuplicateResourceException(
-                String.format("Employee with number [%s] already exists", request.employeeNumber()));
+                Messages.get("employee.error.duplicate_number", request.employeeNumber()));
         }
         if (employeeRepository.existsByEmailAndIdNot(request.email(), id)) {
             throw new DuplicateResourceException(
-                String.format("Employee with email [%s] already exists", request.email()));
+                Messages.get("employee.error.duplicate_email", request.email()));
         }
 
         employee.setTenantId(request.tenantId());

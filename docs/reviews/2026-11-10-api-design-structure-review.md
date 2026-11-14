@@ -31,7 +31,7 @@ bisnis baru.
 
 ### 🔴 Kritis
 
-#### 1. Semua endpoint bisnis terbuka tanpa autentikasi
+#### 1. Semua endpoint bisnis terbuka tanpa autentikasi — `[RESOLVED]`
 
 `SecurityConfig` memakai `.anyRequest().permitAll()`, sehingga `/api/v1/employees` dan
 `/api/v1/products` bisa diakses tanpa token. `/actuator/**` juga di-`permitAll`, termasuk `metrics` dan
@@ -40,7 +40,9 @@ bisnis baru.
 **Rekomendasi**: deny-by-default dengan `.anyRequest().authenticated()` dan whitelist eksplisit. Batasi
 actuator ke `health`/`info` untuk publik, sisanya lewat jaringan internal atau autentikasi.
 
-#### 2. RLS terpasang di database, tapi tidak pernah diaktifkan dari aplikasi
+> **Status [RESOLVED]**: `SecurityConfig` telah diperbarui dengan deny-by-default (`anyRequest().authenticated()`). Endpoint publik dibatasi hanya untuk login/auth dan dokumentasi OpenAPI/Scalar. Actuator publik dibatasi hanya untuk `/health` dan `/info`.
+
+#### 2. RLS terpasang di database, tapi tidak pernah diaktifkan dari aplikasi — `[RESOLVED]`
 
 `09-rls-policies.sql` memakai `platform.current_tenant()`, yang membaca
 `current_setting('app.tenant_id')`. Tidak ada kode Java yang menjalankan `SET LOCAL app.tenant_id` atau
@@ -56,6 +58,8 @@ kosong).
 `ConnectionPreparer`) yang menjalankan `select set_config('app.tenant_id', ?, true)` di awal setiap
 transaksi berdasarkan `CurrentUser.activeTenantId()`, dan tolak request jika tenant kosong. Pastikan
 role aplikasi bukan owner tabel dan tidak punya `BYPASSRLS`.
+
+> **Status [RESOLVED]**: Diimplementasikan menggunakan `@TenantScoped` dan `TenantRlsAspect`. Setiap method transaksi pada class bertanda `@TenantScoped` otomatis mengeksekusi `set_config('app.tenant_id', ?, true)` dan mengisolasi session RLS. Jika `activeTenantId` bernilai `null`, request langsung ditolak dengan `TenantRequiredException` (HTTP 403 Forbidden - Fail-Closed).
 
 #### 3. Tenant diambil dari input client
 
@@ -75,7 +79,7 @@ pertimbangkan untuk hanya meng-cache data milik modul sendiri.
 
 ### 🟠 Menengah
 
-#### 5. Exception framework berubah menjadi 500
+#### 5. Exception framework berubah menjadi 500 — `[RESOLVED]`
 
 `GlobalExceptionHandler` menangkap `Exception.class` tanpa meng-extend
 `ResponseEntityExceptionHandler`. Kasus-kasus berikut akhirnya dibalas 500, dicatat sebagai error, dan
@@ -91,7 +95,9 @@ dikirim ke Sentry:
 **Rekomendasi**: extend `ResponseEntityExceptionHandler` atau tambahkan handler eksplisit untuk kasus di
 atas.
 
-#### 6. Tracer di `GlobalExceptionHandler` kemungkinan tidak ter-inject
+> **Status [RESOLVED]**: `GlobalExceptionHandler` kini menangani `MethodArgumentTypeMismatchException` (400), `NoResourceFoundException` (404), `HttpRequestMethodNotSupportedException` (405), dan `DataIntegrityViolationException` (409) secara eksplisit.
+
+#### 6. Tracer di `GlobalExceptionHandler` kemungkinan tidak ter-inject — `[RESOLVED]`
 
 Class ini punya tiga constructor tanpa `@Autowired`. Dalam kondisi itu Spring memakai constructor tanpa
 argumen, sehingga `tracerProvider = null` dan `traceId` hanya diambil dari MDC.
@@ -99,7 +105,9 @@ argumen, sehingga `tracerProvider = null` dan `traceId` hanya diambil dari MDC.
 **Rekomendasi**: gunakan satu constructor yang menerima `ObjectProvider<Tracer>`. Untuk test, sediakan
 helper di sisi test, bukan constructor tambahan di kode produksi.
 
-#### 7. Kontrak response tidak konsisten dengan `docs/rules/06`
+> **Status [RESOLVED]**: Disederhanakan menjadi constructor tunggal yang menerima `ObjectProvider<Tracer>`.
+
+#### 7. Kontrak response tidak konsisten dengan `docs/rules/06` — `[RESOLVED]`
 
 - `GET /api/v1/employees` dan `/products` mengembalikan `PageResponse` mentah tanpa envelope
   `RestResponse`, sedangkan rule 06 menetapkan `meta.nextCursor` (cursor pagination). Kode memakai
@@ -112,10 +120,20 @@ helper di sisi test, bukan constructor tambahan di kode produksi.
 **Rekomendasi**: putuskan satu standar (envelope + jenis pagination, bahasa pesan, prefix path), tulis di
 rule 06, lalu seragamkan.
 
-#### 8. Optimistic locking setengah jadi
+> **Status [RESOLVED]**:
+> 1. Seluruh endpoint daftar berhalaman distandarisasi dibungkus dengan `RestResponse<PageResponse<T>>`.
+> 2. Seluruh string pesan dipindahkan ke arsitektur modular i18n terpusat (`messages/{domain}/{feature}.properties`) dan di-resolve dinamis via `Messages.get(...)` berdasarkan header `Accept-Language` (default: `id-ID`).
+> 3. Seluruh route distandarisasi ke prefix `/api/v1/...` dengan backward-compatibility alias untuk endpoint legacy (`/auth/login`, `/auth/logout`, `/me`).
+
+#### 8. Optimistic locking setengah jadi `[RESOLVED]`
 
 `STALE_VERSION`, `IF_MATCH_REQUIRED`, `StaleVersionException`, dan `IfMatchRequiredException` sudah ada,
 tapi entity tidak punya `@Version` dan endpoint `PUT` tidak membaca header `If-Match`.
+
+> **Status Perbaikan (2026-11-11)**:
+> 1. Dibuat helper terpusat `ConcurrencyGuard.requireMatch(...)` yang otomatis membaca header `If-Match`, mendukung Epoch Milliseconds (`"1731301234000"`) & ISO-8601 (`"2026-11-10T10:15:30.123456Z"`), menormalisasi quotes (`"..."`) dan weak ETag (`W/"..."`), serta memotong presisi mikrodetik (`ChronoUnit.MICROS`) untuk menyelaraskan `timestamptz` PostgreSQL dengan Java `Instant`.
+> 2. Diterapkan pada endpoint `PUT /api/v1/boards/{boardId}` di `BoardService` dan `BoardController` dengan proteksi 428 (`IF_MATCH_REQUIRED`) dan 409 (`STALE_VERSION` beserta snapshot `current`).
+> 3. Dibuat reusable OpenAPI annotations: `@ApiConcurrencyControl`, `@IfMatchHeader`, `@ApiResponseNotFound`, `@ApiResponseStaleVersion`, `@ApiResponseIfMatchRequired`, dan `@VersionEpochSchema` yang otomatis terintegrasi dengan `OpenApiConfig`.
 
 #### 9. Unique constraint global, bukan per tenant
 

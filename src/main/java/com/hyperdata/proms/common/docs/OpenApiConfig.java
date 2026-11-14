@@ -12,11 +12,19 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import com.hyperdata.proms.common.docs.annotation.ApiConcurrencyControl;
+import com.hyperdata.proms.common.docs.annotation.ApiResponseIfMatchRequired;
+import com.hyperdata.proms.common.docs.annotation.ApiResponseNotFound;
+import com.hyperdata.proms.common.docs.annotation.ApiResponseStaleVersion;
+import com.hyperdata.proms.common.docs.annotation.IfMatchHeader;
+import com.hyperdata.proms.common.docs.annotation.VersionEpochSchema;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +33,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springdoc.core.customizers.PropertyCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.web.method.HandlerMethod;
 
 @Configuration
@@ -159,8 +169,84 @@ public class OpenApiConfig {
                         .content(new Content().addMediaType(APPLICATION_JSON_VALUE, serverErrorMedia)));
             }
 
+            customizeReusableAnnotations(operation, handlerMethod, responses, apiResponseSchema);
+
             return operation;
         };
+    }
+
+    private void customizeReusableAnnotations(
+        Operation operation,
+        HandlerMethod handlerMethod,
+        ApiResponses responses,
+        Schema<RestResponse<?>> apiResponseSchema) {
+        boolean hasIfMatch = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
+            IfMatchHeader.class) != null
+            || AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
+                ApiConcurrencyControl.class) != null;
+        if (hasIfMatch) {
+            boolean alreadyHasParam = operation.getParameters() != null
+                && operation.getParameters().stream().anyMatch(p -> "If-Match".equalsIgnoreCase(p.getName()));
+            if (!alreadyHasParam) {
+                var ifMatchParam = new Parameter()
+                    .name("If-Match")
+                    .in("header")
+                    .required(true)
+                    .description("Versi timestamp/ETag terakhir dari resource. "
+                        + "Mendukung 2 format: 1) Epoch Milliseconds (contoh: \"1731301234000\"), "
+                        + "atau 2) ISO-8601 String (contoh: \"2026-11-10T10:15:30.123456Z\"). "
+                        + "Dapat dikirim dengan atau tanpa tanda petik ganda, maupun prefix weak ETag W/\"...\".")
+                    .example("\"1731301234000\"");
+                ifMatchParam.addExample(
+                    "Epoch Milliseconds",
+                    new Example()
+                        .summary("Format Epoch Millis (Paling Direkomendasikan)")
+                        .value("\"1731301234000\""));
+                ifMatchParam.addExample(
+                    "ISO-8601 Timestamp",
+                    new Example()
+                        .summary("Format Tanggal Waktu Standar ISO-8601")
+                        .value("\"2026-11-10T10:15:30.123456Z\""));
+                operation.addParametersItem(ifMatchParam);
+            }
+        }
+
+        boolean hasNotFound = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
+            ApiResponseNotFound.class) != null;
+        if (hasNotFound && !responses.containsKey("404")) {
+            responses.addApiResponse(
+                "404",
+                new ApiResponse()
+                    .description("Resource tidak ditemukan")
+                    .content(
+                        new Content().addMediaType(APPLICATION_JSON_VALUE, new MediaType().schema(apiResponseSchema))));
+        }
+
+        boolean hasStaleVersion = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
+            ApiResponseStaleVersion.class) != null
+            || AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
+                ApiConcurrencyControl.class) != null;
+        if (hasStaleVersion && !responses.containsKey("409")) {
+            responses.addApiResponse(
+                "409",
+                new ApiResponse()
+                    .description("Konflik versi: data telah diperbarui oleh pengguna lain (STALE_VERSION)")
+                    .content(
+                        new Content().addMediaType(APPLICATION_JSON_VALUE, new MediaType().schema(apiResponseSchema))));
+        }
+
+        boolean hasIfMatchRequired = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
+            ApiResponseIfMatchRequired.class) != null
+            || AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
+                ApiConcurrencyControl.class) != null;
+        if (hasIfMatchRequired && !responses.containsKey("428")) {
+            responses.addApiResponse(
+                "428",
+                new ApiResponse()
+                    .description("Precondition Required: header If-Match wajib disertakan (IF_MATCH_REQUIRED)")
+                    .content(
+                        new Content().addMediaType(APPLICATION_JSON_VALUE, new MediaType().schema(apiResponseSchema))));
+        }
     }
 
     @Bean
@@ -179,6 +265,25 @@ public class OpenApiConfig {
                 });
                 openApi.addExtension("x-tagGroups", tagGroups);
             }
+        };
+    }
+
+    @Bean
+    public PropertyCustomizer versionEpochPropertyCustomizer() {
+        return (schema, type) -> {
+            if (type.getCtxAnnotations() != null) {
+                boolean hasVersionEpoch = Arrays.stream(type.getCtxAnnotations())
+                    .anyMatch(a -> a.annotationType().equals(VersionEpochSchema.class)
+                        || a.annotationType().isAnnotationPresent(VersionEpochSchema.class));
+                if (hasVersionEpoch) {
+                    schema.setType("integer");
+                    schema.setFormat("int64");
+                    schema.setExample(1731301234000L);
+                    schema.setDescription(
+                        "Versi timestamp/ETag terakhir (Epoch Milliseconds) untuk proteksi If-Match concurrency");
+                }
+            }
+            return schema;
         };
     }
 

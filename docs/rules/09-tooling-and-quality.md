@@ -69,3 +69,18 @@ JaCoCo terintegrasi secara native di `./gradlew check` untuk memastikan setiap l
   - Dihasilkan di `build/reports/jacoco/test/html/index.html`.
   - Di-generate otomatis via `./gradlew jacocoTestReport`.
 
+## 6. Checkstyle Static Analysis Quality Gate
+Checkstyle dikonfigurasikan di [`config/checkstyle/checkstyle.xml`](../../config/checkstyle/checkstyle.xml) dan dijalankan secara otomatis pada task `./gradlew check`.
+- **Strict Zero-Tolerance**: Dikonfigurasi dengan `maxWarnings = 0` dan `maxErrors = 0`. Setiap peringatan gaya atau pelanggaran aturan Checkstyle diperlakukan sebagai kegagalan build (compile-breaking).
+- **Prohibited Inline FQCN AST Check**: Memeriksa Abstract Syntax Tree (AST) untuk melarang penggunaan nama kelas Fully Qualified (`com.hyperdata...`) di dalam tubuh class Java di luar deklarasi `package` dan `import`.
+  ```xml
+  <module name="MatchXPath">
+      <property name="query" value="//DOT[IDENT[@text='com'] and IDENT[@text='hyperdata']][not(ancestor::IMPORT)][not(ancestor::PACKAGE_DEF)]"/>
+      <message key="matchxpath.match" value="Strict No-FQCN Rule Violated: Dilarang menggunakan Fully Qualified Class Name di dalam kode. Import class secara eksplisit di header file."/>
+  </module>
+  ```
+- **Commands**:
+  - Check main & test code: `./gradlew checkstyleMain checkstyleTest`
+  - Lifecycle build check: `./gradlew check` (otomatis memicu Spotless, ArchUnit, Checkstyle, Test, dan JaCoCo).
+
+

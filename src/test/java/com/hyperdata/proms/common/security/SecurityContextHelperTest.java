@@ -1,7 +1,9 @@
 package com.hyperdata.proms.common.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.hyperdata.proms.common.exception.UnauthenticatedException;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -41,8 +43,8 @@ class SecurityContextHelperTest {
     @Test
     @DisplayName("GIVEN empty SecurityContext WHEN getRequiredCurrentUser THEN throws UnauthenticatedException")
     void givenEmptySecurityContext_whenGetRequiredCurrentUser_thenThrowsUnauthenticatedException() {
-        org.assertj.core.api.Assertions.assertThatThrownBy(SecurityContextHelper::getRequiredCurrentUser)
-            .isInstanceOf(com.hyperdata.proms.common.exception.UnauthenticatedException.class)
+        assertThatThrownBy(SecurityContextHelper::getRequiredCurrentUser)
+            .isInstanceOf(UnauthenticatedException.class)
             .hasMessage("Autentikasi diperlukan untuk mengakses endpoint ini");
     }
 }

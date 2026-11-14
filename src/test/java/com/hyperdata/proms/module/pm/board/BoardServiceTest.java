@@ -7,7 +7,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 import com.hyperdata.proms.common.exception.BusinessException;
+import com.hyperdata.proms.common.exception.IfMatchRequiredException;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
+import com.hyperdata.proms.common.exception.StaleVersionException;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.module.communication.chat.facade.ChatFacade;
@@ -19,6 +21,7 @@ import com.hyperdata.proms.module.pm.board.dto.BoardMemberCountDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardMemberRoleDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardSummaryResponse;
 import com.hyperdata.proms.module.pm.board.dto.CreateBoardTaskRequest;
+import com.hyperdata.proms.module.pm.board.dto.UpdateBoardRequest;
 import com.hyperdata.proms.module.pm.board.entity.Board;
 import com.hyperdata.proms.module.pm.board.entity.BoardColumn;
 import com.hyperdata.proms.module.pm.board.entity.BoardMember;
@@ -37,6 +40,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -50,6 +54,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @ExtendWith(MockitoExtension.class)
 class BoardServiceTest {
@@ -90,6 +98,11 @@ class BoardServiceTest {
         tenantId = UUID.randomUUID();
         userId = UUID.randomUUID();
         currentUser = new CurrentUser(userId, "test@proms.co.id", tenantId, "member", 1L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
@@ -314,5 +327,87 @@ class BoardServiceTest {
 
         assertThat(channels).hasSize(1);
         assertThat(channels.get(0).name()).isEqualTo("general");
+    }
+
+    @Test
+    @DisplayName("GIVEN matching If-Match WHEN updateBoard THEN updates board and returns detail")
+    void givenMatchingIfMatch_whenUpdateBoard_thenSucceeds() {
+        UUID boardId = UUID.randomUUID();
+        Instant updatedAt = Instant.parse("2026-11-10T10:15:30.123456Z");
+
+        Board board = new Board();
+        board.setId(boardId);
+        board.setTenantId(tenantId);
+        board.setOwnerId(userId);
+        board.setName("Original Board");
+        board.setDescription("Old Description");
+        board.setStatus("active");
+        board.setUpdatedAt(updatedAt);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.IF_MATCH, "\"" + updatedAt.toString() + "\"");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        given(boardRepository.findActiveById(boardId)).willReturn(Optional.of(board));
+        given(boardRepository.save(any(Board.class))).willAnswer(inv -> inv.getArgument(0));
+
+        UpdateBoardRequest updateRequest = new UpdateBoardRequest("Updated Board", "New Description");
+        BoardDetailResponse response = boardService.updateBoard(boardId, currentUser, updateRequest);
+
+        assertThat(response.name()).isEqualTo("Updated Board");
+        assertThat(board.getName()).isEqualTo("Updated Board");
+        assertThat(board.getDescription()).isEqualTo("New Description");
+    }
+
+    @Test
+    @DisplayName("GIVEN missing If-Match header WHEN updateBoard THEN throws IfMatchRequiredException")
+    void givenMissingIfMatch_whenUpdateBoard_thenThrowsIfMatchRequiredException() {
+        UUID boardId = UUID.randomUUID();
+        Board board = new Board();
+        board.setId(boardId);
+        board.setTenantId(tenantId);
+        board.setOwnerId(userId);
+        board.setStatus("active");
+        board.setUpdatedAt(Instant.now());
+
+        given(boardRepository.findActiveById(boardId)).willReturn(Optional.of(board));
+
+        UpdateBoardRequest updateRequest = new UpdateBoardRequest("Updated Board", "New Description");
+
+        assertThatThrownBy(() -> boardService.updateBoard(boardId, currentUser, updateRequest))
+            .isInstanceOf(IfMatchRequiredException.class);
+    }
+
+    @Test
+    @DisplayName("GIVEN stale If-Match header WHEN updateBoard THEN throws StaleVersionException with current payload")
+    void givenStaleIfMatch_whenUpdateBoard_thenThrowsStaleVersionException() {
+        UUID boardId = UUID.randomUUID();
+        Instant dbUpdatedAt = Instant.parse("2026-11-10T12:00:00Z");
+
+        Board board = new Board();
+        board.setId(boardId);
+        board.setTenantId(tenantId);
+        board.setOwnerId(userId);
+        board.setName("Server State Name");
+        board.setStatus("active");
+        board.setUpdatedAt(dbUpdatedAt);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.IF_MATCH, "\"2026-11-10T08:00:00Z\"");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        given(boardRepository.findActiveById(boardId)).willReturn(Optional.of(board));
+
+        UpdateBoardRequest updateRequest = new UpdateBoardRequest("My Overwrite Attempt", "New Description");
+
+        assertThatThrownBy(() -> boardService.updateBoard(boardId, currentUser, updateRequest))
+            .isInstanceOf(StaleVersionException.class)
+            .satisfies(ex -> {
+                StaleVersionException sve = (StaleVersionException) ex;
+                assertThat(sve.getCurrent()).isNotNull();
+                assertThat(sve.getCurrent()).isInstanceOf(BoardDetailResponse.class);
+                BoardDetailResponse currentDetail = (BoardDetailResponse) sve.getCurrent();
+                assertThat(currentDetail.name()).isEqualTo("Server State Name");
+            });
     }
 }

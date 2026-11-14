@@ -1,15 +1,23 @@
 # Rule 06: API Contract, Envelopes & Error Handling
 
-All REST endpoints return responses wrapped in `RestResponse<T>` or `PageResponse<T>`.
+All REST endpoints return responses wrapped in `RestResponse<T>` (termasuk daftar berhalaman dibungkus sebagai `RestResponse<PageResponse<T>>`).
 
-## 1. Response Envelope Contract
+## 1. API Versioning & Path Prefixing
+- **Standar Prefix**: Seluruh endpoint REST bisnis dan identity **WAJIB** menggunakan prefix versi URI `/api/v1/` (contoh: `/api/v1/auth/login`, `/api/v1/users/me`, `/api/v1/employees`, `/api/v1/products`, `/api/v1/boards`).
+- **Backward Compatibility Alias**: Jika terdapat rute lama/legacy (misalnya `/auth/login` atau `/me`), controller wajib menyediakan alias backward-compatibility melalui array path:
+  ```java
+  @PostMapping({"/api/v1/auth/login", "/auth/login"})
+  @GetMapping({"/api/v1/users/me", "/me"})
+  ```
+
+## 2. Response Envelope Contract
 
 | Field | Tipe | Aturan |
 |---|---|---|
 | `statusCode` | integer | **Selalu sama** dengan HTTP status. Server tidak pernah mengirim HTTP 200 untuk error |
-| `message` | string | Kalimat singkat bahasa Indonesia, aman ditampilkan ke user (toast/sheet) |
-| `data` | object / array / `null` | Isi respons. Objek tunggal = objek, daftar = array, tanpa isi = `null`. |
-| `meta` | object | Hanya untuk daftar: `nextCursor`, ditambah angka ringkasan bila ada (mis. `unreadCount`, `summary`). Opsi `null` dihilangkan otomatis |
+| `message` | string | Pesan ter-lokalisasi (multi-language i18n) berdasarkan header `Accept-Language`, aman ditampilkan ke user (toast/sheet) |
+| `data` | object / array / `null` | Isi respons. Objek tunggal = objek, daftar = array (atau objek `PageResponse` berisi list items), tanpa isi = `null`. |
+| `meta` | object | Metadata pendukung (opsional): pagination meta, `nextCursor`, atau ringkasan angka (`unreadCount`, `summary`). Opsi `null` dihilangkan otomatis |
 | `error` | object | Hanya untuk error (`statusCode` ≥ 400). Untuk sukses, field ini tidak dikirim |
 
 ### Objek `error`
@@ -22,7 +30,7 @@ All REST endpoints return responses wrapped in `RestResponse<T>` or `PageRespons
 
 ---
 
-## 2. Success Envelopes (`RestResponse.ok` / `RestResponse.created`)
+## 3. Success Envelopes (`RestResponse.ok` / `RestResponse.created`)
 
 ### Single Resource (200 OK)
 ```json
@@ -47,32 +55,36 @@ All REST endpoints return responses wrapped in `RestResponse<T>` or `PageRespons
 }
 ```
 
-### List with Cursor & Meta
+### Paginated List (`RestResponse<PageResponse<T>>`)
 ```json
 {
   "statusCode": 200,
-  "message": "Berhasil memuat daftar",
-  "data": [
-    { "id": "1", "title": "Task 1" }
-  ],
-  "meta": {
-    "nextCursor": "eyJpZCI6MTB9",
-    "unreadCount": 3
+  "message": "Berhasil memuat daftar karyawan",
+  "data": {
+    "items": [
+      { "id": "1", "name": "Budi Santoso" }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "first": true,
+    "last": true
   }
 }
 ```
 
 ---
 
-## 3. Error Envelopes (`RestResponse.error`)
+## 4. Error Envelopes (`RestResponse.error`)
 
-### 3.1 Kode Error yang Wajib Ditangani App
+### 4.1 Kode Error yang Wajib Ditangani App
 Kolom `code` di bawah dibaca dari `error.code`.
 
 | Status | `code` | Tampilan di app (brief §5) |
 |---|---|---|
 | 401 | `UNAUTHENTICATED` | Kembali ke login |
-| 403 | `TENANT_ACCESS_REVOKED` | Layar pilih workspace |
+| 403 | `TENANT_ACCESS_REVOKED`, `TENANT_REQUIRED` | Layar pilih workspace |
 | 403 | `TENANT_READ_ONLY` | Banner "Workspace dalam mode baca saja", tombol tulis nonaktif |
 | 403 | `FORBIDDEN_*`, `BR-WF-06`, `BR-WF-07` | Pesan `message` dari server di sheet/toast |
 | 404 | `BOARD_NOT_FOUND`, `TASK_NOT_FOUND`, … | "Board tidak ditemukan" (jangan tulis "tidak punya akses") |
@@ -119,7 +131,7 @@ Kolom `code` di bawah dibaca dari `error.code`.
 ```json
 {
   "statusCode": 404,
-  "message": "Product with ID [a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11] not found",
+  "message": "Produk dengan ID [a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11] tidak ditemukan",
   "data": null,
   "error": {
     "code": "RESOURCE_NOT_FOUND",
@@ -139,29 +151,93 @@ Kolom `code` di bawah dibaca dari `error.code`.
     "detail": "Silakan muat ulang data terbaru sebelum menyimpan kembali.",
     "current": {
       "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-      "version": 4
+      "version": 1731301234000
     }
   }
 }
 ```
 
+### 4.4 Standar Optimistic Concurrency Control (`ConcurrencyGuard`)
+Untuk seluruh operasi mutasi (update/patch) pada resource bersama, service layer **WAJIB** memvalidasi versi konkurensi data menggunakan helper terpusat `ConcurrencyGuard`:
+
+```java
+// Contoh penggunaan di Service
+@Transactional
+public BoardDetailResponse updateBoard(UUID boardId, UpdateBoardRequest request, CurrentUser currentUser) {
+    Board board = boardRepository.findByIdAndTenantId(boardId, currentUser.tenantId())
+        .orElseThrow(() -> new ResourceNotFoundException("board.not.found", boardId));
+
+    // Verifikasi If-Match terhadap updatedAt entity dengan snapshot data terkini (lazy)
+    ConcurrencyGuard.requireMatch(board.getUpdatedAt(), () -> getBoardDetail(boardId, currentUser));
+
+    board.updateInfo(request.name(), request.description());
+    boardRepository.save(board);
+    return getBoardDetail(boardId, currentUser);
+}
+```
+
+#### DOs and DONTs Concurrency Control:
+- ✅ **DO**: Gunakan `ConcurrencyGuard.requireMatch(entity.getUpdatedAt(), () -> snapshotSupplier)` di awal method mutasi sebelum entity diubah.
+- ✅ **DO**: Gunakan lambda supplier `() -> toDetailResponse(...)` agar proses perakitan response DTO hanya dieksekusi bila terjadi konflik (lazy evaluation).
+- ✅ **DO**: Dukung fleksibilitas header `If-Match` baik berupa string Epoch Milliseconds (`"1731301234000"`) maupun ISO-8601 (`"2026-11-10T10:15:30.123456Z"`). `ConcurrencyGuard` otomatis membersihkan quotes (`"..."`) dan prefix weak ETag (`W/"..."`).
+- ✅ **DO**: Selalu bandingkan timestamp dengan presisi mikrodetik (`ChronoUnit.MICROS`) untuk mencegah false-positive pergeseran presisi antara PostgreSQL `timestamptz` (6 digit) dan Java `Instant` (9 digit).
+- ❌ **DON'T**: Jangan membaca header `@RequestHeader("If-Match") String ifMatch` secara manual di setiap controller method. `ConcurrencyGuard` otomatis mengambilnya dari `RequestContextHolder`.
+- ❌ **DON'T**: Jangan melempar exception generik atau custom 409 tanpa payload `current`. Frontend membutuhkan snapshot data terkini untuk meresolusi konflik atau me-reload state UI pengguna.
+- ❌ **DON'T**: Jangan biarkan operasi mutasi berjalan tanpa validasi `If-Match` jika resource dapat diedit secara kolaboratif oleh multi-pengguna.
+
 ---
 
-## 4. Exception Handling
+## 5. Exception Handling
 - Throw specific custom exceptions extending `BaseException`:
   - `InvalidCredentialsException` (401 `UNAUTHENTICATED`)
+  - `TenantRequiredException` (403 `TENANT_REQUIRED`)
   - `ResourceNotFoundException` (404 `RESOURCE_NOT_FOUND`, `BOARD_NOT_FOUND`, dll)
   - `DuplicateResourceException` (409 `DUPLICATE_RESOURCE`)
   - `StaleVersionException` (409 `STALE_VERSION` dengan payload `current`)
   - `IfMatchRequiredException` (428 `IF_MATCH_REQUIRED`)
   - `ValidationException` (422 `VALIDATION` dengan `fieldErrors`)
   - `BusinessException` (Aturan alur kerja bisnis dinamis, misal `BR-WF-06`, `BR-WF-08`)
+- Seluruh pesan default exception wajib di-resolve dinamis via `Messages.get(...)` (mendukung lokalisasi i18n).
 - Selalu gunakan konstanta dari `CommonErrorCode` untuk menghindari *typo* pada `code`.
 - ❌ **NEVER throw raw `RuntimeException`**.
 - All exceptions are captured automatically by `GlobalExceptionHandler`.
 - Always supply machine-readable business rule codes (`code`) on `BusinessException` for frontend state transitions.
 
-## 5. Trace Correlation & Sentry Integration
+## 6. Trace Correlation & Sentry Integration
 - All HTTP responses include `X-Trace-Id: <traceId>` header for end-to-end debugging.
 - Unhandled 500 exceptions are captured in Sentry as `ERROR` with linked `otel.trace_id`.
 - Handled client errors (422/400) are captured in Sentry as `WARNING` under tag `error.category`.
+
+---
+
+## 7. Multi-Language & Modular i18n Architecture (Pola 1: Domain Bounded Context)
+
+### 7.1 Struktur File Resource Bundles
+File pesan properties disusun per domain dan fitur di dalam `src/main/resources/messages/`:
+```text
+src/main/resources/messages/
+├── common/
+│   ├── common.properties           # Bahasa Indonesia (Default Fallback)
+│   └── common_en.properties        # Bahasa Inggris
+├── identity/
+│   ├── auth.properties
+│   ├── auth_en.properties
+│   ├── user.properties
+│   └── user_en.properties
+├── pm/
+│   ├── board.properties
+│   └── board_en.properties
+└── sample/
+    ├── employee.properties
+    └── product.properties
+```
+
+### 7.2 Dynamic Message Resolution via `Messages.get(...)`
+- `LocalizationConfig` memuat seluruh resource bundle secara otomatis melalui pola `classpath*:messages/**/*.properties` menggunakan `ReloadableResourceBundleMessageSource`.
+- Seluruh pengambilan pesan di Controller, Service, Facade, dan Exception **WAJIB** menggunakan helper terpusat:
+  ```java
+  // Mengambil pesan sesuai header HTTP "Accept-Language" (default: id-ID, en)
+  String msg = Messages.get("product.deleted.success");
+  String notFound = Messages.get("product.not.found", productId);
+  ```
+- ❌ **DILARANG KERAS melakukan hardcode string pesan bisnis/respons langsung di kode Java**. Seluruh teks yang dapat tampil ke pengguna harus dimasukkan ke dalam file `.properties` modul masing-masing.

@@ -135,8 +135,9 @@ class EmployeeControllerTest {
             .param("page", "0")
             .param("size", "20"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.items[0].tenantName").value("PT Hyperdata Solusindo"))
-            .andExpect(jsonPath("$.totalElements").value(1));
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.items[0].tenantName").value("PT Hyperdata Solusindo"))
+            .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 
     @Test
@@ -165,6 +166,11 @@ class EmployeeControllerTest {
         doNothing().when(employeeService).deleteEmployee(id);
 
         mockMvc.perform(delete("/api/v1/employees/{id}", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.message").value("Karyawan berhasil dihapus"));
+
+        mockMvc.perform(delete("/api/v1/employees/{id}", id).header("Accept-Language", "en"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.statusCode").value(200))
             .andExpect(jsonPath("$.message").value("Employee deleted successfully"));
