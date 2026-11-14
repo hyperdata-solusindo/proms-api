@@ -13,15 +13,15 @@ import static org.mockito.Mockito.when;
 import com.hyperdata.proms.common.exception.DuplicateResourceException;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.response.PageResponse;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.sample.employee.constant.EmployeeStatus;
 import com.hyperdata.proms.module.sample.employee.dto.CreateEmployeeRequest;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeDetailResponse;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeFilter;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeListItemResponse;
 import com.hyperdata.proms.module.sample.employee.dto.UpdateEmployeeRequest;
 import com.hyperdata.proms.module.sample.employee.entity.Employee;
-import com.hyperdata.proms.module.sample.employee.constant.EmployeeStatus;
 import com.hyperdata.proms.module.sample.employee.mapper.EmployeeMapper;
 import com.hyperdata.proms.module.sample.employee.repository.EmployeeRepository;
 import java.time.LocalDate;
@@ -55,7 +55,7 @@ class EmployeeServiceTest {
     private EmployeeMapper employeeMapper;
 
     @Mock
-    private TenantFacade tenantFacade;
+    private TenantClient tenantClient;
 
     @InjectMocks
     private EmployeeService employeeService;
@@ -98,7 +98,7 @@ class EmployeeServiceTest {
             "+6281234567890", "Engineering", "Backend Engineer", LocalDate.parse("2024-01-15"),
             EmployeeStatus.ACTIVE, TENANT_ID, TENANT.name(), TENANT.slug(), null);
 
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
         when(employeeRepository.existsByEmployeeNumber("EMP-0001")).thenReturn(false);
         when(employeeRepository.existsByEmail("budi.santoso@hyperdata.co.id")).thenReturn(false);
         when(employeeMapper.toEntity(request)).thenReturn(entity);
@@ -114,7 +114,7 @@ class EmployeeServiceTest {
     @Test
     @DisplayName("Given an existing employee number, when createEmployee, then throw duplicate")
     void shouldThrowWhenEmployeeNumberExists() {
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
         when(employeeRepository.existsByEmployeeNumber("EMP-0001")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> employeeService.createEmployee(createRequest()));
@@ -124,7 +124,7 @@ class EmployeeServiceTest {
     @Test
     @DisplayName("Given an existing email, when createEmployee, then throw duplicate")
     void shouldThrowWhenEmailExists() {
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
         when(employeeRepository.existsByEmployeeNumber("EMP-0001")).thenReturn(false);
         when(employeeRepository.existsByEmail("budi.santoso@hyperdata.co.id")).thenReturn(true);
 
@@ -135,7 +135,7 @@ class EmployeeServiceTest {
     @Test
     @DisplayName("Given an unknown tenant, when createEmployee, then throw not found")
     void shouldThrowWhenTenantNotFoundOnCreate() {
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.empty());
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> employeeService.createEmployee(createRequest()));
         verify(employeeRepository, never()).save(any());
@@ -151,7 +151,7 @@ class EmployeeServiceTest {
             EmployeeStatus.ACTIVE, TENANT_ID, TENANT.name(), TENANT.slug(), null);
 
         when(employeeRepository.findById(entity.getId())).thenReturn(Optional.of(entity));
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
         when(employeeMapper.toDetailResponse(entity, TENANT)).thenReturn(detail);
 
         EmployeeDetailResponse result = employeeService.getEmployeeById(entity.getId());
@@ -179,7 +179,7 @@ class EmployeeServiceTest {
             EmployeeStatus.ACTIVE, TENANT_ID, TENANT.name(), TENANT.slug(), null);
 
         when(employeeRepository.findById(entity.getId())).thenReturn(Optional.of(entity));
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
         when(employeeRepository.existsByEmployeeNumberAndIdNot("EMP-0001", entity.getId())).thenReturn(false);
         when(employeeRepository.existsByEmailAndIdNot("budi.santoso@hyperdata.co.id", entity.getId()))
             .thenReturn(false);
@@ -198,7 +198,7 @@ class EmployeeServiceTest {
     void shouldThrowWhenEmployeeNumberExistsOnUpdate() {
         Employee entity = employee();
         when(employeeRepository.findById(entity.getId())).thenReturn(Optional.of(entity));
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
         when(employeeRepository.existsByEmployeeNumberAndIdNot("EMP-0001", entity.getId())).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class,
@@ -211,7 +211,7 @@ class EmployeeServiceTest {
     void shouldThrowWhenEmailExistsOnUpdate() {
         Employee entity = employee();
         when(employeeRepository.findById(entity.getId())).thenReturn(Optional.of(entity));
-        when(tenantFacade.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
+        when(tenantClient.getTenantSummary(TENANT_ID)).thenReturn(Optional.of(TENANT));
         when(employeeRepository.existsByEmployeeNumberAndIdNot("EMP-0001", entity.getId())).thenReturn(false);
         when(employeeRepository.existsByEmailAndIdNot("budi.santoso@hyperdata.co.id", entity.getId())).thenReturn(true);
 
@@ -230,7 +230,7 @@ class EmployeeServiceTest {
             "Backend Engineer", EmployeeStatus.ACTIVE, entity.getTenantId(), null);
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
-        when(tenantFacade.getTenantSummaries(Set.of(entity.getTenantId()))).thenReturn(List.of());
+        when(tenantClient.getTenantSummaries(Set.of(entity.getTenantId()))).thenReturn(List.of());
         when(employeeMapper.toListItemResponse(entity, null)).thenReturn(item);
 
         PageResponse<EmployeeListItemResponse> result = employeeService.getEmployees(
@@ -249,7 +249,7 @@ class EmployeeServiceTest {
             "Backend Engineer", EmployeeStatus.ACTIVE, entity.getTenantId(), TENANT.name());
 
         when(employeeRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
-        when(tenantFacade.getTenantSummaries(Set.of(entity.getTenantId()))).thenReturn(List.of(TENANT));
+        when(tenantClient.getTenantSummaries(Set.of(entity.getTenantId()))).thenReturn(List.of(TENANT));
         when(employeeMapper.toListItemResponse(entity, TENANT)).thenReturn(item);
 
         PageResponse<EmployeeListItemResponse> result = employeeService.getEmployees(
@@ -257,8 +257,8 @@ class EmployeeServiceTest {
 
         assertEquals(1, result.items().size());
         assertEquals("PT Hyperdata Solusindo", result.items().get(0).tenantName());
-        verify(tenantFacade, times(1)).getTenantSummaries(Set.of(entity.getTenantId()));
-        verify(tenantFacade, never()).getTenantSummary(any());
+        verify(tenantClient, times(1)).getTenantSummaries(Set.of(entity.getTenantId()));
+        verify(tenantClient, never()).getTenantSummary(any());
     }
 
     @Test
@@ -271,7 +271,7 @@ class EmployeeServiceTest {
             new EmployeeFilter(null, null, null, null, null), PageRequest.of(0, 20));
 
         assertTrue(result.items().isEmpty());
-        verify(tenantFacade, never()).getTenantSummaries(any());
+        verify(tenantClient, never()).getTenantSummaries(any());
     }
 
     @Test

@@ -3,8 +3,8 @@
 ## 1. Scope Lockdown (Strict Guardrails)
 - **NO ROGUE REFACTORING**: Do NOT rename methods, touch logic, or reformat files outside your assigned feature module without explicit user instruction.
 - **NO UNNECESSARY DEPENDENCIES**: Do NOT add new dependencies to `build.gradle.kts` unless explicitly asked.
-- **ZERO DEAD / UNUSED CODE**: Do NOT declare unused fields, variables, methods, parameters, or imports. Do NOT inject dependencies (repositories, services, facades) that are not actively used by the class.
-- **YAGNI (You Aren't Gonna Need It)**: Do NOT create premature abstractions, empty interfaces for internal services, or generic base classes with only one implementation. Use concrete service classes directly. Interfaces are strictly reserved for cross-module `Facade`.
+- **ZERO DEAD / UNUSED CODE**: Do NOT declare unused fields, variables, methods, parameters, or imports. Do NOT inject dependencies (repositories, services, clients) that are not actively used by the class.
+- **YAGNI (You Aren't Gonna Need It)**: Do NOT create premature abstractions, empty interfaces for internal services, or generic base classes with only one implementation. Use concrete service classes directly. Interfaces are strictly reserved for cross-module `Client` contract.
 
 ## 2. Branching Strategy & Git Workflow (Mandatory)
 
@@ -72,9 +72,9 @@ When verifying changes against live endpoints (`bootRun` or HTTP requests):
 - **DO kill any background process spawned by yourself during testing** immediately after verification is finished so the developer's workspace remains clean.
 - **DO verify response bodies and headers (`curl -i`)** end-to-end to confirm both HTTP status code and payload structure match expectations.
 - **DO use synthetic / dummy data** for testing and seeding to comply with personal data privacy laws (UU PDP No. 27/2022).
-- **DO use variable-based Lookups** (3 steps: `extractIds` -> `facade call` -> `Lookups.toMap`) for all in-memory cross-module data enrichment.
+- **DO use variable-based Lookups** (3 steps: `extractIds` -> `client call` -> `Lookups.toMap`) for all in-memory cross-module data enrichment.
 - **DO use Java 21 Record DTO projections** (`SELECT new com...Dto(...)`) for all repository aggregations and partial column projections.
-- **DO specify `Collection<ID>`** on Facade batch lookup methods for caller compatibility.
+- **DO specify `Collection<ID>`** on Client batch lookup methods for caller compatibility.
 - **DO ask explicit confirmation before running destructive commands** (e.g., `./scripts/db.sh fresh`, `rollback`, database drop/truncate/reset).
 
 ### DON'Ts:

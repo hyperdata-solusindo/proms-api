@@ -1,7 +1,7 @@
 package com.hyperdata.proms.common.security;
 
-import com.hyperdata.proms.module.identity.auth.facade.AuthFacade;
-import com.hyperdata.proms.module.identity.user.facade.UserFacade;
+import com.hyperdata.proms.module.identity.client.contract.AuthClient;
+import com.hyperdata.proms.module.identity.client.contract.UserClient;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,8 +22,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
-    private final AuthFacade authFacade;
-    private final UserFacade userFacade;
+    private final AuthClient authClient;
+    private final UserClient userClient;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -39,20 +39,20 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                     Long tokenId = Long.valueOf(tokenValue.substring(0, pipeIndex));
                     String plainToken = tokenValue.substring(pipeIndex + 1);
 
-                    var tokenOpt = authFacade.verifyToken(tokenId, plainToken);
+                    var tokenOpt = authClient.verifyToken(tokenId, plainToken);
                     if (tokenOpt.isPresent()) {
                         var token = tokenOpt.get();
                         UUID userId = token.userId();
                         Optional<UUID> tenantIdOpt = token.tenantId();
                         UUID tenantId = tenantIdOpt.orElse(null);
 
-                        var userOpt = userFacade.findByIdForAuth(userId);
+                        var userOpt = userClient.findByIdForAuth(userId);
                         if (userOpt.isPresent() && userOpt.get().isActive()) {
                             var user = userOpt.get();
                             String role = "member";
 
                             if (tenantIdOpt.isPresent()) {
-                                var membershipOpt = userFacade.resolveUserMembership(userId, tenantIdOpt);
+                                var membershipOpt = userClient.resolveUserMembership(userId, tenantIdOpt);
                                 if (membershipOpt.isPresent()) {
                                     role = membershipOpt.get().role();
                                 }
@@ -64,7 +64,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                             var auth = new UsernamePasswordAuthenticationToken(currentUser, null, authorities);
                             SecurityContextHolder.getContext().setAuthentication(auth);
 
-                            authFacade.recordTokenUsage(token.tokenId());
+                            authClient.recordTokenUsage(token.tokenId());
                         }
                     }
                 } catch (Exception ignored) {

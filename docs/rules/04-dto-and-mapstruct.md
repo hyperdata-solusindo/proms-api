@@ -3,7 +3,7 @@
 ## 1. Naming Suffixes
 - **`*Request`**: HTTP input received in Controller (e.g. `CreateProductRequest`, `UpdateProductRequest`).
 - **`*Response`**: HTTP output sent from Controller (e.g. `ProductDetailResponse`, `ProductListItemResponse`).
-- **`*Dto`**: Data exchanged between modules via Facade (e.g. `ProductSummaryDto`).
+- **`*Dto` / `*Response`**: Data exchanged between modules via Client Contract, located in `module.<domain>.client.dto/` (e.g. `ProductSummaryDto`, `UserResponse`).
 
 ## 2. Separate Detail vs ListItem Responses
 - **`*DetailResponse`**: Full payload for single item retrieval (`GET /api/v1/resource/{id}`).

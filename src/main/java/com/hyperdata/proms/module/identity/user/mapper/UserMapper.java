@@ -1,8 +1,8 @@
 package com.hyperdata.proms.module.identity.user.mapper;
 
+import com.hyperdata.proms.module.identity.client.dto.UserAuthDto;
 import com.hyperdata.proms.module.identity.user.dto.UserProfileDto;
 import com.hyperdata.proms.module.identity.user.entity.User;
-import com.hyperdata.proms.module.identity.user.facade.dto.UserAuthDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;

@@ -1,11 +1,11 @@
 package com.hyperdata.proms.module.sample.employee.mapper;
 
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import com.hyperdata.proms.module.sample.employee.dto.CreateEmployeeRequest;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeDetailResponse;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeListItemResponse;
 import com.hyperdata.proms.module.sample.employee.entity.Employee;
-import com.hyperdata.proms.module.sample.employee.facade.dto.EmployeeSummaryDto;
+import com.hyperdata.proms.module.sample.client.dto.EmployeeSummaryDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;

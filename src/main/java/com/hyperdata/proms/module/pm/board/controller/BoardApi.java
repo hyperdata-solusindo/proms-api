@@ -4,15 +4,15 @@ import com.hyperdata.proms.common.docs.annotation.ApiConcurrencyControl;
 import com.hyperdata.proms.common.docs.annotation.ApiResponseNotFound;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.response.RestResponse;
-import com.hyperdata.proms.module.communication.chat.facade.dto.ChatChannelSummaryDto;
+import com.hyperdata.proms.module.communication.client.dto.ChatChannelSummaryDto;
 import com.hyperdata.proms.module.pm.board.constant.BoardTab;
 import com.hyperdata.proms.module.pm.board.dto.BoardDetailResponse;
 import com.hyperdata.proms.module.pm.board.dto.BoardSummaryResponse;
 import com.hyperdata.proms.module.pm.board.dto.CreateBoardTaskRequest;
 import com.hyperdata.proms.module.pm.board.dto.UpdateBoardRequest;
-import com.hyperdata.proms.module.pm.task.facade.dto.BoardTaskFilterDto;
-import com.hyperdata.proms.module.pm.task.facade.dto.TaskCreatedDto;
-import com.hyperdata.proms.module.pm.task.facade.dto.TaskSummaryDto;
+import com.hyperdata.proms.module.pm.client.dto.BoardTaskFilterDto;
+import com.hyperdata.proms.module.pm.client.dto.TaskCreatedDto;
+import com.hyperdata.proms.module.pm.client.dto.TaskSummaryDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -48,7 +48,8 @@ public interface BoardApi {
         @Parameter(description = "Keyword pencarian nama atau board key")
         @RequestParam(value = "q", required = false)
         String q,
-        @ParameterObject @PageableDefault(size = 20)
+        @ParameterObject
+        @PageableDefault(size = 20)
         Pageable pageable);
 
     @Operation(
@@ -84,7 +85,8 @@ public interface BoardApi {
         @Parameter(description = "UUID Board", required = true)
         @PathVariable("boardId")
         UUID boardId,
-        @ParameterObject @ModelAttribute
+        @ParameterObject
+        @ModelAttribute
         BoardTaskFilterDto filter);
 
     @Operation(

@@ -1,8 +1,8 @@
 package com.hyperdata.proms.module.platform.tenant.mapper;
 
+import com.hyperdata.proms.module.platform.client.dto.TenantDetailDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import com.hyperdata.proms.module.platform.tenant.entity.Tenant;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantDetailDto;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;

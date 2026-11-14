@@ -1,6 +1,6 @@
 package com.hyperdata.proms.module.identity.user.dto;
 
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantDetailDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantDetailDto;
 import java.util.List;
 import java.util.Map;
 

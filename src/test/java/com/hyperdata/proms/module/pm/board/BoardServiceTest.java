@@ -12,10 +12,10 @@ import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.exception.StaleVersionException;
 import com.hyperdata.proms.common.response.PageResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
-import com.hyperdata.proms.module.communication.chat.facade.ChatFacade;
-import com.hyperdata.proms.module.communication.chat.facade.dto.ChatChannelSummaryDto;
-import com.hyperdata.proms.module.identity.user.facade.UserFacade;
-import com.hyperdata.proms.module.identity.user.facade.dto.UserSummaryDto;
+import com.hyperdata.proms.module.communication.client.contract.ChatClient;
+import com.hyperdata.proms.module.communication.client.dto.ChatChannelSummaryDto;
+import com.hyperdata.proms.module.identity.client.contract.UserClient;
+import com.hyperdata.proms.module.identity.client.dto.UserSummaryDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardDetailResponse;
 import com.hyperdata.proms.module.pm.board.dto.BoardMemberCountDto;
 import com.hyperdata.proms.module.pm.board.dto.BoardMemberRoleDto;
@@ -32,8 +32,8 @@ import com.hyperdata.proms.module.pm.board.repository.BoardMemberRepository;
 import com.hyperdata.proms.module.pm.board.repository.BoardRepository;
 import com.hyperdata.proms.module.pm.board.repository.WorkstreamRepository;
 import com.hyperdata.proms.module.pm.board.service.BoardService;
-import com.hyperdata.proms.module.pm.task.facade.TaskFacade;
-import com.hyperdata.proms.module.pm.task.facade.dto.TaskCreatedDto;
+import com.hyperdata.proms.module.pm.client.contract.TaskClient;
+import com.hyperdata.proms.module.pm.client.dto.TaskCreatedDto;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -75,13 +75,13 @@ class BoardServiceTest {
     private WorkstreamRepository workstreamRepository;
 
     @Mock
-    private UserFacade userFacade;
+    private UserClient userClient;
 
     @Mock
-    private TaskFacade taskFacade;
+    private TaskClient taskClient;
 
     @Mock
-    private ChatFacade chatFacade;
+    private ChatClient chatClient;
 
     @Spy
     private BoardMapper boardMapper = Mappers.getMapper(BoardMapper.class);
@@ -127,7 +127,7 @@ class BoardServiceTest {
         given(boardRepository.findAll(any(Specification.class), eq(pageable)))
             .willReturn(new PageImpl<>(List.of(board), pageable, 1));
 
-        given(userFacade.findSummariesByIds(Set.of(pmId)))
+        given(userClient.findSummariesByIds(Set.of(pmId)))
             .willReturn(List.of(new UserSummaryDto(pmId, "Fariz PM", "fariz@proms.co.id", null)));
 
         given(boardMemberRepository.countMembersGroupedByBoardIds(Set.of(boardId)))
@@ -188,7 +188,7 @@ class BoardServiceTest {
             .willReturn(List.of(col1));
         given(workstreamRepository.findActiveWorkstreamsByBoardId(boardId)).willReturn(List.of(ws1));
         given(boardMemberRepository.findByBoardId(boardId)).willReturn(List.of(member));
-        given(userFacade.findSummariesByIds(Set.of(userId)))
+        given(userClient.findSummariesByIds(Set.of(userId)))
             .willReturn(List.of(new UserSummaryDto(userId, "Alice Lead", "alice@proms.co.id", null)));
 
         BoardDetailResponse detail = boardService.getBoardDetail(boardId, currentUser);
@@ -265,7 +265,7 @@ class BoardServiceTest {
             columnId,
             workstreamId,
             Instant.now());
-        given(taskFacade.createTask(eq(boardId), any())).willReturn(createdDto);
+        given(taskClient.createTask(eq(boardId), any())).willReturn(createdDto);
 
         TaskCreatedDto result = boardService.createBoardTask(boardId, currentUser, request);
 
@@ -321,7 +321,7 @@ class BoardServiceTest {
             null,
             false,
             false);
-        given(chatFacade.listChannelsByBoardId(tenantId, boardId)).willReturn(List.of(channel));
+        given(chatClient.listChannelsByBoardId(tenantId, boardId)).willReturn(List.of(channel));
 
         List<ChatChannelSummaryDto> channels = boardService.getBoardChatChannels(boardId, currentUser);
 

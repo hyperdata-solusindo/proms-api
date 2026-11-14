@@ -1,6 +1,6 @@
 package com.hyperdata.proms.module.identity.auth.dto;
 
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Payload balasan sukses login pengguna")

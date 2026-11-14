@@ -14,8 +14,8 @@ import com.hyperdata.proms.module.identity.user.entity.User;
 import com.hyperdata.proms.module.identity.user.mapper.UserMapper;
 import com.hyperdata.proms.module.identity.user.repository.TenantMemberRepository;
 import com.hyperdata.proms.module.identity.user.repository.UserRepository;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantDetailDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantDetailDto;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,8 +47,8 @@ class UserServiceCacheIntegrationTest {
         }
 
         @Bean
-        public TenantFacade tenantFacade() {
-            return mock(TenantFacade.class);
+        public TenantClient tenantClient() {
+            return mock(TenantClient.class);
         }
 
         @Bean
@@ -60,9 +60,9 @@ class UserServiceCacheIntegrationTest {
         public UserService userService(
             UserRepository userRepository,
             TenantMemberRepository tenantMemberRepository,
-            TenantFacade tenantFacade,
+            TenantClient tenantClient,
             UserMapper userMapper) {
-            return new UserService(userRepository, tenantMemberRepository, tenantFacade, userMapper);
+            return new UserService(userRepository, tenantMemberRepository, tenantClient, userMapper);
         }
     }
 
@@ -73,7 +73,7 @@ class UserServiceCacheIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
-    private TenantFacade tenantFacade;
+    private TenantClient tenantClient;
 
     @Autowired
     private TenantMemberRepository tenantMemberRepository;
@@ -94,8 +94,8 @@ class UserServiceCacheIntegrationTest {
             tenantId, "hyperdata", "Hyperdata", "active", "Asia/Jakarta");
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(tenantFacade.getTenantDetail(tenantId)).willReturn(Optional.of(tenantDetail));
-        given(tenantFacade.getTenantFeatures(tenantId)).willReturn(Map.of("points", true));
+        given(tenantClient.getTenantDetail(tenantId)).willReturn(Optional.of(tenantDetail));
+        given(tenantClient.getTenantFeatures(tenantId)).willReturn(Map.of("points", true));
         given(tenantMemberRepository.findByUserIdAndStatus(userId, "active")).willReturn(List.of());
 
         // First call - cache miss, queries DB and populates cache
@@ -106,9 +106,9 @@ class UserServiceCacheIntegrationTest {
         MeResponse response2 = userService.getMe(currentUser);
         assertThat(response2.user().fullName()).isEqualTo("Developer User");
 
-        // Verify repository and tenantFacade were called only once
+        // Verify repository and tenantClient were called only once
         verify(userRepository, times(1)).findById(userId);
-        verify(tenantFacade, times(1)).getTenantDetail(tenantId);
+        verify(tenantClient, times(1)).getTenantDetail(tenantId);
     }
 
     @Test
@@ -132,9 +132,9 @@ class UserServiceCacheIntegrationTest {
             tenantId2, "tenant-2", "Tenant 2", "active", "Asia/Jakarta");
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(tenantFacade.getTenantDetail(tenantId1)).willReturn(Optional.of(tenantDetail1));
-        given(tenantFacade.getTenantDetail(tenantId2)).willReturn(Optional.of(tenantDetail2));
-        given(tenantFacade.getTenantFeatures(any())).willReturn(Map.of());
+        given(tenantClient.getTenantDetail(tenantId1)).willReturn(Optional.of(tenantDetail1));
+        given(tenantClient.getTenantDetail(tenantId2)).willReturn(Optional.of(tenantDetail2));
+        given(tenantClient.getTenantFeatures(any())).willReturn(Map.of());
         given(tenantMemberRepository.findByUserIdAndStatus(userId, "active")).willReturn(List.of());
 
         MeResponse r1 = userService.getMe(userTenant1);
