@@ -249,7 +249,7 @@ src/main/resources/messages/
 
 ### 7.2 Dynamic Message Resolution via `Messages.get(...)`
 - `LocalizationConfig` memuat seluruh resource bundle secara otomatis melalui pola `classpath*:messages/**/*.properties` menggunakan `ReloadableResourceBundleMessageSource`.
-- Seluruh pengambilan pesan di Controller, Service, Facade, dan Exception **WAJIB** menggunakan helper terpusat:
+- Seluruh pengambilan pesan di Controller, Service, Client Contract, dan Exception **WAJIB** menggunakan helper terpusat:
   ```java
   // Mengambil pesan sesuai header HTTP "Accept-Language" (default: id-ID, en)
   String msg = Messages.get("product.deleted.success");

@@ -35,7 +35,7 @@
 13. **Observability & Sensitive Data Masking**: All logs must follow SLF4J standards with zero plain credential leakage. Methods in Service and Client are auto-traced via OTel, and error responses attach an `X-Trace-Id` header.
 14. **Security, Multi-Tenancy & Rate Limiting Standards**: Tenant data isolation enforced via PostgreSQL Row Level Security (RLS) with session context (`SET LOCAL app.tenant_id`). Cross-tenant resource queries MUST return HTTP 404 disguise (IDOR defense). Distributed 2-Tier rate limiting (Bucket4j + Redis) enforces HTTP 429 `RATE_LIMIT_EXCEEDED`. Stateful PAT authentication uses SHA-256 and sliding window expiration (`Authorization: Bearer <id>|<plainToken>`). Cache keys for tenant data must include tenant prefix (`#tenantId + ':' + #id`). Zero secret leakage (`.env`), UU PDP compliance (synthetic dummy data only), and mandatory confirmation for destructive commands.
 15. **CI/CD, Container & Deployment Standards**: Dedicated Liquibase migration runner before app booting (`LIQUIBASE_ENABLED=false` on backend server for dynamic scaling); Production zero-downtime via Nginx Blue/Green; Staging slots via PR labels (`deploy:staging-*`); Trivy container vulnerability gate exclusively during CD deployment before pushing to GHCR; and mandatory PR template compliance (`.github/pull_request_template.md`).
-16. **Zero Magic Strings (Domain Constants & Enums)**: All status, roles, tabs, and categorical state values **MUST** be declared as centralized constants in `constant/<Feature>Status.java` or `constant/<Feature>Role.java` (`public final class` with private constructor) or Enums. Strictly FORBIDDEN to write hardcoded string literals across services, entities, clients, YAVI validators, or JPA criteria specifications.
+16. **Zero Magic Strings & Localized Messages (Messages.java)**: All status, roles, tabs, and categorical state values **MUST** be declared as centralized constants in `constant/<Feature>Status.java` or `constant/<Feature>Role.java` (`public final class` with private constructor) or Enums. All user-facing response messages and exception details **MUST** be resolved via `Messages.get("message.key", args)` supporting multi-language (i18n). Strictly FORBIDDEN to write hardcoded string literals across services, controllers, entities, clients, YAVI validators, or JPA criteria specifications.
 
 ---
 
@@ -88,6 +88,7 @@ Read the specific rule file before implementing features in that domain:
 - [13. Observability, Logging & Sensitive Data Masking Standards](docs/rules/13-observability-and-logging.md)
 - [14. Security & Multi-tenancy Standards](docs/rules/14-security-and-multi-tenancy.md)
 - [15. CI/CD, Container Hardening & Deployment Standards](docs/rules/15-ci-cd-and-deployment-standards.md)
+- [16. Zero Magic Strings, Domain Constants & Messages](docs/rules/16-zero-magic-strings-and-domain-constants.md)
 
 ---
 

@@ -9,9 +9,6 @@ on:
   push:
     branches:
       - 'release/**'
-      - 'main'
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       scope:
@@ -91,7 +88,8 @@ jobs:
               "src/main/java/**/*Filter*.java",
               "src/main/java/**/*Security*.java",
               "src/main/java/**/*Auth*.java",
-              "src/main/java/**/*Facade*.java",
+              "src/main/java/**/*Client*.java",
+              "src/main/java/**/*RateLimit*.java",
               "src/main/java/**/*Controller*.java",
               "src/main/java/**/*Repository*.java",
               "src/main/java/**/*Entity*.java",
@@ -122,20 +120,49 @@ jobs:
               except Exception as e:
                   print(f"Skipping {fpath}: {e}")
 
-          # 2. Read Cloudflare Security Audit Guidance from repository skill
-          skill_content = ""
-          skill_path = ".agents/skills/security-and-multi-tenancy/SKILL.md"
-          if os.path.exists(skill_path):
-              with open(skill_path, "r", encoding="utf-8") as sf:
-                  skill_content = sf.read()
+          # 2. Read Pure Cloudflare Security Audit Skill & Repository Security Standard
+          cf_skill_dir = ".agents/skills/cloudflare-security-audit"
+          if not os.path.exists(cf_skill_dir):
+              print("Fetching pure Cloudflare security audit skill from upstream (cloudflare/security-audit-skill)...")
+              try:
+                  os.system("git clone --depth 1 https://github.com/cloudflare/security-audit-skill.git .agents/skills/cloudflare-security-audit")
+              except Exception as e:
+                  print(f"Warning: could not clone upstream Cloudflare skill: {e}")
+
+          # Load key Cloudflare Framework instructions and companion attack classes
+          cf_skill_files = [
+              ("Framework Core", f"{cf_skill_dir}/SKILL.md", 6000),
+              ("Attack Classes Taxonomy", f"{cf_skill_dir}/ATTACK-CLASSES.md", 5000),
+              ("Data Isolation & Lifecycle", f"{cf_skill_dir}/DATA-ISOLATION-AND-LIFECYCLE.md", 4000),
+              ("Web Protocol & Auth", f"{cf_skill_dir}/WEB-PROTOCOL-AND-AUTH.md", 4000),
+              ("Resource Exhaustion & Availability", f"{cf_skill_dir}/RESOURCE-EXHAUSTION-AND-AVAILABILITY.md", 4000)
+          ]
+
+          cf_skill_content = ""
+          for title, cf_f, char_limit in cf_skill_files:
+              if os.path.exists(cf_f):
+                  try:
+                      with open(cf_f, "r", encoding="utf-8", errors="ignore") as f:
+                          cf_skill_content += f"\n\n--- [CLOUDFLARE SECURITY AUDIT: {title}] ---\n" + f.read()[:char_limit]
+                  except Exception as e:
+                      print(f"Skipping {cf_f}: {e}")
+
+          repo_skill_content = ""
+          repo_skill_path = ".agents/skills/security-and-multi-tenancy/SKILL.md"
+          if os.path.exists(repo_skill_path):
+              with open(repo_skill_path, "r", encoding="utf-8") as sf:
+                  repo_skill_content = sf.read()
 
           # 3. Construct Deep Security Evaluation Prompt
           prompt = f"""
-          Anda adalah Chief Information Security Officer (CISO) & Vulnerability Hunter enterprise yang menggunakan metodologi Cloudflare Security Audit Framework.
+          Anda adalah Chief Information Security Officer (CISO) & Vulnerability Hunter enterprise yang menggunakan metodologi murni Cloudflare Security Audit Framework (https://github.com/cloudflare/security-audit-skill).
           Lakukan audit keamanan mendalam pada codebase Java enterprise 'hyperdata-solusindo/proms-api-java'.
 
-          === METODOLOGI CLOUDFLARE SECURITY AUDIT & STANDAR MULTI-TENANCY ===
-          {skill_content}
+          === METODOLOGI MURNI CLOUDFLARE SECURITY AUDIT (https://github.com/cloudflare/security-audit-skill) ===
+          {cf_skill_content}
+
+          === STANDAR MULTI-TENANCY & ATURAN KEAMANAN REPOSITORI PROMS ===
+          {repo_skill_content}
 
           === DAFTAR BERKAS PERMUKAAN SERANGAN (ATTACK SURFACES) ===
           {json.dumps(collected_files, indent=2)}
@@ -144,16 +171,16 @@ jobs:
           {code_context}
           ====================================================================
 
-          Lakukan analisis multi-fase terhadap kategori serangan utama:
-          1. **Tenant & Object Isolation (BOLA / IDOR)**: Apakah query memvalidasi tenant ID? Apakah cache key berpotensi collision?
-          2. **Web Protocol & Authentication**: Verifikasi token/JWT, filter boundary, session fixation, timing attack.
-          3. **Resource Exhaustion & Availability (DoS)**: Unbounded queries tanpa limit/pageable, N+1 query loop.
+          Lakukan analisis multi-fase sesuai metodologi Cloudflare terhadap kategori serangan utama:
+          1. **Tenant & Object Isolation (BOLA / IDOR)**: Apakah query memvalidasi tenant ID? Apakah cross-tenant IDOR mengembalikan HTTP 404 ResourceNotFoundException (bukan 403) untuk mencegah information disclosure? Apakah cache key berpotensi collision?
+          2. **Web Protocol & Authentication**: Verifikasi Personal Access Token (PAT) format (<tokenId>|<plainToken>), hashing SHA-256, sliding window TTL, filter boundary, session fixation, timing attack.
+          3. **Resource Exhaustion & Availability (DoS / Throttling)**: Unbounded queries tanpa limit/pageable, N+1 query loop, 2-Tier Distributed Rate Limiting (Pre-auth IP tier & Post-auth Tenant/User tier via Bucket4j + Redis).
           4. **Data Privacy & Secrets (UU PDP No. 27/2022)**: Kebocoran PII pada logging, hardcoded credentials.
 
           Format laporan output dalam bahasa Indonesia dengan struktur Markdown berikut:
-          # 🛡️ Laporan Audit Keamanan Mendalam (Cloudflare Standard)
+          # 🛡️ Laporan Audit Keamanan Mendalam (Pure Cloudflare Security Audit Standard)
 
-          > **Audit Trigger**: `{trigger_event}` • **Audit Scope**: `{scope}` • **Files Analyzed**: `{len(collected_files)} core security files`
+          > **Audit Trigger**: `{trigger_event}` • **Audit Scope**: `{scope}` • **Framework**: `Cloudflare Security Audit Skill (https://github.com/cloudflare/security-audit-skill)` • **Files Analyzed**: `{len(collected_files)} core security files`
 
           ## 1. 📊 Ringkasan Postur Keamanan
           (Penilaian ringkas 2-3 kalimat mengenai ketahanan aplikasi terhadap serangan siber & kebocoran tenant).
@@ -162,9 +189,9 @@ jobs:
 
           | Attack Class | Status | Keterangan & Analisis Sumber |
           | :--- | :---: | :--- |
-          | **Tenant & Object Isolation (BOLA/IDOR)** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis kepatuhan query & cache prefix) |
-          | **Token & Authentication Boundary** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis isolasi filter & token claims) |
-          | **Resource Exhaustion & Availability** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis query boundaries & anti-N+1) |
+          | **Tenant & Object Isolation (BOLA/IDOR)** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis isolasi query, IDOR 404 disguise & cache prefix) |
+          | **Token & PAT Sliding Window Boundary** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis isolasi filter, PAT hash SHA-256 & sliding window TTL) |
+          | **Resource Exhaustion & 2-Tier Rate Limiting** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis query boundaries, anti-N+1, & Bucket4j Redis Throttling) |
           | **Secret Hygiene & Privacy (UU PDP)** | 🟢 **PASS** / 🔴 **HIGH** / 🟡 **MED** | (Analisis credentials & sanitasi data) |
 
           ## 3. 🔍 Rincian Temuan & Rekomendasi Mitigasi
@@ -252,6 +279,30 @@ jobs:
           if not audit_report:
               all_errors = "\n".join(model_errors)
               print(f"::error ::Security audit failed on all models.\n{all_errors}")
+              # Create GitHub Issue for execution failure
+              if github_token and repo:
+                  err_title = f"🚨 [Security Audit Error] Gagal Menjalankan Security Audit ({trigger_event} - {time.strftime('%Y-%m-%d')})"
+                  err_body = f"### ⚠️ Kegagalan Eksekusi Security Audit Engine\n\nWorkflow Security Audit gagal diselesaikan pada seluruh model:\n\n```text\n{all_errors}\n```"
+                  err_payload = json.dumps({
+                      "title": err_title,
+                      "body": err_body,
+                      "labels": ["security", "bug"]
+                  }).encode("utf-8")
+                  try:
+                      err_req = urllib.request.Request(
+                          f"https://api.github.com/repos/{repo}/issues",
+                          data=err_payload,
+                          headers={
+                              "Authorization": f"Bearer {github_token}",
+                              "Accept": "application/vnd.github.v3+json",
+                              "Content-Type": "application/json",
+                              "User-Agent": "PROMS-Cloudflare-Security-Auditor"
+                          }
+                      )
+                      urllib.request.urlopen(err_req, timeout=30)
+                      print("Created GitHub Issue for audit execution failure.")
+                  except Exception as e:
+                      print(f"::warning ::Failed to create error issue: {e}")
               sys.exit(1)
 
           # 5. Save report to artifact files
@@ -271,7 +322,8 @@ jobs:
 
           print("Audit artifacts created: SECURITY-REPORT.md, findings.json")
 
-          # 6. If triggered on PR with label, post comment to PR
+          # 6. Notifications & Issue Creation
+          # A. If triggered on PR with label, post comment to PR
           if is_pr and pr_number:
               gh_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
               comment_payload = json.dumps({"body": audit_report}).encode("utf-8")
@@ -290,6 +342,41 @@ jobs:
                       print("Deep security audit report posted successfully to PR!")
               except Exception as e:
                   print(f"::warning ::Failed to post audit comment to PR: {e}")
+
+          # B. If findings (Vulnerability / Critical / High / Action Required) detected outside PR, automatically create an Issue
+          has_vulnerabilities = any(keyword in audit_report for keyword in [
+              "[ACTION_REQUIRED]",
+              "🔴",
+              "**HIGH**",
+              "CRITICAL",
+              "VULNERABILITY"
+          ])
+
+          if has_vulnerabilities and not is_pr:
+              print("Vulnerability findings detected. Automatically creating a new GitHub Issue...")
+              issue_url = f"https://api.github.com/repos/{repo}/issues"
+              issue_title = f"🚨 [Security Alert] Temuan Kerentanan ({trigger_event} - {time.strftime('%Y-%m-%d')})"
+              issue_payload = json.dumps({
+                  "title": issue_title,
+                  "body": audit_report,
+                  "labels": ["security", "vulnerability"]
+              }).encode("utf-8")
+              issue_req = urllib.request.Request(
+                  issue_url,
+                  data=issue_payload,
+                  headers={
+                      "Authorization": f"Bearer {github_token}",
+                      "Accept": "application/vnd.github.v3+json",
+                      "Content-Type": "application/json",
+                      "User-Agent": "PROMS-Cloudflare-Security-Auditor"
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(issue_req, timeout=30) as resp:
+                      created_issue = json.loads(resp.read().decode("utf-8"))
+                      print(f"Successfully created GitHub Issue: {created_issue.get('html_url')}")
+              except Exception as e:
+                  print(f"::error ::Failed to create GitHub Issue: {e}")
           EOF
 
       - name: Upload Security Audit Artifacts

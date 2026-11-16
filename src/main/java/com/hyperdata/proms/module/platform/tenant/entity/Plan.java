@@ -14,7 +14,7 @@ import lombok.*;
 public class Plan {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @org.hibernate.annotations.UuidGenerator(style = org.hibernate.annotations.UuidGenerator.Style.VERSION_7)
     private UUID id;
 
     @Column(nullable = false)
