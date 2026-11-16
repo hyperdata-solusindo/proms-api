@@ -8,7 +8,7 @@ import io.github.bucket4j.BucketConfiguration;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
 import io.github.bucket4j.distributed.BucketProxy;
-import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ public class RateLimitService {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitService.class);
 
-    private final LettuceBasedProxyManager<String> proxyManager;
+    private final ProxyManager<String> proxyManager;
     private final StringRedisTemplate redisTemplate;
     private final RateLimitProperties properties;
 
