@@ -1,4 +1,4 @@
-package com.hyperdata.proms.module.pm.standup.facade.dto;
+package com.hyperdata.proms.module.pm.client.dto;
 
 import java.time.LocalTime;
 import java.util.UUID;
@@ -8,7 +8,6 @@ public record StandupPolicyDto(
     boolean enabled,
     boolean reminderEnabled,
     LocalTime reminderTime,
-    LocalTime deadlineTime,
+    LocalTime deadlinTime,
     boolean blockingBanner) {
-
 }

@@ -1,5 +1,7 @@
 package com.hyperdata.proms.module.pm.standup.mapper;
 
+import com.hyperdata.proms.module.pm.client.dto.StandupPolicyDto;
+import com.hyperdata.proms.module.pm.client.dto.StandupReportSummaryDto;
 import com.hyperdata.proms.module.pm.standup.dto.CreateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.dto.StandupDetailResponse;
 import com.hyperdata.proms.module.pm.standup.dto.StandupTodayResponse;
@@ -7,8 +9,6 @@ import com.hyperdata.proms.module.pm.standup.dto.StandupUpdateResponse;
 import com.hyperdata.proms.module.pm.standup.dto.UpdateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.entity.StandupPolicies;
 import com.hyperdata.proms.module.pm.standup.entity.StandupReports;
-import com.hyperdata.proms.module.pm.standup.facade.dto.StandupPolicyDto;
-import com.hyperdata.proms.module.pm.standup.facade.dto.StandupReportSummaryDto;
 
 import java.time.LocalDate;
 import org.mapstruct.BeanMapping;

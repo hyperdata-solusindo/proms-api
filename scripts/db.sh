@@ -36,7 +36,7 @@ if [ -f "${PROJECT_ROOT}/.env" ]; then
 fi
 
 DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5443}"
+DB_PORT="${DB_PORT:-5433}"
 DB_NAME="${DB_NAME:-app_platform}"
 DB_USER="${DB_USER:-platform_user}"
 DB_PASSWORD="${DB_PASSWORD:-platform_password}"

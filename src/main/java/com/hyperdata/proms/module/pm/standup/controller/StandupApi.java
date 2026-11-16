@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Tag(name = "Standup", description = "Manajemen laporan standup harian pengguna")
-@RequestMapping("/api/me")
+@RequestMapping("/api/v1/me")
 public interface StandupApi {
 
     @Operation(
