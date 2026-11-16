@@ -7,23 +7,50 @@ All Request and Response objects MUST be Java 21 `record`.
 - Compact constructor or static factory support
 - Clean Jackson serialization
 
-## 2. JPA Entity Standards (Lombok Rules)
-JPA Entities MUST use Lombok annotations carefully:
+## 2. JPA Entity Standards (Lombok & UUIDv7 Rules)
+JPA Entities MUST use Lombok annotations carefully and use **UUIDv7** for sequential B-tree index performance:
 ```java
 @Entity
-@Table(name = "customers")
+@Table(name = "customers", schema = "proms")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 public class Customer {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     private UUID id;
-    // ...
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        var now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 }
 ```
+
+### Primary Key (ID) Generation Standards:
+- **UUIDv7 (Mandatory for Business Entities)**: Seluruh entitas bisnis berbasis UUID **WAJIB** menggunakan `@UuidGenerator(style = UuidGenerator.Style.VERSION_7)` dari Hibernate 7 (RFC 9562 time-ordered UUID). DILARANG menggunakan `@GeneratedValue(strategy = GenerationType.UUID)` karena secara default menghasilkan UUIDv4 (acak) yang memicu fragmentasi indeks B-tree di PostgreSQL.
+- **Natural Key Exception**: Entitas konfigurasi 1-to-1 per tenant (seperti `StandupPolicies`) diperbolehkan menggunakan `@Id @Column(name = "tenant_id") private UUID tenantId;` tanpa generator.
+- **Identity BigInt Exception**: Entitas performa tinggi atau session utility (seperti `PersonalAccessToken`) diperbolehkan menggunakan `@Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;`.
+
+### Lifecycle Auditing (`@PrePersist` & `@PreUpdate`):
+- Seluruh entitas dengan kolom timestamp audit `created_at` dan `updated_at` **WAJIB** menggunakan lifecycle callback `@PrePersist` dan `@PreUpdate`.
+- DILARANG hanya mengandalkan inisialisasi inline (`private Instant updatedAt = Instant.now();`) tanpa setter/callback, karena JPA tidak akan memperbarui nilai `updatedAt` saat mutasi update, yang berakibat merusak validasi optimistik locking `ConcurrencyGuard` (`If-Match`).
 
 ### PROHIBITED on JPA Entities:
 - ❌ **NEVER use `@Data`** on JPA Entities (causes infinite `hashCode()`/`toString()` recursion on bi-directional relationships and breaks lazy loading).

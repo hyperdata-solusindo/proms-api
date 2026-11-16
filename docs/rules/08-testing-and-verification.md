@@ -26,5 +26,7 @@ void shouldThrowWhenSkuExists() {
 
 ## 3. Test Layers & Scope
 - **Service Tests**: Pure unit tests with Mockito (`@ExtendWith(MockitoExtension.class)`). Do NOT spin up Spring context.
-- **Controller Tests**: Slice tests with `@WebMvcTest(FeatureController.class)`.
-- **Repository Tests**: Use `@DataJpaTest` with embedded H2 database (`testRuntimeOnly("com.h2database:h2")`) only if testing custom complex `@Query` or JPA Specifications.
+- **Controller Tests**: Fast standalone MockMvc unit tests with `@ExtendWith(MockitoExtension.class)` using `MockMvcBuilders.standaloneSetup(controller).setControllerAdvice(new GlobalExceptionHandler()).build()`. DILARANG menggunakan `@WebMvcTest(FeatureController.class)` atau mem-boot Spring ApplicationContext penuh untuk menjaga feedback test tetap instan (< 1 detik).
+- **Cache Integration Tests**: Gunakan `@SpringJUnitConfig(classes = {TestConfig.class})` dengan nested static `@Configuration` yang meng-`@Import(CacheConfig.class)` dan me-mock repository. Ini memungkinkan verifikasi akurat `@Cacheable`, `@CacheEvict`, dan key formatting multi-tenant tanpa overhead database.
+- **Specification & Validation Tests**: Pure unit tests untuk komposisi `Specification<T>` (`<Feature>SpecsTest`) dan validasi YAVI (`<Request>ValidationTest` via `Request.validator.validate(dto)`) tanpa Spring runner.
+- **Repository Tests**: Use `@DataJpaTest` with embedded H2 database (`testRuntimeOnly("com.h2database:h2")`) only if testing custom complex `@Query` JPQL Level 2.
