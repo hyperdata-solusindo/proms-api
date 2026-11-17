@@ -6,10 +6,13 @@ import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.security.SecurityContextHelper;
 import com.hyperdata.proms.module.pm.standup.dto.CreateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.dto.StandupDetailResponse;
+import com.hyperdata.proms.module.pm.standup.dto.StandupListResponse;
 import com.hyperdata.proms.module.pm.standup.dto.StandupTodayResponse;
 import com.hyperdata.proms.module.pm.standup.dto.StandupUpdateResponse;
 import com.hyperdata.proms.module.pm.standup.dto.UpdateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.service.StandupService;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,9 +24,21 @@ public class StandupController implements StandupApi {
     private final StandupService standupService;
 
     @Override
+    public RestResponse<StandupListResponse> getStandups() {
+        CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
+        return RestResponse.ok(standupService.getStandups(currentUser), "Berhasil");
+    }
+
+    @Override
     public RestResponse<StandupTodayResponse> getToday() {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
         return RestResponse.ok(standupService.getToday(currentUser), "Berhasil");
+    }
+
+    @Override
+    public RestResponse<List<StandupDetailResponse>> getMyStandups(LocalDate from, LocalDate to) {
+        CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
+        return RestResponse.ok(standupService.getMyStandups(currentUser, from, to), "Berhasil");
     }
 
     @Override

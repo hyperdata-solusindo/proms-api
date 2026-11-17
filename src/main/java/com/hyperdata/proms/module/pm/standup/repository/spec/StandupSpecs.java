@@ -16,6 +16,11 @@ public final class StandupSpecs {
             .and(hasReportDate(reportDate));
     }
 
+    public static Specification<StandupReports> reportsForTenantOnDate(UUID tenantId, LocalDate reportDate) {
+        return hasTenantId(tenantId)
+            .and(hasReportDate(reportDate));
+    }
+
     public static Specification<StandupReports> ownedById(UUID tenantId, UUID userId, UUID id) {
         return hasTenantId(tenantId)
             .and(hasUserId(userId))

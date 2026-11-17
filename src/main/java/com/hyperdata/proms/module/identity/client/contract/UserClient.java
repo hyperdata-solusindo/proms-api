@@ -17,4 +17,6 @@ public interface UserClient {
     Optional<UserMembershipDto> resolveUserMembership(UUID userId, Optional<UUID> preferredTenantId);
 
     List<UserSummaryDto> findSummariesByIds(Collection<UUID> userIds);
+
+    List<UserSummaryDto> findActiveSummariesByTenantId(UUID tenantId);
 }

@@ -17,6 +17,8 @@ public interface TenantMemberRepository
     // Level 1: Derived query (2 simple fields)
     List<TenantMember> findByUserIdAndStatus(UUID userId, String status);
 
+    List<TenantMember> findByTenantIdAndStatus(UUID tenantId, String status);
+
     // Level 2: Explicit @Query JPQL (> 2 parameters & clear business meaning)
     @Query("""
             SELECT tm FROM TenantMember tm

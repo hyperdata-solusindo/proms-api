@@ -8,11 +8,19 @@ import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.exception.StaleVersionException;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.common.util.Lookups;
+import com.hyperdata.proms.module.identity.client.contract.UserClient;
+import com.hyperdata.proms.module.identity.client.dto.UserSummaryDto;
+import com.hyperdata.proms.module.pm.standup.constant.StandupAttendanceStatus;
 import com.hyperdata.proms.module.pm.standup.constant.StandupRequirementReason;
 import com.hyperdata.proms.module.pm.standup.dto.CreateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.dto.StandupDetailResponse;
+import com.hyperdata.proms.module.pm.standup.dto.StandupEntryResponse;
+import com.hyperdata.proms.module.pm.standup.dto.StandupListResponse;
+import com.hyperdata.proms.module.pm.standup.dto.StandupSummaryResponse;
 import com.hyperdata.proms.module.pm.standup.dto.StandupTodayResponse;
 import com.hyperdata.proms.module.pm.standup.dto.StandupUpdateResponse;
+import com.hyperdata.proms.module.pm.standup.dto.StandupUserResponse;
 import com.hyperdata.proms.module.pm.standup.dto.UpdateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.entity.StandupPolicies;
 import com.hyperdata.proms.module.pm.standup.entity.StandupReminderRuns;
@@ -30,6 +38,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,8 +58,39 @@ public class StandupService {
     private final StandupReportRepository reportsRepository;
     private final StandupReminderRunsRepository standupReminderRunsRepository;
     private final TenantClient tenantClient;
+    private final UserClient userClient;
     private final StandupMapper standupMapper;
     private final EntityManager entityManager;
+
+    public StandupListResponse getStandups(CurrentUser currentUser) {
+        UUID tenantId = currentUser.activeTenantId();
+        LocalDate today = tenantNow(tenantId, Instant.now()).toLocalDate();
+        StandupPolicies policy = findPolicy(tenantId);
+        List<StandupReports> reports = reportsRepository.findAll(StandupSpecs.reportsForTenantOnDate(tenantId, today));
+        Map<UUID, StandupReports> reportsByUserId = Lookups.toMap(reports, StandupReports::getUserId);
+        List<UserSummaryDto> users = userClient.findActiveSummariesByTenantId(tenantId)
+            .stream()
+            .sorted(Comparator.comparing(UserSummaryDto::name))
+            .toList();
+
+        List<StandupEntryResponse> entries = users.stream()
+            .map(user -> toStandupEntry(user, reportsByUserId.get(user.id()), policy.isEnabled()))
+            .toList();
+        int submitted = (int) entries.stream()
+            .filter(entry -> StandupAttendanceStatus.SUBMITTED.equals(entry.status()))
+            .count();
+        int late = (int) entries.stream()
+            .filter(entry -> entry.report() != null && entry.report().isLate())
+            .count();
+        int missing = (int) entries.stream()
+            .filter(entry -> StandupAttendanceStatus.MISSING.equals(entry.status()))
+            .count();
+        int exempt = (int) entries.stream()
+            .filter(entry -> StandupAttendanceStatus.EXEMPT.equals(entry.status()))
+            .count();
+
+        return new StandupListResponse(today, new StandupSummaryResponse(submitted, late, missing, exempt), entries);
+    }
 
     public StandupTodayResponse getToday(CurrentUser currentUser) {
         UUID tenantId = currentUser.activeTenantId();
@@ -68,6 +110,14 @@ public class StandupService {
             reason = StandupRequirementReason.ALREADY_SUBMITTED;
         }
         return standupMapper.toTodayResponse(today, required, reason, report, policy);
+    }
+
+    public List<StandupDetailResponse> getMyLateStandups(CurrentUser currentUser) {
+        return reportsRepository
+            .findLateReportsByTenantIdAndUserId(currentUser.activeTenantId(), currentUser.userId())
+            .stream()
+            .map(standupMapper::toDetailResponse)
+            .toList();
     }
 
     @Transactional
@@ -126,6 +176,48 @@ public class StandupService {
         log.info("Standup berhasil diperbarui: standupId={}, tenantId={}, userId={}",
             standupId, currentUser.activeTenantId(), currentUser.userId());
         return standupMapper.toUpdateResponse(report);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StandupDetailResponse> getMyStandups(
+        CurrentUser currentUser,
+        LocalDate from,
+        LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new BusinessException("Tanggal from tidak boleh lebih besar dari 0");
+        }
+
+        return reportsRepository
+            .findByTenantIdAndUserIdAndDateRange(
+                currentUser.activeTenantId(), currentUser.userId(), from, to)
+            .stream()
+            .map(standupMapper::toDetailResponse)
+            .toList();
+    }
+
+    private StandupEntryResponse toStandupEntry(
+        UserSummaryDto user,
+        StandupReports report,
+        boolean enabled) {
+        String status;
+        String reason = null;
+        if (report != null) {
+            status = StandupAttendanceStatus.SUBMITTED;
+        } else if (enabled) {
+            status = StandupAttendanceStatus.MISSING;
+        } else {
+            status = StandupAttendanceStatus.EXEMPT;
+            reason = StandupRequirementReason.DISABLED;
+        }
+
+        StandupDetailResponse reportResponse = report == null ? null : standupMapper.toDetailResponse(report);
+        boolean hasBlockers = report != null && report.getBlockers() != null && !report.getBlockers().isBlank();
+        return new StandupEntryResponse(
+            new StandupUserResponse(user.id(), user.name(), user.avatarUrl()),
+            status,
+            reason,
+            hasBlockers,
+            reportResponse);
     }
 
     private StandupPolicies findPolicy(UUID tenantId) {

@@ -4,13 +4,16 @@ import com.hyperdata.proms.module.identity.client.contract.UserClient;
 import com.hyperdata.proms.module.identity.client.dto.UserAuthDto;
 import com.hyperdata.proms.module.identity.client.dto.UserMembershipDto;
 import com.hyperdata.proms.module.identity.client.dto.UserSummaryDto;
+import com.hyperdata.proms.module.identity.user.constant.TenantMemberStatus;
 import com.hyperdata.proms.module.identity.user.mapper.UserMapper;
 import com.hyperdata.proms.module.identity.user.repository.TenantMemberRepository;
 import com.hyperdata.proms.module.identity.user.repository.UserRepository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +60,22 @@ public class UserClientImpl implements UserClient {
         return userRepository.findAllById(userIds)
             .stream()
             .map(u -> new UserSummaryDto(u.getId(), u.getFullName(), u.getEmail(), u.getAvatarUrl()))
+            .toList();
+    }
+
+    @Override
+    public List<UserSummaryDto> findActiveSummariesByTenantId(UUID tenantId) {
+        Set<UUID> userIds = tenantMemberRepository.findByTenantIdAndStatus(tenantId, TenantMemberStatus.ACTIVE)
+            .stream()
+            .map(member -> member.getUserId())
+            .collect(Collectors.toSet());
+        if (userIds.isEmpty()) {
+            return List.of();
+        }
+        return userRepository.findAllById(userIds)
+            .stream()
+            .filter(user -> user.isActive())
+            .map(user -> new UserSummaryDto(user.getId(), user.getFullName(), user.getEmail(), user.getAvatarUrl()))
             .toList();
     }
 }
