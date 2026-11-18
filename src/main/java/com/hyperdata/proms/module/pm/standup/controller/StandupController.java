@@ -4,6 +4,7 @@ import com.hyperdata.proms.common.exception.ValidationException;
 import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.security.SecurityContextHelper;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.pm.standup.dto.CreateStandupRequest;
 import com.hyperdata.proms.module.pm.standup.dto.StandupDetailResponse;
 import com.hyperdata.proms.module.pm.standup.dto.StandupListResponse;
@@ -26,26 +27,30 @@ public class StandupController implements StandupApi {
     @Override
     public RestResponse<StandupListResponse> getStandups() {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
-        return RestResponse.ok(standupService.getStandups(currentUser), "Berhasil");
+        return RestResponse.ok(standupService.getStandups(currentUser),
+            Messages.get("standup.list.retrieved"));
     }
 
     @Override
     public RestResponse<StandupTodayResponse> getToday() {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
-        return RestResponse.ok(standupService.getToday(currentUser), "Berhasil");
+        return RestResponse.ok(standupService.getToday(currentUser),
+            Messages.get("standup.today.retrieved"));
     }
 
     @Override
     public RestResponse<List<StandupDetailResponse>> getMyStandups(LocalDate from, LocalDate to) {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
-        return RestResponse.ok(standupService.getMyStandups(currentUser, from, to), "Berhasil");
+        return RestResponse.ok(standupService.getMyStandups(currentUser, from, to),
+            Messages.get("standup.mine.retrieved"));
     }
 
     @Override
     public RestResponse<StandupDetailResponse> createStandup(CreateStandupRequest request) {
         CreateStandupRequest.validator.validate(request).throwIfInvalid(ValidationException::new);
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
-        return RestResponse.created(standupService.createStandup(currentUser, request), "Standup terkirim");
+        return RestResponse.created(standupService.createStandup(currentUser, request),
+            Messages.get("standup.created.success"));
     }
 
     @Override
@@ -57,6 +62,6 @@ public class StandupController implements StandupApi {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
         return RestResponse.ok(
             standupService.updateStandup(currentUser, standupId, ifMatch, request),
-            "Standup diperbarui");
+            Messages.get("standup.updated.success"));
     }
 }

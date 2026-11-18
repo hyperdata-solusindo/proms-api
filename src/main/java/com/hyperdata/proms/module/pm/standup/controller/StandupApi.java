@@ -9,6 +9,7 @@ import com.hyperdata.proms.module.pm.standup.dto.StandupUpdateResponse;
 import com.hyperdata.proms.module.pm.standup.dto.UpdateStandupRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -96,6 +97,14 @@ public interface StandupApi {
             description = "Validasi gagal atau standup tidak aktif untuk tenant",
             content = @Content(schema = @Schema(implementation = RestResponse.class)))
     })
+
+    @Parameter(
+        name = "Idempotency-key",
+        in = ParameterIn.HEADER,
+        description = "UUID unik per percobaan kirim (8-128 karakter) agar request yang diulang tidak membuat data ganda (P-07)",
+        required = true,
+        schema = @Schema(type = "string", minLength = 0, maxLength = 128),
+        example = "3f2b8c1e-5a7d-4e9a-9b1c-2d4f6a8c0e12")
     @PostMapping("/me/standups")
     @ResponseStatus(HttpStatus.CREATED)
     RestResponse<StandupDetailResponse> createStandup(
