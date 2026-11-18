@@ -4,6 +4,7 @@ import com.hyperdata.proms.module.identity.client.contract.UserClient;
 import com.hyperdata.proms.module.identity.client.dto.UserAuthDto;
 import com.hyperdata.proms.module.identity.client.dto.UserMembershipDto;
 import com.hyperdata.proms.module.identity.client.dto.UserSummaryDto;
+import com.hyperdata.proms.module.identity.user.entity.TenantMember;
 import com.hyperdata.proms.module.identity.user.mapper.UserMapper;
 import com.hyperdata.proms.module.identity.user.repository.TenantMemberRepository;
 import com.hyperdata.proms.module.identity.user.repository.UserRepository;
@@ -58,5 +59,13 @@ public class UserClientImpl implements UserClient {
             .stream()
             .map(u -> new UserSummaryDto(u.getId(), u.getFullName(), u.getEmail(), u.getAvatarUrl()))
             .toList();
+    }
+
+    @Override
+    public Optional<Integer> findWeeklyCapacityMin(UUID tenantId, UUID userId) {
+        // TODO Auto-generated method stub
+        return tenantMemberRepository
+            .findMembership(userId, tenantId, "active")
+            .map(TenantMember::getWeeklyCapacityMin);
     }
 }

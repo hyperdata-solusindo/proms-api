@@ -38,6 +38,7 @@ public final class CommonErrorCode {
     // 422
     public static final String VALIDATION = "VALIDATION";
     public static final String BR_WF_09 = "BR-WF-09";
+    public static final String BR_WF_01 = "BR-FC-01";
 
     // 428
     public static final String IF_MATCH_REQUIRED = "IF_MATCH_REQUIRED";

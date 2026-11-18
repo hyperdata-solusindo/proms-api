@@ -29,6 +29,9 @@ public class TenantMember {
     @Column(nullable = false)
     private String status = "active";
 
+    @Column(name = "weekly_capacity_min", insertable = false, updatable = false)
+    private Integer weeklyCapacityMin;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
