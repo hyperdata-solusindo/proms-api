@@ -12,7 +12,7 @@ import com.hyperdata.proms.module.identity.user.dto.MeResponse;
 import com.hyperdata.proms.module.identity.user.dto.OtherTenantDto;
 import com.hyperdata.proms.module.identity.user.dto.UserProfileDto;
 import com.hyperdata.proms.module.identity.user.service.UserService;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantDetailDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantDetailDto;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -79,11 +79,17 @@ class UserControllerTest {
         mockMvc.perform(get("/me"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.statusCode").value(200))
-            .andExpect(jsonPath("$.message").value("Berhasil"))
+            .andExpect(jsonPath("$.message").value("Data profil berhasil diambil"))
             .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"))
             .andExpect(jsonPath("$.data.tenant.slug").value("hyperdata"))
             .andExpect(jsonPath("$.data.workspaceRole").value("member"))
             .andExpect(jsonPath("$.data.features.points").value(true))
             .andExpect(jsonPath("$.data.otherTenants[0].slug").value("telemedis"));
+
+        // Test backward-compatible v1 URI
+        mockMvc.perform(get("/api/v1/me"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.user.fullName").value("Fariz Keren"));
     }
 }

@@ -1,12 +1,13 @@
 package com.hyperdata.proms.common.exception;
 
+import com.hyperdata.proms.common.util.Messages;
 import org.springframework.http.HttpStatus;
 
 public class ResourceNotFoundException extends BaseException {
 
     public ResourceNotFoundException(String resourceName, Object id) {
         super(CommonErrorCode.RESOURCE_NOT_FOUND,
-            String.format("%s with identifier [%s] was not found", resourceName, id),
+            Messages.get("error.not_found.resource", resourceName, id),
             HttpStatus.NOT_FOUND);
     }
 

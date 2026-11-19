@@ -11,6 +11,8 @@
 | **API Contract Interface** | `@Tag` | `name`, `description` | Sub-fitur di dalam folder grup domain (`x-tagGroups`). |
 | **Internal / Utility Controller** | `@Hidden` | - | Menyembunyikan controller teknis dari daftar API. |
 | **Endpoint Method** | `@Operation` | `summary` (≤7 kata), `description` | Judul endpoint pada baris URL & penjelasan detail. |
+| **Concurrency Mutating Endpoint** | `@ApiConcurrencyControl` | - | Otomatis menyuntikkan header `If-Match` required dan respons error `409` (`STALE_VERSION`) & `428` (`IF_MATCH_REQUIRED`). |
+| **Not Found Status** | `@ApiResponseNotFound` | - | Otomatis mendokumentasikan respons error `404 Not Found` standar. |
 | **Domain-specific Status** | `@ApiResponses` | `responseCode`, `description`, `content` | Menampilkan skema respon sukses & error spesifik domain. |
 | **Global Error Status** | *Dikelola otomatis* | Via `OpenApiConfig` `OperationCustomizer` | Respon `400` dan `500` terpasang otomatis ke seluruh endpoint. |
 | **Domain Grouping** | *Dikelola otomatis* | Via `OpenApiConfig` (`x-tagGroups`) | Folder kategori domain 1:1 mengikuti package `<domain>`. |
@@ -18,6 +20,7 @@
 | **Public Endpoint** | `@SecurityRequirements` | Kosong (`@SecurityRequirements`) | Melepas icon gembok otorisasi pada endpoint publik. |
 | **DTO Record Class** | `@Schema` | `description` | Judul model pada tab Schemas/Models. |
 | **DTO Record Field** | `@Schema` | `description`, `example`, `requiredMode`, `format` | Mengisi otomatis form body request & contoh response. |
+| **DTO Version Field** | `@VersionEpochSchema` | - | Mengubah tampilan field `Instant version` di Scalar menjadi `integer · int64` dengan contoh Epoch Millis `1731301234000`. |
 
 ---
 
@@ -175,6 +178,69 @@ public class AuthController implements AuthApi {
     }
 }
 ```
+
+### Pattern 5: Concurrency Protected Mutating Endpoint (`@ApiConcurrencyControl`)
+> Seluruh operasi mutasi resource yang dilindungi optimistik locking **WAJIB** dianotasikan dengan `@ApiConcurrencyControl` dan `@ApiResponseNotFound` (jika resource dicari berdasarkan ID). Hindari menulis manual puluhan baris `@Parameter(name = "If-Match", ...)` dan `@ApiResponses`.
+
+```java
+package com.hyperdata.proms.module.pm.board.controller;
+
+import com.hyperdata.proms.common.docs.annotation.ApiConcurrencyControl;
+import com.hyperdata.proms.common.docs.annotation.ApiResponseNotFound;
+import com.hyperdata.proms.common.response.RestResponse;
+import com.hyperdata.proms.module.pm.board.dto.BoardDetailResponse;
+import com.hyperdata.proms.module.pm.board.dto.UpdateBoardRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import java.util.UUID;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+public interface BoardApi {
+
+    @Operation(
+        summary = "Update Informasi Board",
+        description = "Memperbarui nama dan deskripsi board dengan verifikasi concurrency optimistik melalui header If-Match.")
+    @ApiResponse(responseCode = "200", description = "Board berhasil diperbarui")
+    @ApiResponseNotFound
+    @ApiConcurrencyControl
+    @PutMapping("/{boardId}")
+    RestResponse<BoardDetailResponse> updateBoard(
+        @Parameter(description = "UUID Board", required = true)
+        @PathVariable("boardId") UUID boardId,
+        @RequestBody UpdateBoardRequest request);
+}
+```
+
+### Pattern 6: Concurrency Version Field in Response DTO (`@VersionEpochSchema`)
+> Gunakan `@VersionEpochSchema` pada field record `Instant version` agar Scalar menampilkan tipe `integer · int64` dan contoh format Epoch Milliseconds (`1731301234000`), menimpa teks generik default RFC 3339.
+
+```java
+package com.hyperdata.proms.module.pm.board.dto;
+
+import com.hyperdata.proms.common.docs.annotation.VersionEpochSchema;
+import java.time.Instant;
+import java.util.UUID;
+
+public record BoardDetailResponse(
+    UUID id,
+    String key,
+    String name,
+    String status,
+    @VersionEpochSchema
+    Instant version
+) {}
+```
+
+### DOs and DONTs Dokumentasi OpenAPI / Scalar:
+- ✅ **DO**: Selalu gunakan meta-anotasi `@ApiConcurrencyControl` pada endpoint mutasi (`PUT`/`PATCH`) untuk mendokumentasikan header `If-Match` dan status `409` (`STALE_VERSION`) serta `428` (`IF_MATCH_REQUIRED`).
+- ✅ **DO**: Selalu gunakan `@ApiResponseNotFound` pada endpoint yang mengambil atau mengubah resource by ID untuk mereduksi boilerplate deklarasi 404.
+- ✅ **DO**: Selalu gunakan `@VersionEpochSchema` pada record component bertipe `Instant version` di Response DTO.
+- ❌ **DON'T**: Jangan mendeklarasikan `@Parameter(name = "If-Match", ...)` dan `@ApiResponse(...)` secara manual/berulang pada interface method jika sudah ada `@ApiConcurrencyControl`.
+- ❌ **DON'T**: Jangan menambahkan `@ApiResponse` untuk error `400 Bad Request`, `422 Unprocessable Entity`, atau `500 Internal Server Error` di interface method karena ketiga status ini sudah diinjeksi secara global oleh `OpenApiConfig`.
+- ❌ **DON'T**: Jangan menaruh anotasi OpenAPI di class Controller (`BoardController`); seluruh metadata dokumentasi wajib berada di Contract Interface (`BoardApi`).
 
 ---
 

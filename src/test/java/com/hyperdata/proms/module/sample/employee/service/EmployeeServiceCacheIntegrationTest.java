@@ -8,8 +8,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.hyperdata.proms.common.config.CacheConfig;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import com.hyperdata.proms.module.sample.employee.dto.EmployeeDetailResponse;
 import com.hyperdata.proms.module.sample.employee.dto.UpdateEmployeeRequest;
 import com.hyperdata.proms.module.sample.employee.entity.Employee;
@@ -41,8 +41,8 @@ class EmployeeServiceCacheIntegrationTest {
         }
 
         @Bean
-        public TenantFacade tenantFacade() {
-            return mock(TenantFacade.class);
+        public TenantClient tenantClient() {
+            return mock(TenantClient.class);
         }
 
         @Bean
@@ -52,8 +52,8 @@ class EmployeeServiceCacheIntegrationTest {
 
         @Bean
         public EmployeeService employeeService(EmployeeRepository employeeRepository,
-            EmployeeMapper employeeMapper, TenantFacade tenantFacade) {
-            return new EmployeeService(employeeRepository, employeeMapper, tenantFacade);
+            EmployeeMapper employeeMapper, TenantClient tenantClient) {
+            return new EmployeeService(employeeRepository, employeeMapper, tenantClient);
         }
     }
 
@@ -64,7 +64,7 @@ class EmployeeServiceCacheIntegrationTest {
     private EmployeeRepository employeeRepository;
 
     @Autowired
-    private TenantFacade tenantFacade;
+    private TenantClient tenantClient;
 
     @Test
     @DisplayName("Given an existing employee, when getEmployeeById is called twice, then findById runs once")
@@ -86,7 +86,7 @@ class EmployeeServiceCacheIntegrationTest {
             tenantId, "hyperdata-solusindo", "PT Hyperdata Solusindo");
 
         given(employeeRepository.findById(id)).willReturn(Optional.of(employee));
-        given(tenantFacade.getTenantSummary(tenantId)).willReturn(Optional.of(tenant));
+        given(tenantClient.getTenantSummary(tenantId)).willReturn(Optional.of(tenant));
 
         EmployeeDetailResponse first = employeeService.getEmployeeById(id);
         EmployeeDetailResponse second = employeeService.getEmployeeById(id);
@@ -122,7 +122,7 @@ class EmployeeServiceCacheIntegrationTest {
             .willReturn(false);
         given(employeeRepository.existsByEmailAndIdNot("new.name@hyperdata.co.id", id))
             .willReturn(false);
-        given(tenantFacade.getTenantSummary(tenantId)).willReturn(Optional.of(tenant));
+        given(tenantClient.getTenantSummary(tenantId)).willReturn(Optional.of(tenant));
 
         employeeService.getEmployeeById(id);
         employeeService.updateEmployee(id, new UpdateEmployeeRequest(

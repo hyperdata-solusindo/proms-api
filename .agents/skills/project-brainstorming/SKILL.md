@@ -12,7 +12,7 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
    You MUST call file-reading tools (`view_file` or `client_view_file`) on the repository's directive files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `docs/rules/*`) BEFORE sending any chat message, before path classification, and before asking clarifying questions.
    DO NOT rely on assumptions, pre-training knowledge, or general framework conventions. You MUST inspect the actual file contents via tool calls on Turn 0.
 2. **NO VIOLATION IN PROPOSALS**:
-   Never propose approaches, libraries, or patterns that violate the detected project directives (e.g., entity leakage, forbidden annotations, direct cross-module service injection, raw SQL joins instead of Facade/Lookups).
+   Never propose approaches, libraries, or patterns that violate the detected project directives (e.g., entity leakage, forbidden annotations, direct cross-module service injection, raw SQL joins instead of Client/Lookups).
 3. **HUMAN APPROVAL GATE**:
    Do NOT invoke any implementation skill, write any code, scaffold any project, or create an implementation plan until you have told your human partner what you intend and they have explicitly approved it.
 </HARD-GATE>
@@ -38,7 +38,7 @@ In your very first response message to the user, display the mandatory injection
 ```markdown
 > [!NOTE]
 > **Directives Auto-Injected**: Loaded [`AGENTS.md`](file:///path/to/AGENTS.md).
-> *Core Invariants*: [e.g., Java 21 | Spring Boot | 2-Layer Modular Monolith | Facade Contract only | Record DTOs (no Entity leakage) | YAVI Validation]
+> *Core Invariants*: [e.g., Java 21 | Spring Boot | 2-Layer Modular Monolith | Client Contract only | Record DTOs (no Entity leakage) | YAVI Validation]
 ```
 
 ---
@@ -68,7 +68,7 @@ Every path ends with your human partner approving your intent before implementat
 | "This is too simple to need a design" | Simple means a short design, not no design. Two sentences in chat, then approval. |
 | "I'll call it bounded and skip the spec" | Reaching for a label to skip work IS the doubt — take the heavier path. |
 | "It's bounded and the design is obvious — I'll start while they read it" | The gate is the approval, not the design's length. Present, then stop until you hear yes. |
-| "Direct DB join across modules is much simpler here." | Directives strictly prohibit breaking modular boundaries. Design with in-memory lookup or Facade contracts instead. |
+| "Direct DB join across modules is much simpler here." | Directives strictly prohibit breaking modular boundaries. Design with in-memory lookup or Client contracts instead. |
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
 | "It grew, but I'm almost done — no need to re-classify" | Hidden complexity upgrades the path mid-task. Stop and say so. |
 
@@ -100,7 +100,7 @@ Classify first, announce the path, then create a task for each item on your path
 2. **Offer the visual companion just-in-time** — NOT upfront. The first time a question would genuinely be clearer shown than described, offer it then (its own message); on approval its browser tab opens for you.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs, recommendation, and explicit directives compliance check for each
-5. **Present design in sections** — scaled to complexity, get user approval after each section (covering architecture, facade contracts, data flow, validation, testing)
+5. **Present design in sections** — scaled to complexity, get user approval after each section (covering architecture, client contracts, data flow, validation, testing)
 6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` (do not auto-commit)
 7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
 8. **User reviews written spec** — ask user to review the spec file before proceeding
@@ -175,7 +175,7 @@ digraph project_brainstorming {
 
 ### Exploring Approaches
 - Propose 2-3 different approaches with trade-offs.
-- **Directives Compliance Check**: Explicitly verify how each approach conforms to project directives (e.g., inter-module boundary via Facade, record DTOs, query strategy). Eliminate or flag approaches that violate master rules.
+- **Directives Compliance Check**: Explicitly verify how each approach conforms to project directives (e.g., inter-module boundary via Client Contract, record DTOs, query strategy). Eliminate or flag approaches that violate master rules.
 - Present options conversationally with your recommendation and reasoning.
 - Lead with your recommended option and explain why.
 - YAGNI ruthlessly — remove unnecessary features from every approach and design.
@@ -184,11 +184,11 @@ digraph project_brainstorming {
 - Once you believe you understand what you're building, present the design.
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced.
 - Ask after each section whether it looks right so far.
-- Cover: architecture & package structure, contracts (Facade/DTO), data flow, validation rules, error handling, targeted testing.
+- Cover: architecture & package structure, contracts (Client/DTO), data flow, validation rules, error handling, targeted testing.
 - Be ready to go back and clarify if something doesn't make sense.
 
 ### Design for Isolation and Clarity
-- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces (e.g., `facade/<Feature>Facade.java`), and can be understood and tested independently.
+- Break the system into smaller units that each have one clear purpose, communicate through well-defined interfaces (e.g., `client/contract/<Feature>Client.java`), and can be understood and tested independently.
 - For each unit, answer: what does it do, how do you use it, and what does it depend on?
 - Smaller, well-bounded units are also easier to maintain and test with targeted test commands.
 
@@ -210,7 +210,7 @@ digraph project_brainstorming {
 ### Spec Self-Review
 After writing the spec document, look at it with fresh eyes:
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
-2. **Internal consistency & Directives check:** Do any sections contradict each other or violate `AGENTS.md` (e.g., entity leakage, missing Facade)?
+2. **Internal consistency & Directives check:** Do any sections contradict each other or violate `AGENTS.md` (e.g., entity leakage, missing Client Contract)?
 3. **Scope check:** Is this focused enough for a single implementation plan, or does it need decomposition?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
 

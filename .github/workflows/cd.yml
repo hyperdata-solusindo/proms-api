@@ -248,26 +248,36 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOST_PORT: ${{ vars.VPS_HOST_PORT || '8080' }}
         run: |
-          Write-Host "🚀 Deploying staging locally via Docker Compose ($env:TARGET_ENV)..."
+          $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $fullImage = "$($env:IMAGE_NAME):$($env:IMAGE_TAG)"
+          Write-Host "[DEPLOY] Deploying staging locally via Docker Compose ($($env:TARGET_ENV))..."
 
           # 1. Login ke GHCR di Docker Windows
           $env:GH_TOKEN | docker login ghcr.io -u $env:GH_ACTOR --password-stdin
 
           # 2. Pull image aplikasi staging terbaru dari GHCR
-          Write-Host "📥 Pulling latest image ($env:IMAGE_NAME:$env:IMAGE_TAG)..."
+          Write-Host "[PULL] Pulling latest image ($fullImage)..."
           docker compose -f docker-compose.staging.yml pull app
 
-          # 3. Jalankan Postgres & App menggunakan Docker Compose
-          Write-Host "🔄 Starting services via Docker Compose..."
-          docker compose -f docker-compose.staging.yml up -d --remove-orphans
+          # 3. Jalankan database Postgres terlebih dahulu
+          Write-Host "[START] Starting postgres database..."
+          docker compose -f docker-compose.staging.yml up -d postgres
 
-          # 4. Polling Health Check
-          Write-Host "🔍 Verifying Actuator Health Check on port $env:HOST_PORT..."
+          # 4. Jalankan Dedicated One-Shot Database Migration Runner
+          Write-Host "[MIGRATE] Executing dedicated one-shot database migration..."
+          docker compose -f docker-compose.staging.yml run --rm migrator
+
+          # 5. Jalankan Service App (Aman di-scale tanpa lock contention)
+          Write-Host "[START] Starting application via Docker Compose..."
+          docker compose -f docker-compose.staging.yml up -d --remove-orphans app
+
+          # 6. Polling Health Check
+          Write-Host "[CHECK] Verifying Actuator Health Check on port $($env:HOST_PORT)..."
           $healthy = $false
           for ($i = 1; $i -le 15; $i++) {
             $response = curl.exe -s "http://localhost:$($env:HOST_PORT)/actuator/health/liveness"
             if ($response -match '"status":"UP"') {
-              Write-Host "✅ Spring Boot is UP and healthy on your local machine!"
+              Write-Host "[OK] Spring Boot is UP and healthy on your local machine!"
               $healthy = $true
               break
             }
@@ -276,7 +286,7 @@ jobs:
           }
 
           if (-not $healthy) {
-            Write-Host "⚠️ Health check timed out! Dumping docker compose logs:"
+            Write-Host "[WARN] Health check timed out! Dumping docker compose logs:"
             docker compose -f docker-compose.staging.yml logs --tail 100
             exit 1
           }

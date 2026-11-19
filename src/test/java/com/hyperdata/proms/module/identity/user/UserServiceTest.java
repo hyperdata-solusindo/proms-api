@@ -11,9 +11,9 @@ import com.hyperdata.proms.module.identity.user.mapper.UserMapper;
 import com.hyperdata.proms.module.identity.user.repository.TenantMemberRepository;
 import com.hyperdata.proms.module.identity.user.repository.UserRepository;
 import com.hyperdata.proms.module.identity.user.service.UserService;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantDetailDto;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantDetailDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +37,7 @@ class UserServiceTest {
     private TenantMemberRepository tenantMemberRepository;
 
     @Mock
-    private TenantFacade tenantFacade;
+    private TenantClient tenantClient;
 
     @Spy
     private UserMapper userMapper = Mappers.getMapper(UserMapper.class);
@@ -71,10 +71,10 @@ class UserServiceTest {
         TenantSummaryDto otherSummary = new TenantSummaryDto(otherTenantId, "telemedis", "Telemedis");
 
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
-        given(tenantFacade.getTenantDetail(tenantId)).willReturn(Optional.of(tenantDetail));
-        given(tenantFacade.getTenantFeatures(tenantId)).willReturn(Map.of("points", true, "standup", true));
+        given(tenantClient.getTenantDetail(tenantId)).willReturn(Optional.of(tenantDetail));
+        given(tenantClient.getTenantFeatures(tenantId)).willReturn(Map.of("points", true, "standup", true));
         given(tenantMemberRepository.findByUserIdAndStatus(userId, "active")).willReturn(List.of(otherMember));
-        given(tenantFacade.getTenantSummaries(anyCollection())).willReturn(List.of(otherSummary));
+        given(tenantClient.getTenantSummaries(anyCollection())).willReturn(List.of(otherSummary));
 
         var response = userService.getMe(currentUser);
 

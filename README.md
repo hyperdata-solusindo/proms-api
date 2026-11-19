@@ -4,6 +4,23 @@ Spring Boot backend service untuk platform ERP.
 
 ---
 
+## Arsitektur & Blueprint Sistem (Architecture Blueprints)
+
+Repositori ini mengadopsi pola **Package-Enforced Modular Monolith** dengan panduan transisi ke microservices yang terdokumentasi lengkap dalam visual whiteboard blueprint (PDF & Web):
+
+| Dokumen Blueprint | Format | Deskripsi |
+| :---------------- | :----: | :-------- |
+| **[Spesifikasi Final Arsitektur Modular Monolith](docs/superpowers/specs/2026-11-13-proms-final-architecture-blueprint.pdf)** | PDF (A4 Landscape) | Blueprint arsitektur modular monolith `proms-api-java`, aturan batas paket, public contract `Client`, guardrail ArchUnit, dan observability. |
+| **[SOP Migrasi Feature ke Microservices](docs/superpowers/specs/2026-11-13-microservice-migration-sop-blueprint.pdf)** | PDF (A4 Landscape) | Standar operasional prosedur (SOP) migrasi end-to-end: evaluasi kesiapan 6-parameter, isolasi DB & CDC Kafka, substitusi remote client (Resilience4j), canary cutover, dan rollback instan (RTO < 60s). |
+
+> 💡 **Dokumentasi Pendukung Terkait**:
+> - Playbook Teknis SOP Migrasi: [`docs/superpowers/specs/2026-11-13-microservice-migration-sop-playbook.md`](docs/superpowers/specs/2026-11-13-microservice-migration-sop-playbook.md)
+> - Versi Interaktif Web SOP Migrasi: [`docs/superpowers/specs/2026-11-13-microservice-migration-sop-blueprint.html`](docs/superpowers/specs/2026-11-13-microservice-migration-sop-blueprint.html)
+> - Versi Interaktif Web Arsitektur: [`docs/superpowers/specs/2026-11-13-proms-final-architecture-blueprint.html`](docs/superpowers/specs/2026-11-13-proms-final-architecture-blueprint.html)
+> - Panduan Arsitektur & Batas Paket: [`docs/rules/01-architecture-and-structure.md`](docs/rules/01-architecture-and-structure.md)
+
+---
+
 ## Konfigurasi IDE & Editor (VS Code / Antigravity)
 
 Project ini telah dikonfigurasi agar ramah bagi developer yang menggunakan **VS Code** atau **Antigravity** dengan integrasi pemformatan kode (_code formatter_) otomatis yang selaras antara editor lokal dan build pipeline.
@@ -318,6 +335,90 @@ Liquibase: Update has been successful. Rows affected: 13
 
 ---
 
+## Manajemen Database & Seeder di Server (Staging & Production)
+
+Pada server Staging dan Production yang bersifat **scalable** (multi-replica container), auto-migration saat startup aplikasi dimatikan (`LIQUIBASE_ENABLED=false`) guna mencegah **database lock contention** dan kegagalan booting serentak.
+
+Sebagai gantinya, proses migrasi DDL dan seeder dijalankan sebagai **Dedicated One-Shot Runner** menggunakan fitur `profiles: ["ops"]` pada Docker Compose. Runner ini memanfaatkan image aplikasi yang sudah membawa seluruh changelog SQL, mengeksekusinya ke database, lalu container langsung keluar (*exit 0*) dan terhapus otomatis.
+
+> 💡 **Kondisi Server Minimalis (Tanpa Source Code)**:
+> Jika di server staging/production Anda hanya terdapat file `.env` dan `docker-compose.staging.yml` (atau `docker-compose.prod.yml`), Anda **tidak memerlukan file source code atau scripts tambahan**. Cukup gunakan perintah `docker compose run --rm` berikut:
+
+### 1. Menjalankan Aplikasi Biasa (Scalable)
+Perintah ini **hanya** akan menyalakan database dan backend API. Service `migrator` dan `seeder` diabaikan secara default dan tidak akan berjalan:
+
+```bash
+# Staging:
+docker compose -f docker-compose.staging.yml up -d
+
+# Production:
+docker compose -f docker-compose.prod.yml up -d
+
+# Aman di-scale ke banyak replika tanpa risiko database lock:
+docker compose -f docker-compose.staging.yml up -d --scale app=3
+```
+
+---
+
+### 2. Eksekusi Migrasi Skema (DDL) One-Shot
+Jalankan perintah ini ketika ada perubahan skema tabel sebelum container aplikasi diperbarui:
+
+```bash
+# Staging:
+docker compose -f docker-compose.staging.yml run --rm migrator
+
+# Production:
+docker compose -f docker-compose.prod.yml run --rm migrator
+```
+
+---
+
+### 3. Eksekusi Seeder Data (Master Config & Dummy)
+Seeder dipisahkan agar data konfigurasi sistem dan data pengujian dummy dapat dieksekusi secara terpisah dan aman:
+
+#### A. Seeder Konfigurasi Master (`platform.plans`, roles, dll.)
+Dapat dijalankan di Staging maupun Production:
+
+```bash
+# Staging:
+docker compose -f docker-compose.staging.yml run --rm seeder-config
+
+# Production:
+docker compose -f docker-compose.prod.yml run --rm seeder-config
+```
+
+#### B. Seeder Data Dummy Testing (Akun Admin, Member, Tenant Dummy)
+> ⚠️ **Hanya untuk Staging & Dev!** Runner `seeder-dummy` sengaja ditiadakan di `docker-compose.prod.yml` demi keamanan database produksi.
+
+```bash
+# Staging:
+docker compose -f docker-compose.staging.yml run --rm seeder-dummy
+```
+
+---
+
+### 4. Alur Standar Deployment Staging (Zero-Lock Deployment)
+
+```bash
+# Step 1: Tarik image terbaru dari GHCR
+docker compose -f docker-compose.staging.yml pull app
+
+# Step 2: Pastikan service database PostgreSQL aktif
+docker compose -f docker-compose.staging.yml up -d postgres
+
+# Step 3: Jalankan migrasi tabel sampai tuntas (exit 0)
+docker compose -f docker-compose.staging.yml run --rm migrator
+
+# Step 4 (Opsional): Jalankan seeder jika server baru pertama kali di-setup
+docker compose -f docker-compose.staging.yml run --rm seeder-config
+docker compose -f docker-compose.staging.yml run --rm seeder-dummy
+
+# Step 5: Jalankan & scale aplikasi utama
+docker compose -f docker-compose.staging.yml up -d --remove-orphans app
+```
+
+---
+
 ## Dokumentasi API Interaktif (Scalar OpenAPI)
 
 Project ini dilengkapi dokumentasi interaktif modern menggunakan **Scalar UI** yang terhubung langsung ke OpenAPI spec Springdoc:
@@ -444,6 +545,50 @@ Sebelum membuat commit atau push kode:
 # 3. Menjalankan verifikasi kualitas lengkap (Spotless + ArchUnit + Tests)
 ./gradlew check
 ```
+
+---
+
+## Panduan Git & Branching Strategy
+
+Setiap developer (maupun AI Agent) yang berkontribusi pada repositori ini **wajib mengisolasi pekerjaan ke dalam branch baru**.
+
+> ⚠️ **PENTING: Dilarang keras melakukan commit atau push langsung ke branch `main` atau `dev`!**
+
+### 1. Konvensi Penamaan Branch
+Format penamaan branch adalah: `<tipe>/<nama-deskriptif>`
+- **`feat/<nama-fitur>`**: Untuk penambahan fitur baru (contoh: `feat/endpoint-boards`, `feat/auth-google-oauth`).
+- **`fix/<nama-bug>`**: Untuk perbaikan bug atau error (contoh: `fix/unauthenticated-security-context`).
+- **`refactor/<nama-modul>`**: Untuk restrukturisasi kode tanpa mengubah behavior API (contoh: `refactor/user-facade-lookups`).
+- **`chore/<task>`**: Untuk pemeliharaan dependencies, build script, atau tooling (contoh: `chore/update-gradle`).
+- **`docs/<topik>`**: Untuk penambahan atau pembaruan dokumentasi (contoh: `docs/branching-strategy`).
+
+### 2. Alur Kerja Standar (Workflow)
+1. **Tarik perubahan terbaru di branch `dev`**:
+   ```bash
+   git checkout dev
+   git pull origin dev
+   ```
+2. **Buat branch baru untuk fitur atau perbaikan**:
+   ```bash
+   git checkout -b feat/<nama-fitur>
+   # atau untuk bugfix:
+   git checkout -b fix/<nama-bug>
+   ```
+3. **Kembangkan kode & jalankan quality check lokal**:
+   ```bash
+   ./gradlew spotlessApply
+   ./gradlew check
+   ```
+4. **Commit perubahan secara terstruktur (Conventional Commits)**:
+   ```bash
+   git commit -m "feat(board): add board detail endpoint"
+   ```
+5. **Push branch & ajukan Pull Request ke `dev`**:
+   ```bash
+   git push -u origin feat/<nama-fitur>
+   gh pr create --template .github/pull_request_template.md
+   ```
+   *Catatan: Seluruh item pada checklist Definition of Done (DoD) pada template PR wajib diverifikasi dan dicentang.*
 
 ---
 

@@ -26,6 +26,9 @@ public final class CommonErrorCode {
     public static final String BOARD_NOT_FOUND = "BOARD_NOT_FOUND";
     public static final String TASK_NOT_FOUND = "TASK_NOT_FOUND";
 
+    // 405
+    public static final String METHOD_NOT_ALLOWED = "METHOD_NOT_ALLOWED";
+
     // 409
     public static final String DUPLICATE_RESOURCE = "DUPLICATE_RESOURCE";
     public static final String STALE_VERSION = "STALE_VERSION";
@@ -38,6 +41,9 @@ public final class CommonErrorCode {
 
     // 428
     public static final String IF_MATCH_REQUIRED = "IF_MATCH_REQUIRED";
+
+    // 429
+    public static final String RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED";
 
     // 500
     public static final String INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR";

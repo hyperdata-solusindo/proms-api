@@ -44,13 +44,13 @@ Located in `src/test/java/com/hyperdata/proms/architecture/ArchitectureTest.java
 
 ArchUnit strictly enforces:
 1. Controllers do not depend on Repositories.
-2. Facades in `module.*.*.facade` must be Java interfaces.
-3. Facade implementations must reside in `*.facade.internal.*` dan carry `@Component`.
-4. Facade methods must not return JPA `@Entity` types.
+2. Client Contracts in `module.<domain>.client.contract..` must be Java interfaces.
+3. Client implementations must reside in `..client.impl..` and carry `@Component`.
+4. Client contract methods must not return JPA `@Entity` types.
 5. Controllers (excluding interfaces) must be annotated with `@RestController`.
 6. Controllers must implement their `<Feature>Api` contract interface.
 7. Services must be annotated with `@Service`.
-8. Inter-Module Boundary: Modul luar (`module` lain maupun `common`) dilarang mengakses package internal modul (`service`, `repository`, `entity`, `mapper`, `constant`, `controller`, internal `dto`, dan `facade.internal`). Komunikasi lintas modul HANYA boleh melalui `facade` dan `facade.dto`.
+8. Inter-Module Boundary: Modul luar (`module` lain maupun `common`) dilarang mengakses package internal modul (`service`, `repository`, `entity`, `mapper`, `constant`, `controller`, internal `dto`, dan `client.impl`). Komunikasi lintas domain HANYA boleh melalui `client.contract` dan `client.dto`.
 9. Field Injection Prohibition: Dilarang menggunakan field injection `@Autowired`.
 10. Entity Lombok Prohibition: JPA Entities dilarang menggunakan `@Data` (juga diblokir pada level compiler via `lombok.config`).
 11. Transactional Boundary: Dilarang menggunakan anotasi `@Transactional` pada level class maupun method di controller.
@@ -68,4 +68,19 @@ JaCoCo terintegrasi secara native di `./gradlew check` untuk memastikan setiap l
 - **Laporan Visual HTML**:
   - Dihasilkan di `build/reports/jacoco/test/html/index.html`.
   - Di-generate otomatis via `./gradlew jacocoTestReport`.
+
+## 6. Checkstyle Static Analysis Quality Gate
+Checkstyle dikonfigurasikan di [`config/checkstyle/checkstyle.xml`](../../config/checkstyle/checkstyle.xml) dan dijalankan secara otomatis pada task `./gradlew check`.
+- **Strict Zero-Tolerance**: Dikonfigurasi dengan `maxWarnings = 0` dan `maxErrors = 0`. Setiap peringatan gaya atau pelanggaran aturan Checkstyle diperlakukan sebagai kegagalan build (compile-breaking).
+- **Prohibited Inline FQCN AST Check**: Memeriksa Abstract Syntax Tree (AST) untuk melarang penggunaan nama kelas Fully Qualified (`com.hyperdata...`) di dalam tubuh class Java di luar deklarasi `package` dan `import`.
+  ```xml
+  <module name="MatchXPath">
+      <property name="query" value="//DOT[IDENT[@text='com'] and IDENT[@text='hyperdata']][not(ancestor::IMPORT)][not(ancestor::PACKAGE_DEF)]"/>
+      <message key="matchxpath.match" value="Strict No-FQCN Rule Violated: Dilarang menggunakan Fully Qualified Class Name di dalam kode. Import class secara eksplisit di header file."/>
+  </module>
+  ```
+- **Commands**:
+  - Check main & test code: `./gradlew checkstyleMain checkstyleTest`
+  - Lifecycle build check: `./gradlew check` (otomatis memicu Spotless, ArchUnit, Checkstyle, Test, dan JaCoCo).
+
 

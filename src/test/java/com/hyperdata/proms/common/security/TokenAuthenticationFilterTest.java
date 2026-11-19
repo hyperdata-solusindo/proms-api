@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.hyperdata.proms.module.identity.auth.facade.AuthFacade;
-import com.hyperdata.proms.module.identity.auth.facade.dto.VerifiedTokenDto;
-import com.hyperdata.proms.module.identity.user.facade.UserFacade;
-import com.hyperdata.proms.module.identity.user.facade.dto.UserAuthDto;
-import com.hyperdata.proms.module.identity.user.facade.dto.UserMembershipDto;
+import com.hyperdata.proms.module.identity.client.contract.AuthClient;
+import com.hyperdata.proms.module.identity.client.contract.UserClient;
+import com.hyperdata.proms.module.identity.client.dto.UserAuthDto;
+import com.hyperdata.proms.module.identity.client.dto.UserMembershipDto;
+import com.hyperdata.proms.module.identity.client.dto.VerifiedTokenDto;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
@@ -29,10 +29,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 class TokenAuthenticationFilterTest {
 
     @Mock
-    private AuthFacade authFacade;
+    private AuthClient authClient;
 
     @Mock
-    private UserFacade userFacade;
+    private UserClient userClient;
 
     @Mock
     private FilterChain filterChain;
@@ -61,9 +61,9 @@ class TokenAuthenticationFilterTest {
             true);
         UserMembershipDto membership = new UserMembershipDto(tenantId, "admin");
 
-        given(authFacade.verifyToken(1L, "validPlainToken")).willReturn(Optional.of(token));
-        given(userFacade.findByIdForAuth(userId)).willReturn(Optional.of(user));
-        given(userFacade.resolveUserMembership(userId, Optional.of(tenantId))).willReturn(Optional.of(membership));
+        given(authClient.verifyToken(1L, "validPlainToken")).willReturn(Optional.of(token));
+        given(userClient.findByIdForAuth(userId)).willReturn(Optional.of(user));
+        given(userClient.resolveUserMembership(userId, Optional.of(tenantId))).willReturn(Optional.of(membership));
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -72,7 +72,7 @@ class TokenAuthenticationFilterTest {
         assertThat(principal.email()).isEqualTo("user@hyperdata.co.id");
         assertThat(principal.workspaceRole()).isEqualTo("admin");
         assertThat(principal.tokenId()).isEqualTo(1L);
-        verify(authFacade).recordTokenUsage(1L);
+        verify(authClient).recordTokenUsage(1L);
         verify(filterChain).doFilter(request, response);
     }
 }

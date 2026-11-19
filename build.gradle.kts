@@ -1,6 +1,7 @@
 plugins {
     java
     jacoco
+    checkstyle
     id("org.springframework.boot") version "4.1.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.asciidoctor.jvm.convert") version "4.0.5"
@@ -41,6 +42,11 @@ dependencies {
 
     // Cache Provider (Caffeine L1 Cache)
     implementation("com.github.ben-manes.caffeine:caffeine")
+
+    // Redis & Distributed Rate Limiting (Bucket4j)
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("com.bucket4j:bucket4j-core:8.10.1")
+    implementation("com.bucket4j:bucket4j-redis:8.10.1")
 
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
@@ -100,6 +106,22 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
+    }
+}
+
+// Checkstyle Quality Gate Configuration
+checkstyle {
+    toolVersion = "10.12.5"
+    configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+    isIgnoreFailures = false
+    maxWarnings = 0
+    maxErrors = 0
+}
+
+tasks.withType<Checkstyle> {
+    reports {
+        xml.required.set(false)
+        html.required.set(true)
     }
 }
 

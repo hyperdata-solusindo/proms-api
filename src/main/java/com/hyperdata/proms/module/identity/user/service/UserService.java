@@ -3,6 +3,7 @@ package com.hyperdata.proms.module.identity.user.service;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.common.util.Lookups;
+import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.identity.user.constant.UserCacheNames;
 import com.hyperdata.proms.module.identity.user.dto.MeResponse;
 import com.hyperdata.proms.module.identity.user.dto.OtherTenantDto;
@@ -10,9 +11,9 @@ import com.hyperdata.proms.module.identity.user.entity.TenantMember;
 import com.hyperdata.proms.module.identity.user.mapper.UserMapper;
 import com.hyperdata.proms.module.identity.user.repository.TenantMemberRepository;
 import com.hyperdata.proms.module.identity.user.repository.UserRepository;
-import com.hyperdata.proms.module.platform.tenant.facade.TenantFacade;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantDetailDto;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantDetailDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,7 +31,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final TenantMemberRepository tenantMemberRepository;
-    private final TenantFacade tenantFacade;
+    private final TenantClient tenantClient;
     private final UserMapper userMapper;
 
     @Cacheable(
@@ -43,13 +44,13 @@ public class UserService {
 
         var user = userRepository
             .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
+            .orElseThrow(() -> new ResourceNotFoundException(Messages.get("user.error.not_found")));
 
-        TenantDetailDto tenantDetail = tenantFacade
+        TenantDetailDto tenantDetail = tenantClient
             .getTenantDetail(currentTenantId)
-            .orElseThrow(() -> new ResourceNotFoundException("Tenant tidak ditemukan"));
+            .orElseThrow(() -> new ResourceNotFoundException(Messages.get("tenant.error.not_found")));
 
-        var features = tenantFacade.getTenantFeatures(currentTenantId);
+        var features = tenantClient.getTenantFeatures(currentTenantId);
 
         List<TenantMember> allMemberships = tenantMemberRepository.findByUserIdAndStatus(userId, "active");
         List<TenantMember> otherMemberships = allMemberships.stream()
@@ -57,8 +58,8 @@ public class UserService {
             .toList();
 
         Set<UUID> otherTenantIds = Lookups.extractIds(otherMemberships, TenantMember::getTenantId);
-        Map<UUID, TenantSummaryDto> tenantSummaryMap = Lookups.loadMap(otherTenantIds, tenantFacade::getTenantSummaries,
-            TenantSummaryDto::id);
+        List<TenantSummaryDto> tenantSummaries = tenantClient.getTenantSummaries(otherTenantIds);
+        Map<UUID, TenantSummaryDto> tenantSummaryMap = Lookups.toMap(tenantSummaries, TenantSummaryDto::id);
 
         List<OtherTenantDto> otherTenants = otherMemberships.stream()
             .map(m -> tenantSummaryMap.get(m.getTenantId()))

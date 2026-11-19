@@ -4,7 +4,7 @@ import com.hyperdata.proms.module.sample.product.dto.CreateProductRequest;
 import com.hyperdata.proms.module.sample.product.dto.ProductDetailResponse;
 import com.hyperdata.proms.module.sample.product.dto.ProductListItemResponse;
 import com.hyperdata.proms.module.sample.product.entity.Product;
-import com.hyperdata.proms.module.sample.product.facade.dto.ProductSummaryDto;
+import com.hyperdata.proms.module.sample.client.dto.ProductSummaryDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;

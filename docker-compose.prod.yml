@@ -1,0 +1,143 @@
+services:
+  # ============================================================================
+  # OPTIONAL LOCAL POSTGRES FOR PROD (Hanya jika tidak memakai AWS RDS / Managed DB)
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: proms-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-app_platform}
+      POSTGRES_USER: ${DB_USER:-platform_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-platform_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-platform_user} -d ${DB_NAME:-app_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - proms-prod-net
+
+  # ============================================================================
+  # SCALABLE APPLICATION SERVER (Auto-Migrate DISABLED for safe multi-replica)
+  # ============================================================================
+  app:
+    image: ${IMAGE_NAME:-ghcr.io/hyperdata-solusindo/proms-api-java}:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-proms-api-prod}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    environment:
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-platform_user}
+      # CRITICAL: Auto-migration dinonaktifkan agar container aman di-scale tanpa lock contention
+      LIQUIBASE_ENABLED: "false"
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-platform_redis_pass}
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health/liveness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - proms-prod-net
+
+  # ============================================================================
+  # ONE-SHOT RUNNER: Dedicated Database Migrations (DDL)
+  # Profiles 'ops': Tidak akan dijalankan saat 'docker compose up -d' biasa.
+  # Jalankan: docker compose -f docker-compose.prod.yml run --rm migrator
+  # ============================================================================
+  migrator:
+    image: ${IMAGE_NAME:-ghcr.io/hyperdata-solusindo/proms-api-java}:${IMAGE_TAG:-latest}
+    profiles: ["ops"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - "--spring.main.web-application-type=none"
+      - "--spring.liquibase.enabled=true"
+      - "--spring.liquibase.change-log=classpath:db/changelog/db.changelog-master.yaml"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-platform_user}
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
+    networks:
+      - proms-prod-net
+
+  # ============================================================================
+  # ONE-SHOT RUNNER: System Config Seeder (Master Plans & System Data ONLY)
+  # CATATAN: Data dummy/test user TIDAK tersedia di file prod demi keamanan.
+  # Jalankan: docker compose -f docker-compose.prod.yml run --rm seeder-config
+  # ============================================================================
+  seeder-config:
+    image: ${IMAGE_NAME:-ghcr.io/hyperdata-solusindo/proms-api-java}:${IMAGE_TAG:-latest}
+    profiles: ["ops"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - "--spring.main.web-application-type=none"
+      - "--spring.liquibase.enabled=true"
+      - "--spring.liquibase.change-log=classpath:db/seed/db.seed-config-master.yaml"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-app_platform}
+      DB_USER: ${DB_USER:-platform_user}
+      DB_PASSWORD: ${DB_PASSWORD:-platform_password}
+      DB_APP_USER: ${DB_APP_USER:-platform_user}
+      JAVA_OPTS: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
+    networks:
+      - proms-prod-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: proms-redis-prod
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-platform_redis_pass}"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-platform_redis_pass} ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - proms-prod-net
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+
+networks:
+  proms-prod-net:
+    driver: bridge

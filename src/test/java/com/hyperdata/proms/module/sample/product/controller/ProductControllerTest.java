@@ -119,9 +119,10 @@ class ProductControllerTest {
             .param("page", "0")
             .param("size", "20"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.items[0].id").value(id.toString()))
-            .andExpect(jsonPath("$.totalElements").value(1))
-            .andExpect(jsonPath("$.page").value(0));
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.items[0].id").value(id.toString()))
+            .andExpect(jsonPath("$.data.totalElements").value(1))
+            .andExpect(jsonPath("$.data.page").value(0));
     }
 
     @Test
@@ -150,6 +151,11 @@ class ProductControllerTest {
         doNothing().when(productService).deleteProduct(id);
 
         mockMvc.perform(delete("/api/v1/products/{id}", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.message").value("Produk berhasil dihapus"));
+
+        mockMvc.perform(delete("/api/v1/products/{id}", id).header("Accept-Language", "en"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.statusCode").value(200))
             .andExpect(jsonPath("$.message").value("Product deleted successfully"));

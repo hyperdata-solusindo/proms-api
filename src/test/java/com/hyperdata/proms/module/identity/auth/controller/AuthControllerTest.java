@@ -14,7 +14,7 @@ import com.hyperdata.proms.module.identity.auth.dto.AuthUserDto;
 import com.hyperdata.proms.module.identity.auth.dto.LoginRequest;
 import com.hyperdata.proms.module.identity.auth.dto.LoginResponse;
 import com.hyperdata.proms.module.identity.auth.service.AuthService;
-import com.hyperdata.proms.module.platform.tenant.facade.dto.TenantSummaryDto;
+import com.hyperdata.proms.module.platform.client.dto.TenantSummaryDto;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -101,5 +101,26 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.data").doesNotExist());
 
         verify(authService).logout(42L);
+    }
+
+    @Test
+    @DisplayName("GIVEN v1 path WHEN POST /api/v1/auth/login THEN returns 200 with LoginResponse envelope")
+    void givenV1Path_whenLogin_thenReturns200Envelope() throws Exception {
+        LoginRequest request = new LoginRequest("fariz@hyperdata.co.id", "SecretPassword123!");
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+
+        AuthUserDto user = new AuthUserDto(userId, "Fariz Keren", "fariz@hyperdata.co.id", "id", "Asia/Jakarta");
+        TenantSummaryDto tenant = new TenantSummaryDto(tenantId, "hyperdata", "Hyperdata");
+        LoginResponse response = new LoginResponse("12|Xk9Token", "Bearer", user, tenant, "member");
+
+        given(authService.login(any(LoginRequest.class))).willReturn(response);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.token").value("12|Xk9Token"));
     }
 }

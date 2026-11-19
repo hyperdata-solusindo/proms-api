@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Whiteboard Blueprint: Spesifikasi Final Arsitektur Modular Monolith proms-api-java</title>
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
+    background-color: #f8fafc;
+    line-height: 1.4;
+    font-size: 11px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 281mm;
+    height: 194mm;
+    page-break-after: always;
+    page-break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background-color: #ffffff;
+    background-image: 
+      linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px);
+    background-size: 18px 18px;
+    border: 1px solid #cbd5e1;
+    position: relative;
+    overflow: hidden;
+  }
+  .page:last-child {
+    page-break-after: auto;
+  }
+
+  /* Header Bar */
+  .blueprint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .system-badge {
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 3px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  .blueprint-title {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+  }
+  .blueprint-subtitle {
+    font-size: 9.8px;
+    color: #475569;
+    font-weight: 500;
+  }
+  .header-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 9px;
+    color: #334155;
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+  }
+  .meta-item strong {
+    color: #0f172a;
+  }
+
+  /* Layout Grids */
+  .layout-grid-3 {
+    display: grid;
+    grid-template-columns: 1.15fr 1.35fr 1fr;
+    gap: 10px;
+    flex: 1;
+  }
+  .layout-grid-split {
+    display: grid;
+    grid-template-columns: 1.35fr 1.05fr;
+    gap: 10px;
+    flex: 1;
+  }
+
+  /* Blueprint Panels */
+  .panel {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+  .panel-title {
+    font-size: 10.8px;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .panel-tag {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+  .tag-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+  .tag-green { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .tag-red { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  .tag-amber { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+  .tag-slate { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+  /* Tree & Code with PRESERVED WHITESPACE */
+  pre.tree-node {
+    font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
+    font-size: 8.5px;
+    line-height: 1.38;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 6px 8px;
+    color: #1e293b;
+    white-space: pre;
+    overflow-x: hidden;
+    margin: 0;
+  }
+  .tree-public {
+    color: #0369a1;
+    font-weight: 700;
+  }
+  .tree-private {
+    color: #b91c1c;
+    font-weight: 600;
+  }
+  .tree-comment {
+    color: #64748b;
+    font-style: normal;
+  }
+
+  pre.code-block {
+    font-family: "JetBrains Mono", Consolas, "Courier New", monospace;
+    font-size: 8px;
+    line-height: 1.32;
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 6px 8px;
+    border-radius: 4px;
+    white-space: pre;
+    overflow-x: hidden;
+    margin: 0;
+  }
+  .code-keyword { color: #38bdf8; font-weight: 600; }
+  .code-class { color: #fde047; font-weight: 600; }
+  .code-string { color: #4ade80; }
+  .code-comment { color: #94a3b8; }
+  .code-annotation { color: #fb923c; }
+
+  /* Tables */
+  .blueprint-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.8px;
+    margin-top: 4px;
+  }
+  .blueprint-table th {
+    background: #f1f5f9;
+    color: #1e293b;
+    font-weight: 700;
+    text-align: left;
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+  }
+  .blueprint-table td {
+    padding: 4px 6px;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    vertical-align: top;
+  }
+  .blueprint-table tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+
+  /* Footer Bar */
+  .blueprint-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 4px;
+    margin-top: 6px;
+    font-size: 8.5px;
+    color: #64748b;
+  }
+  .footer-legend {
+    display: flex;
+    gap: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+  }
+  .dot-green { background: #16a34a; }
+  .dot-blue { background: #0284c7; }
+  .dot-red { background: #dc2626; }
+  .dot-slate { background: #64748b; }
+
+  svg {
+    width: 100%;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================================================================
+     HALAMAN 1: DEFINISI & PRINSIP INTI ARSITEKTUR FINAL
+     =================================================================== -->
+<div class="page" id="page-1">
+  <div class="blueprint-header">
+    <div class="header-left">
+      <span class="system-badge">FINAL ARCHITECTURE SPECIFICATION</span>
+      <div>
+        <h1 class="blueprint-title">PROMS API JAVA : SPESIFIKASI FINAL ARSITEKTUR CLIENT-CONTRACT</h1>
+        <div class="blueprint-subtitle">Arsitektur Resmi Package-Enforced Modular Monolith (Model 1) di proms-api-java</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item">Runtime: <strong>Java 21 / Spring Boot 4.x</strong></div>
+      <div class="meta-item">Build: <strong>Single Root build.gradle.kts</strong></div>
+      <div class="meta-item">Status: <strong>PRODUCTION STANDARD</strong></div>
+      <div class="meta-item">Halaman: <strong>1 dari 4 (Fondasi &amp; Prinsip Inti)</strong></div>
+    </div>
+  </div>
+
+  <div class="layout-grid-3">
+    <!-- Col 1: Prinsip Inti Arsitektur Final -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">1. Prinsip Inti Arsitektur Final</span>
+        <span class="panel-tag tag-blue">CORE INVARIANTS</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 8.8px; color: #334155;">
+        <div style="background: #f0fdf4; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #16a34a;">
+          <strong style="color: #166534;">1. Single Root Build Gradle</strong>
+          <p style="margin-top: 2px; line-height: 1.35;">
+            Seluruh domain modul dikelola di bawah 1 file <code>build.gradle.kts</code> di root project. Menghilangkan beban dependency multi-project Gradle pada tim 3 sampai 5 orang.
+          </p>
+        </div>
+
+        <div style="background: #f0fdf4; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #16a34a;">
+          <strong style="color: #166534;">2. Etalase Publik client/ Standar</strong>
+          <p style="margin-top: 2px; line-height: 1.35;">
+            Setiap modul menyediakan etalase resmi <code>client/</code> berisi interface kontrak dan Java 21 Record DTO. Modul lain dilarang mengimpor kelas internal implementasi.
+          </p>
+        </div>
+
+        <div style="background: #f0fdf4; padding: 6px 8px; border-radius: 4px; border-left: 3px solid #16a34a;">
+          <strong style="color: #166534;">3. Penegakan Batas Keras via ArchUnit</strong>
+          <p style="margin-top: 2px; line-height: 1.35;">
+            Batas antar modul dijaga secara otomatis oleh pengujian unit arsitektur pada <code>ArchitectureTest.java</code> yang berjalan di setiap kompilasi CI build.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 5px 8px; border-radius: 4px;">
+          <strong style="color: #0f172a;">4. Zero JPA Entity Leakage</strong>
+          <p style="margin-top: 2px; line-height: 1.35;">
+            Entitas JPA (<code>@Entity</code>) terkunci rapat di dalam modul. Seluruh data keluar wajib berupa Record DTO immutable yang dipetakan via MapStruct.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 2: Peta Layer Modular Monolith -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">2. Peta Layer Arsitektur Monolith</span>
+        <span class="panel-tag tag-green">LAYER BOUNDARY</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 7px; justify-content: flex-start;">
+        <!-- Layer 1: API / Web -->
+        <div style="border: 1.5px solid #0284c7; background: #f0f9ff; border-radius: 5px; padding: 6px 8px;">
+          <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 9.2px; color: #0369a1; margin-bottom: 2px;">
+            <span>LAYER 1: WEB &amp; CONTROLLER (PUBLIC API)</span>
+            <span class="panel-tag tag-blue">REST ENDPOINT</span>
+          </div>
+          <div style="font-size: 8.2px; color: #334155;">
+            Menyediakan REST endpoint untuk Web dan Mobile Client. Menerapkan YAVI input validation, penanganan error terstandar via <code>RestResponse&lt;T&gt;</code>, dan OpenAPI documentation.
+          </div>
+        </div>
+
+        <!-- ArchUnit Shield -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #0f172a; color: #ffffff; padding: 5px 8px; border-radius: 4px; font-size: 8.2px; font-weight: 700;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          ARCHUNIT ENFORCEMENT SHIELD (PEMBATAS ANTAR MODUL)
+        </div>
+
+        <!-- Layer 2: Domain Modules -->
+        <div style="border: 1.5px solid #16a34a; background: #f0fdf4; border-radius: 5px; padding: 6px 8px;">
+          <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 9.2px; color: #166534; margin-bottom: 2px;">
+            <span>LAYER 2: MODUL BISNIS OTONOM (DOMAIN MODULES)</span>
+            <span class="panel-tag tag-green">DECOUPLED DOMAINS</span>
+          </div>
+          <div style="font-size: 8.2px; color: #334155;">
+            Domain independen (<code>identity</code>, <code>pm.board</code>, <code>platform.tenant</code>). Komunikasi antar modul HANYA melalui <code>client/contract/</code> via Constructor Injection.
+          </div>
+        </div>
+
+        <!-- Layer 3: Persistence & Core -->
+        <div style="border: 1.5px solid #64748b; background: #f8fafc; border-radius: 5px; padding: 6px 8px;">
+          <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 9.2px; color: #334155; margin-bottom: 2px;">
+            <span>LAYER 3: DATA STORAGE &amp; MULTI-TENANCY RLS</span>
+            <span class="panel-tag tag-slate">POSTGRESQL &amp; REDIS</span>
+          </div>
+          <div style="font-size: 8.2px; color: #334155;">
+            PostgreSQL Row Level Security (RLS) di level engine basis data, session setting <code>app.tenant_id</code>, dan cache Redis dengan isolasi prefix tenant.
+          </div>
+        </div>
+
+        <!-- Callout Prinsip Isolasi -->
+        <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 5px 8px; font-size: 8px; color: #334155; margin-top: 3px;">
+          <strong>Prinsip Isolasi Layer:</strong> Setiap layer berkomunikasi secara strictly hierarchical. Modul di Layer 2 dilarang mengakses langsung data layer atau repositori internal modul lain.
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 3: Konvensi Penamaan Resmi -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">3. Standar Penamaan Komponen</span>
+        <span class="panel-tag tag-slate">NAMING CHEAT SHEET</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 8.5px;">
+        <table class="blueprint-table">
+          <thead>
+            <tr><th>Tipe Komponen</th><th>Standar Penamaan Baku</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Contract Interface</strong></td>
+              <td><code>&lt;Feature&gt;Client.java</code><br><span style="color: #64748b;">Contoh: UserClient, BoardClient</span></td>
+            </tr>
+            <tr>
+              <td><strong>Contract DTO</strong></td>
+              <td><code>&lt;Feature&gt;Response.java</code><br><span style="color: #64748b;">Java 21 Record publik immutable</span></td>
+            </tr>
+            <tr>
+              <td><strong>Batch DTO Request</strong></td>
+              <td><code>&lt;Feature&gt;BatchLookupRequest</code><br><span style="color: #64748b;">Query list Collection&lt;ID&gt;</span></td>
+            </tr>
+            <tr>
+              <td><strong>In-Memory Impl</strong></td>
+              <td><code>&lt;Feature&gt;ClientImpl.java</code><br><span style="color: #64748b;">@Component di client/impl/</span></td>
+            </tr>
+            <tr>
+              <td><strong>Internal Service</strong></td>
+              <td><code>&lt;Feature&gt;Service.java</code><br><span style="color: #64748b;">Khusus domain lokal</span></td>
+            </tr>
+            <tr>
+              <td><strong>JPA Entity</strong></td>
+              <td><code>&lt;Feature&gt;Entity.java</code><br><span style="color: #64748b;">Terkunci di domain/entity/</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 5px 6px; color: #92400e; font-size: 8px;">
+          <strong>Larangan Keras Penamaan</strong>: Dilarang menggunakan nama <code>Default&lt;Feature&gt;Facade</code> atau istilah <code>facade</code> pada komponen baru. Seluruh komponen antar modul menggunakan pola <code>Client</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blueprint-footer">
+    <div class="footer-legend">
+      <div class="legend-item"><span class="legend-dot dot-blue"></span> Public Client Contract</div>
+      <div class="legend-item"><span class="legend-dot dot-green"></span> In-Memory Decoupled Domain</div>
+      <div class="legend-item"><span class="legend-dot dot-red"></span> Private Internal Domain</div>
+    </div>
+    <div>Spesifikasi Arsitektur: Package-Enforced Modular Monolith (Model 1)</div>
+    <div>Halaman 1 / 4</div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     HALAMAN 2: STANDAR STRUKTUR FOLDER RESMI PROMIS-API-JAVA
+     =================================================================== -->
+<div class="page" id="page-2">
+  <div class="blueprint-header">
+    <div class="header-left">
+      <span class="system-badge">STRUKTUR FOLDER RESMI</span>
+      <div>
+        <h1 class="blueprint-title">STANDAR STRUKTUR FOLDER PROJECT &amp; ANATOMI DIREKTORI MODUL</h1>
+        <div class="blueprint-subtitle">Pemisahan 3-Folder client/ (Etalase Publik) dan Hierarki Internal Domain &lt;feature&gt;/</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item">Root Package: <strong>com.hyperdata.proms.module.&lt;domain&gt;</strong></div>
+      <div class="meta-item">DTO: <strong>Java 21 Records</strong></div>
+      <div class="meta-item">Halaman: <strong>2 dari 4 (Struktur Folder)</strong></div>
+    </div>
+  </div>
+
+  <div class="layout-grid-split">
+    <!-- Kolom Kiri: Pohon Struktur Direktori Lengkap -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">1. Pohon Direktori Standar Per Modul Domain</span>
+        <span class="panel-tag tag-blue">HIERARKI RESMI</span>
+      </div>
+
+      <pre class="tree-node" style="flex: 1;">com.hyperdata.proms.module.&lt;domain&gt;/
+│
+├── <span class="tree-public">client/</span>                                   <span class="tree-comment">// [ETALASE PUBLIK / PUBLIC SDK]</span>
+│   ├── <span class="tree-public">contract/</span>                             <span class="tree-comment">// SATU-SATUNYA KONTRAK YANG BOLEH DI-IMPORT MODUL LAIN</span>
+│   │   ├── <span class="tree-public">&lt;Feature&gt;Client.java</span>              <span class="tree-comment">// Java Interface Publik murni</span>
+│   │   └── <span class="tree-public">&lt;Feature2&gt;Client.java</span>             <span class="tree-comment">// Contoh: UserClient, BoardClient, TenantClient</span>
+│   │
+│   ├── <span class="tree-public">dto/</span>                                  <span class="tree-comment">// DATA CONTRACT OBJECTS (IMMUTABLE VALUE OBJECTS)</span>
+│   │   ├── <span class="tree-public">&lt;Feature&gt;Response.java</span>            <span class="tree-comment">// Java 21 Record (Payload data publik)</span>
+│   │   ├── <span class="tree-public">&lt;Feature&gt;BatchLookupRequest.java</span>  <span class="tree-comment">// Java 21 Record untuk query Collection&lt;ID&gt;</span>
+│   │   └── <span class="tree-public">&lt;Feature&gt;SummaryDto.java</span>          <span class="tree-comment">// Java 21 Record ringkasan</span>
+│   │
+│   └── <span class="tree-private">impl/</span>                                 <span class="tree-comment">// IMPLEMENTASI IN-MEMORY PRIVAT</span>
+│       ├── <span class="tree-private">&lt;Feature&gt;ClientImpl.java</span>          <span class="tree-comment">// @Component internal: implements &lt;Feature&gt;Client</span>
+│       └── <span class="tree-private">&lt;Feature2&gt;ClientImpl.java</span>         <span class="tree-comment">// In-memory provider memanggil service lokal</span>
+│
+└── <span class="tree-private">&lt;feature&gt;/</span>                                <span class="tree-comment">// [DOMAIN PRIVAT INTERNAL TERKUNCI]</span>
+    ├── <span class="tree-private">constant/</span>                             <span class="tree-comment">// Domain Enums dan konstanta bisnis lokal</span>
+    ├── <span class="tree-private">controller/</span>                           <span class="tree-comment">// REST Controller untuk klien luar (Web, Mobile)</span>
+    ├── <span class="tree-private">service/</span>                              <span class="tree-comment">// Core Business Logic Service internal domain</span>
+    ├── <span class="tree-private">repository/</span>                           <span class="tree-comment">// Spring Data JPA Repositories (@Query Level 2)</span>
+    ├── <span class="tree-private">entity/</span>                               <span class="tree-comment">// JPA Entities (@Entity, @Table) - DILARANG BOCOR</span>
+    ├── <span class="tree-private">mapper/</span>                               <span class="tree-comment">// MapStruct Mappers (Entity ke Record DTO)</span>
+    └── <span class="tree-private">dto/</span>                                  <span class="tree-comment">// Internal Request/Response DTO khusus controller</span></pre>
+
+      <div style="margin-top: 6px; font-size: 8.5px; color: #475569; background: #fffbeb; padding: 4px 6px; border-radius: 4px; border: 1px solid #fde68a;">
+        <strong>Peraturan Batas Paket</strong>: Modul lain HANYA boleh mengimpor dari <code>client.contract.*</code> dan <code>client.dto.*</code>. Pemanggilan ke <code>client.impl.*</code> atau paket internal domain akan digagalkan langsung oleh ArchUnit saat build pipeline.
+      </div>
+    </div>
+
+    <!-- Kolom Kanan: Pembedahan Peran Folder Sub-Modul -->
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">2. Peran Folder Etalase Publik (client/)</span>
+          <span class="panel-tag tag-green">AKSES TERBUKA</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 8.8px; color: #334155;">
+          <div style="border-left: 3px solid #0284c7; padding: 4px 6px; background: #f0f9ff; border-radius: 0 4px 4px 0;">
+            <strong style="color: #0369a1;">client/contract/</strong>: Interface Java publik murni. Bebas dari Spring annotation bisnis dan bebas JPA. Menjadi kontrak resmi yang di-injeksi modul lain.
+          </div>
+          <div style="border-left: 3px solid #0284c7; padding: 4px 6px; background: #f0f9ff; border-radius: 0 4px 4px 0;">
+            <strong style="color: #0369a1;">client/dto/</strong>: Java 21 Record DTO. Bersifat immutable, serializable, dan hanya membawa data primitif atau value object aman lintas modul.
+          </div>
+          <div style="border-left: 3px solid #64748b; padding: 4px 6px; background: #f8fafc; border-radius: 0 4px 4px 0;">
+            <strong style="color: #334155;">client/impl/</strong>: Class <code>@Component</code> privat. Mengimplementasikan method interface contract dengan memanggil service internal domain.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex: 1;">
+        <div class="panel-header">
+          <span class="panel-title">3. Peran Folder Domain Privat (&lt;feature&gt;/)</span>
+          <span class="panel-tag tag-red">TERKUNCI RAPAT</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 8.5px; color: #334155;">
+          <div style="border-left: 3px solid #dc2626; padding: 3px 6px; background: #fff5f5; border-radius: 0 4px 4px 0;">
+            <strong style="color: #991b1b;">entity/ (JPA Entities)</strong>: Dilarang keras keluar dari package domain. Tidak boleh dikembalikan ke modul lain.
+          </div>
+          <div style="border-left: 3px solid #dc2626; padding: 3px 6px; background: #fff5f5; border-radius: 0 4px 4px 0;">
+            <strong style="color: #991b1b;">repository/ (Spring Data JPA)</strong>: Hanya dipanggil oleh service di domain lokal. Dilarang query langsung dari modul pemanggil.
+          </div>
+          <div style="border-left: 3px solid #dc2626; padding: 3px 6px; background: #fff5f5; border-radius: 0 4px 4px 0;">
+            <strong style="color: #991b1b;">service/ (Core Business Logic)</strong>: Eksekusi proses bisnis internal domain. Akses dari luar wajib melalui <code>client/contract/</code>.
+          </div>
+          <div style="border-left: 3px solid #16a34a; padding: 3px 6px; background: #f0fdf4; border-radius: 0 4px 4px 0;">
+            <strong style="color: #166534;">mapper/ (MapStruct)</strong>: Mengonversi Entity JPA internal menjadi Record DTO pada <code>client/dto/</code> secara single-pass.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blueprint-footer">
+    <div class="footer-legend">
+      <div class="legend-item"><span class="legend-dot dot-green"></span> client/contract &amp; client/dto (Boleh di-import)</div>
+      <div class="legend-item"><span class="legend-dot dot-red"></span> client/impl &amp; &lt;feature&gt;/* (Dilarang di-import)</div>
+    </div>
+    <div>Hierarki Paket: com.hyperdata.proms.module.&lt;domain&gt;.*</div>
+    <div>Halaman 2 / 4</div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     HALAMAN 3: MATRIKS HAK AKSES, INTERAKSI IN-MEMORY & CONTOH KODE
+     =================================================================== -->
+<div class="page" id="page-3">
+  <div class="blueprint-header">
+    <div class="header-left">
+      <span class="system-badge">INTERAKSI MODUL</span>
+      <div>
+        <h1 class="blueprint-title">MATRIKS HAK AKSES ANTAR-MODUL &amp; ALUR INTERAKSI IN-MEMORY</h1>
+        <div class="blueprint-subtitle">Constructor Injection Murni melalui Interface Kontrak dan Proteksi Zero Entity Leakage</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item">Pola Injeksi: <strong>Constructor Injection</strong></div>
+      <div class="meta-item">Entity Protection: <strong>Zero JPA Leakage</strong></div>
+      <div class="meta-item">Halaman: <strong>3 dari 4 (Hak Akses &amp; Kode)</strong></div>
+    </div>
+  </div>
+
+  <div class="layout-grid-split">
+    <!-- Kiri: Matriks Hak Akses & Alur In-Memory -->
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">1. Matriks Hak Akses Antar Modul (Cross-Domain Policy)</span>
+          <span class="panel-tag tag-blue">POLISI PAKET</span>
+        </div>
+
+        <table class="blueprint-table">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Modul Pemanggil (Consumer)</th>
+              <th style="width: 32%;">Target Package Modul Lain</th>
+              <th style="width: 15%; text-align: center;">Status</th>
+              <th style="width: 25%;">Tindakan Pelanggaran</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>module.&lt;caller&gt;..*</code></td>
+              <td><code>module.&lt;target&gt;.client.contract.*</code></td>
+              <td style="text-align: center; color: #15803d; font-weight: 700; background: #f0fdf4;">DIIZINKAN</td>
+              <td>Legal via Constructor Injection</td>
+            </tr>
+            <tr>
+              <td><code>module.&lt;caller&gt;..*</code></td>
+              <td><code>module.&lt;target&gt;.client.dto.*</code></td>
+              <td style="text-align: center; color: #15803d; font-weight: 700; background: #f0fdf4;">DIIZINKAN</td>
+              <td>Legal sebagai Value Object Record</td>
+            </tr>
+            <tr>
+              <td><code>module.&lt;caller&gt;..*</code></td>
+              <td><code>module.&lt;target&gt;.client.impl.*</code></td>
+              <td style="text-align: center; color: #b91c1c; font-weight: 700; background: #fef2f2;">DILARANG</td>
+              <td>ArchUnit Fail: Akses class privat impl</td>
+            </tr>
+            <tr>
+              <td><code>module.&lt;caller&gt;..*</code></td>
+              <td><code>module.&lt;target&gt;.&lt;feature&gt;.service.*</code></td>
+              <td style="text-align: center; color: #b91c1c; font-weight: 700; background: #fef2f2;">DILARANG</td>
+              <td>ArchUnit Fail: Bypass etalase kontrak</td>
+            </tr>
+            <tr>
+              <td><code>module.&lt;caller&gt;..*</code></td>
+              <td><code>module.&lt;target&gt;.&lt;feature&gt;.repository.*</code></td>
+              <td style="text-align: center; color: #b91c1c; font-weight: 700; background: #fef2f2;">DILARANG</td>
+              <td>ArchUnit Fail: Akses layer data modul lain</td>
+            </tr>
+            <tr>
+              <td><code>module.&lt;caller&gt;..*</code></td>
+              <td><code>module.&lt;target&gt;.&lt;feature&gt;.entity.*</code></td>
+              <td style="text-align: center; color: #b91c1c; font-weight: 700; background: #fef2f2;">DILARANG</td>
+              <td>ArchUnit Fail: Kebocoran JPA Entity</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Diagram Alur In-Memory -->
+      <div class="panel" style="flex: 1;">
+        <div class="panel-header">
+          <span class="panel-title">2. Alur Eksekusi In-Memory (Board ke Identity Module)</span>
+          <span class="panel-tag tag-green">IN-MEMORY FLOW</span>
+        </div>
+
+        <svg viewBox="0 0 540 85" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; margin-top: 2px;">
+          <rect x="10" y="15" width="105" height="55" rx="4" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+          <text x="62" y="32" font-size="8.5" font-weight="700" fill="#065f46" text-anchor="middle">BoardService</text>
+          <text x="62" y="45" font-size="7.5" fill="#047857" text-anchor="middle">(module.pm.board)</text>
+          <text x="62" y="58" font-size="7" fill="#64748b" text-anchor="middle">Injects UserClient</text>
+
+          <path d="M 115 42 L 145 42" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arr-p3)"/>
+          <text x="130" y="36" font-size="7" fill="#0369a1" text-anchor="middle">call</text>
+
+          <rect x="150" y="15" width="105" height="55" rx="4" fill="#f0f9ff" stroke="#0284c7" stroke-width="1.5"/>
+          <text x="202" y="32" font-size="8" font-weight="700" fill="#0369a1" text-anchor="middle">&lt;&lt;interface&gt;&gt;</text>
+          <text x="202" y="44" font-size="8.5" font-weight="700" fill="#0c4a6e" text-anchor="middle">UserClient</text>
+          <text x="202" y="58" font-size="7" fill="#0369a1" text-anchor="middle">client/contract/</text>
+
+          <path d="M 255 42 L 285 42" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arr-p3)"/>
+          <text x="270" y="36" font-size="7" fill="#64748b" text-anchor="middle">Spring DI</text>
+
+          <rect x="290" y="15" width="110" height="55" rx="4" fill="#ffffff" stroke="#0f172a" stroke-width="1.5"/>
+          <text x="345" y="30" font-size="8" font-weight="700" fill="#0f172a" text-anchor="middle">@Component</text>
+          <text x="345" y="43" font-size="8.5" font-weight="700" fill="#0f172a" text-anchor="middle">UserClientImpl</text>
+          <text x="345" y="57" font-size="7" fill="#64748b" text-anchor="middle">client/impl/ (Privat)</text>
+
+          <path d="M 400 42 L 430 42" stroke="#b91c1c" stroke-width="1.5" marker-end="url(#arr-p3)"/>
+          <text x="415" y="36" font-size="7" fill="#b91c1c" text-anchor="middle">internal</text>
+
+          <rect x="435" y="15" width="95" height="55" rx="4" fill="#fef2f2" stroke="#b91c1c" stroke-width="1.5"/>
+          <text x="482" y="32" font-size="8.5" font-weight="700" fill="#991b1b" text-anchor="middle">UserService</text>
+          <text x="482" y="45" font-size="7.5" fill="#b91c1c" text-anchor="middle">&amp; UserRepository</text>
+          <text x="482" y="58" font-size="7" fill="#64748b" text-anchor="middle">identity.user internal</text>
+
+          <defs>
+            <marker id="arr-p3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#0f172a"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Kanan: Preview Kode Rapi dan Terstruktur -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">3. Contoh Bentuk Kode Kontrak &amp; DTO</span>
+        <span class="panel-tag tag-blue">JAVA 21 SAMPLE</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 8.5px;">
+        <!-- Code 1: Interface Contract -->
+        <div>
+          <div style="font-weight: 700; color: #0369a1; font-size: 8.5px; margin-bottom: 2px;">
+            client/contract/UserClient.java (Interface Kontrak Publik)
+          </div>
+          <pre class="code-block"><span class="code-keyword">package</span> com.hyperdata.proms.module.identity.client.contract;
+
+<span class="code-keyword">import</span> com.hyperdata.proms.module.identity.client.dto.*;
+<span class="code-keyword">import</span> java.util.*;
+
+<span class="code-keyword">public interface</span> <span class="code-class">UserClient</span> {
+    <span class="code-class">Optional</span>&lt;<span class="code-class">UserResponse</span>&gt; <span class="code-keyword">findById</span>(<span class="code-class">UUID</span> userId);
+    <span class="code-class">List</span>&lt;<span class="code-class">UserResponse</span>&gt; <span class="code-keyword">findBatchByIds</span>(<span class="code-class">Collection</span>&lt;<span class="code-class">UUID</span>&gt; userIds);
+    <span class="code-keyword">boolean</span> <span class="code-keyword">existsById</span>(<span class="code-class">UUID</span> userId);
+}</pre>
+        </div>
+
+        <!-- Code 2: DTO Record -->
+        <div>
+          <div style="font-weight: 700; color: #0369a1; font-size: 8.5px; margin-bottom: 2px;">
+            client/dto/UserResponse.java (Java 21 Immutable Record)
+          </div>
+          <pre class="code-block"><span class="code-keyword">package</span> com.hyperdata.proms.module.identity.client.dto;
+
+<span class="code-keyword">import</span> java.util.UUID;
+
+<span class="code-comment">// Record murni: Bebas JPA annotation, immutable, thread-safe</span>
+<span class="code-keyword">public record</span> <span class="code-class">UserResponse</span>(
+    <span class="code-class">UUID</span> id,
+    <span class="code-class">String</span> username,
+    <span class="code-class">String</span> email,
+    <span class="code-class">String</span> fullName,
+    <span class="code-class">String</span> status
+) {}</pre>
+        </div>
+
+        <!-- Callout Batch Lookup -->
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 5px 6px; color: #92400e; font-size: 8px;">
+          <strong>Pola Batch Lookup (Anti-N+1)</strong>: Interface kontrak wajib menyediakan method batch <code>Collection&lt;UUID&gt;</code> untuk meredam pemanggilan berulang (query loop) saat memproses daftar data relasi.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blueprint-footer">
+    <div class="footer-legend">
+      <div class="legend-item"><span class="legend-dot dot-green"></span> In-Memory Decoupled Call</div>
+      <div class="legend-item"><span class="legend-dot dot-blue"></span> Java 21 Immutable Record DTO</div>
+      <div class="legend-item"><span class="legend-dot dot-red"></span> Zero JPA Entity Leakage</div>
+    </div>
+    <div>Mekanisme: Spring IoC In-Memory Bean Resolution</div>
+    <div>Halaman 3 / 4</div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     HALAMAN 4: PENEGAKAN ARCHUNIT & SECURITY / MULTI-TENANCY
+     =================================================================== -->
+<div class="page" id="page-4">
+  <div class="blueprint-header">
+    <div class="header-left">
+      <span class="system-badge">ARCHUNIT &amp; SECURITY</span>
+      <div>
+        <h1 class="blueprint-title">PENEGAKAN ARCHUNIT &amp; ARSITEKTUR KEAMANAN MULTI-TENANCY</h1>
+        <div class="blueprint-subtitle">Automated Architectural Guardrails, PostgreSQL RLS &amp; Standar Isolasi Tenant</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item">Test Engine: <strong>ArchUnit 1.3.x</strong></div>
+      <div class="meta-item">Isolation: <strong>PostgreSQL RLS &amp; Redis</strong></div>
+      <div class="meta-item">Halaman: <strong>4 dari 4 (Guardrails &amp; Security)</strong></div>
+    </div>
+  </div>
+
+  <div class="layout-grid-split">
+    <!-- Kiri: 4 ArchUnit Rules Rapi -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">1. Empat Aturan ArchUnit Penjaga Batas Struktur</span>
+        <span class="panel-tag tag-green">AUTOMATED TESTS</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <!-- Rule 1 -->
+        <div>
+          <div style="font-size: 8px; font-weight: 700; color: #0369a1; margin-bottom: 1px;">
+            RULE 1: KONTRAK CLIENT WAJIB BERUPA INTERFACE
+          </div>
+          <pre class="code-block"><span class="code-annotation">@ArchTest</span>
+<span class="code-keyword">static final</span> <span class="code-class">ArchRule</span> client_contracts_must_be_interfaces = <span class="code-keyword">classes</span>()
+    .<span class="code-keyword">that</span>().<span class="code-keyword">resideInAPackage</span>(<span class="code-string">"com.hyperdata.proms.module..client.contract.."</span>)
+    .<span class="code-keyword">should</span>().<span class="code-keyword">beInterfaces</span>();</pre>
+        </div>
+
+        <!-- Rule 2 -->
+        <div>
+          <div style="font-size: 8px; font-weight: 700; color: #0369a1; margin-bottom: 1px;">
+            RULE 2: IMPLEMENTASI CLIENT WAJIB DI IMPL &amp; BERANOTASI @COMPONENT
+          </div>
+          <pre class="code-block"><span class="code-annotation">@ArchTest</span>
+<span class="code-keyword">static final</span> <span class="code-class">ArchRule</span> client_implementations_must_reside_in_impl = <span class="code-keyword">classes</span>()
+    .<span class="code-keyword">that</span>().<span class="code-keyword">resideInAPackage</span>(<span class="code-string">"com.hyperdata.proms.module..client.impl.."</span>)
+    .<span class="code-keyword">should</span>().<span class="code-keyword">beAnnotatedWith</span>(<span class="code-class">Component</span>.<span class="code-keyword">class</span>);</pre>
+        </div>
+
+        <!-- Rule 3 -->
+        <div>
+          <div style="font-size: 8px; font-weight: 700; color: #b91c1c; margin-bottom: 1px;">
+            RULE 3: DILARANG MENGEMBALIKAN JPA ENTITY DARI CLIENT CONTRACT
+          </div>
+          <pre class="code-block"><span class="code-annotation">@ArchTest</span>
+<span class="code-keyword">static final</span> <span class="code-class">ArchRule</span> client_contracts_must_not_return_entities = <span class="code-keyword">methods</span>()
+    .<span class="code-keyword">that</span>().<span class="code-keyword">areDeclaredInClassesThat</span>()
+    .<span class="code-keyword">resideInAPackage</span>(<span class="code-string">"com.hyperdata.proms.module..client.contract.."</span>)
+    .<span class="code-keyword">should</span>().<span class="code-keyword">notHaveRawReturnType</span>(<span class="code-keyword">resideInAPackage</span>(<span class="code-string">"..entity.."</span>));</pre>
+        </div>
+
+        <!-- Rule 4 -->
+        <div>
+          <div style="font-size: 8px; font-weight: 700; color: #0f172a; margin-bottom: 1px;">
+            RULE 4: ISOLASI TOTAL DEPENDENCY LINTAS DOMAIN
+          </div>
+          <pre class="code-block"><span class="code-keyword">if</span> (targetDomain != <span class="code-keyword">null</span> &amp;&amp; !targetDomain.<span class="code-keyword">equals</span>(callerDomain)) {
+    <span class="code-keyword">boolean</span> isContract = targetPackage.<span class="code-keyword">startsWith</span>(targetDomain + <span class="code-string">".client.contract"</span>);
+    <span class="code-keyword">boolean</span> isDto = targetPackage.<span class="code-keyword">startsWith</span>(targetDomain + <span class="code-string">".client.dto"</span>);
+    <span class="code-keyword">if</span> (!isContract &amp;&amp; !isDto) {
+        events.<span class="code-keyword">add</span>(<span class="code-class">SimpleConditionEvent</span>.<span class="code-keyword">violated</span>(dependency, 
+            <span class="code-string">"Akses ilegal: Hanya boleh melalui client.contract atau client.dto"</span>));
+    }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kanan: Arsitektur Keamanan Multi-Tenancy -->
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <!-- Panel Security & Multi-Tenancy -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">2. Standar Keamanan &amp; Multi-Tenancy</span>
+          <span class="panel-tag tag-amber">DEFENSE IN DEPTH</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 8.5px; color: #334155;">
+          <div style="border-left: 3px solid #0369a1; padding: 4px 6px; background: #f0f9ff; border-radius: 0 4px 4px 0;">
+            <strong style="color: #0369a1;">1. PostgreSQL Row Level Security (RLS)</strong>
+            <p style="margin-top: 1px; font-size: 8px;">
+              Isolasi data di engine database via <code>tenant_id = platform.current_tenant()</code>. Session database diatur per transaksi: <code>SET LOCAL app.tenant_id = ...</code>.
+            </p>
+          </div>
+
+          <div style="border-left: 3px solid #b91c1c; padding: 4px 6px; background: #fef2f2; border-radius: 0 4px 4px 0;">
+            <strong style="color: #991b1b;">2. Prinsip Fail-Closed</strong>
+            <p style="margin-top: 1px; font-size: 8px;">
+              Jika sebuah request mengakses data bertingkat tenant tetapi <code>activeTenantId</code> kosong, request ditolak seketika dengan status HTTP 403 Forbidden.
+            </p>
+          </div>
+
+          <div style="border-left: 3px solid #16a34a; padding: 4px 6px; background: #f0fdf4; border-radius: 0 4px 4px 0;">
+            <strong style="color: #166534;">3. Cache Tenant Prefixing (Anti-Bypass)</strong>
+            <p style="margin-top: 1px; font-size: 8px;">
+              Setiap cache key tenant wajib menyertakan tenant ID: <code>key = "#tenantId + ':' + #id"</code> untuk mencegah tenant lain membaca data memori.
+            </p>
+          </div>
+
+          <div style="border-left: 3px solid #64748b; padding: 4px 6px; background: #f8fafc; border-radius: 0 4px 4px 0;">
+            <strong style="color: #334155;">4. Zero Secret Exposure &amp; UU PDP</strong>
+            <p style="margin-top: 1px; font-size: 8px;">
+              Kredensial wajib dibaca dari environment variables. Data pribadi (PII) dilarang bocor ke log aplikasi atau error stack traces.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checklist DoD -->
+      <div class="panel" style="flex: 1;">
+        <div class="panel-header">
+          <span class="panel-title">3. Checklist Kepatuhan Arsitektur Final</span>
+          <span class="panel-tag tag-green">VERIFIKASI CI</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3px; font-size: 8.5px;">
+          <div style="display: flex; gap: 5px; align-items: center; background: #f0fdf4; padding: 3px 5px; border-radius: 3px; border: 1px solid #bbf7d0;">
+            <span style="color: #16a34a; font-weight: 800;">[X]</span>
+            <span>Kontrak publik modul berupa Java Interface di <code>client/contract/</code>.</span>
+          </div>
+          <div style="display: flex; gap: 5px; align-items: center; background: #f0fdf4; padding: 3px 5px; border-radius: 3px; border: 1px solid #bbf7d0;">
+            <span style="color: #16a34a; font-weight: 800;">[X]</span>
+            <span>Objek data berupa Java 21 Record DTO di <code>client/dto/</code>.</span>
+          </div>
+          <div style="display: flex; gap: 5px; align-items: center; background: #f0fdf4; padding: 3px 5px; border-radius: 3px; border: 1px solid #bbf7d0;">
+            <span style="color: #16a34a; font-weight: 800;">[X]</span>
+            <span>Nol impor ke paket privat <code>impl/</code> atau entity JPA modul lain.</span>
+          </div>
+          <div style="display: flex; gap: 5px; align-items: center; background: #f0fdf4; padding: 3px 5px; border-radius: 3px; border: 1px solid #bbf7d0;">
+            <span style="color: #16a34a; font-weight: 800;">[X]</span>
+            <span>Seluruh tes lolos: <code>./gradlew test --tests "*ArchitectureTest*"</code>.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="blueprint-footer">
+    <div class="footer-legend">
+      <div class="legend-item"><span class="legend-dot dot-green"></span> 4 Automated ArchUnit Rules</div>
+      <div class="legend-item"><span class="legend-dot dot-blue"></span> PostgreSQL Row Level Security</div>
+      <div class="legend-item"><span class="legend-dot dot-slate"></span> Production Architecture Sign-off</div>
+    </div>
+    <div>Verifikasi Build: ./gradlew test --tests "*ArchitectureTest*" &amp;&amp; ./gradlew check</div>
+    <div>Halaman 4 / 4</div>
+  </div>
+</div>
+
+</body>
+</html>
