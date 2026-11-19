@@ -38,7 +38,7 @@
 - Consumes: Skema tabel `proms.workflow_templates` dan `proms.template_columns`
 - Produces: `WorkflowTemplateRepository` dengan method `findDefaultTemplate(UUID tenantId)` dan `findByIdAndTenant(UUID id, UUID tenantId)`
 
-- [ ] **Step 1: Tulis unit test untuk WorkflowTemplateRepository**
+- [x] **Step 1: Tulis unit test untuk WorkflowTemplateRepository**
 
 ```java
 package com.hyperdata.proms.module.work.board.repository;
@@ -101,12 +101,12 @@ class WorkflowTemplateRepositoryTest {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.repository.WorkflowTemplateRepositoryTest"`
 Expected: FAIL dengan `CompilationError` (class belum ada).
 
-- [ ] **Step 3: Implementasikan TemplateColumnCategory, TemplateColumn, WorkflowTemplate, dan WorkflowTemplateRepository**
+- [x] **Step 3: Implementasikan TemplateColumnCategory, TemplateColumn, WorkflowTemplate, dan WorkflowTemplateRepository**
 
 Buat `TemplateColumnCategory.java`:
 ```java
@@ -265,12 +265,12 @@ public interface WorkflowTemplateRepository extends JpaRepository<WorkflowTempla
 }
 ```
 
-- [ ] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.repository.WorkflowTemplateRepositoryTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 1**
+- [x] **Step 5: Verifikasi deliverable Task 1**
 
 Run: `./gradlew spotlessCheck`
 
@@ -288,7 +288,7 @@ Run: `./gradlew spotlessCheck`
 - Consumes: YAVI validator framework
 - Produces: `CreateBoardRequest` & `UpdateBoardRequest` dengan schema validasi ketat
 
-- [ ] **Step 1: Tulis unit test validasi CreateBoardRequest**
+- [x] **Step 1: Tulis unit test validasi CreateBoardRequest**
 
 ```java
 package com.hyperdata.proms.module.work.board;
@@ -352,12 +352,12 @@ class CreateBoardRequestValidationTest {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.CreateBoardRequestValidationTest"`
 Expected: FAIL (class `CreateBoardRequest` belum ada).
 
-- [ ] **Step 3: Implementasikan BoardHealth, CreateBoardRequest, dan UpdateBoardRequest**
+- [x] **Step 3: Implementasikan BoardHealth, CreateBoardRequest, dan UpdateBoardRequest**
 
 Buat `BoardHealth.java`:
 ```java
@@ -448,12 +448,12 @@ public record UpdateBoardRequest(
 }
 ```
 
-- [ ] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.CreateBoardRequestValidationTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 2**
+- [x] **Step 5: Verifikasi deliverable Task 2**
 
 Run: `./gradlew spotlessApply`
 
@@ -475,7 +475,7 @@ Run: `./gradlew spotlessApply`
 - Consumes: `TaskClient` batch method `getBoardTaskMetrics(Collection<UUID> boardIds)`
 - Produces: DTO records representasi visual kartu board
 
-- [ ] **Step 1: Siapkan TaskMetricsDto dan tambahkan kontrak method di TaskClient**
+- [x] **Step 1: Siapkan TaskMetricsDto dan tambahkan kontrak method di TaskClient**
 
 Buat DTO di `com.hyperdata.proms.module.work.client.dto.TaskMetricsDto`:
 ```java
@@ -503,7 +503,7 @@ Map<UUID, Long> getColumnTaskCounts(UUID boardId);
 ```
 Dan implementasikan mock/stub-nya di `TaskClientImpl.java`.
 
-- [ ] **Step 2: Implementasikan DTOs Card View & Meta Response**
+- [x] **Step 2: Implementasikan DTOs Card View & Meta Response**
 
 Buat `BoardTaskCountsDto.java`:
 ```java
@@ -600,7 +600,7 @@ public record BoardPageMetaDto(
 }
 ```
 
-- [ ] **Step 3: Verifikasi kompilasi DTO**
+- [x] **Step 3: Verifikasi kompilasi DTO**
 
 Run: `./gradlew compileJava`
 Expected: SUCCESS
@@ -619,7 +619,7 @@ Expected: SUCCESS
 - Consumes: `WorkflowTemplateRepository`, `BoardRepository`, `UserClient`, `TaskClient`, `TenantClient`
 - Produces: Logika bisnis lengkap untuk create board, list boards (meta), card view, detail board, update, dan archive
 
-- [ ] **Step 1: Tulis unit test untuk createBoard dan getBoardCards di BoardServiceTest**
+- [x] **Step 1: Tulis unit test untuk createBoard dan getBoardCards di BoardServiceTest**
 
 Tambahkan skenario pengujian di `BoardServiceTest.java`:
 ```java
@@ -664,12 +664,12 @@ void shouldEnrichBoardCardsWithMetricsAndAvatars() {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.BoardServiceTest"`
 Expected: FAIL (method `createBoard` dan `getBoardCards` belum ada di `BoardService`).
 
-- [ ] **Step 3: Implementasikan logika bisnis di BoardService**
+- [x] **Step 3: Implementasikan logika bisnis di BoardService**
 
 Tambahkan dependencies:
 - Injeksi `WorkflowTemplateRepository templateRepository;`
@@ -691,12 +691,12 @@ Implementasikan method:
 3. Perbarui `getToday/getBoardDetail` untuk mengisi `columns[].taskCount` dari `taskClient.getColumnTaskCounts(boardId)`.
 4. Implementasikan `archiveBoard(CurrentUser user, UUID boardId, String ifMatch)` dengan validasi versi optimistik.
 
-- [ ] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.BoardServiceTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 4**
+- [x] **Step 5: Verifikasi deliverable Task 4**
 
 Run: `./gradlew spotlessApply`
 
@@ -713,7 +713,7 @@ Run: `./gradlew spotlessApply`
 - Consumes: `BoardService`
 - Produces: REST Endpoints `/api/v1/boards` (API-49, API-12, API-66, API-13, API-50, API-51)
 
-- [ ] **Step 1: Tulis MockMvc standalone controller tests**
+- [x] **Step 1: Tulis MockMvc standalone controller tests**
 
 Tambahkan pengujian di `BoardControllerTest.java`:
 ```java
@@ -757,12 +757,12 @@ void deleteBoardWithoutIfMatchShouldReturn428() throws Exception {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.controller.BoardControllerTest"`
 Expected: FAIL (endpoint `/boards` POST, `/boards/cards` GET, dan `/boards/{id}` DELETE belum ada).
 
-- [ ] **Step 3: Tambahkan method endpoint pada BoardApi dan implementasikan di BoardController**
+- [x] **Step 3: Tambahkan method endpoint pada BoardApi dan implementasikan di BoardController**
 
 Di `BoardApi.java`:
 ```java
@@ -793,12 +793,12 @@ RestResponse<Void> deleteBoard(
 
 Implementasikan di `BoardController.java` dengan mendelegasikan ke `boardService`.
 
-- [ ] **Step 4: Jalankan controller test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan controller test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.controller.BoardControllerTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 5**
+- [x] **Step 5: Verifikasi deliverable Task 5**
 
 Run: `./gradlew spotlessCheck`
 
@@ -810,22 +810,22 @@ Run: `./gradlew spotlessCheck`
 - Test: Seluruh unit test suite modul `work.board`
 - Test: ArchUnit architecture guardrails
 
-- [ ] **Step 1: Jalankan targeted tests untuk modul work.board**
+- [x] **Step 1: Jalankan targeted tests untuk modul work.board**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.*"`
 Expected: BUILD SUCCESSFUL (Semua unit tests lulus).
 
-- [ ] **Step 2: Jalankan architecture guardrail test**
+- [x] **Step 2: Jalankan architecture guardrail test**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"`
 Expected: BUILD SUCCESSFUL (Tidak ada pelanggaran package, entity leakage, atau inject foreign repository).
 
-- [ ] **Step 3: Jalankan format code Spotless**
+- [x] **Step 3: Jalankan format code Spotless**
 
 Run: `./gradlew spotlessApply && ./gradlew spotlessCheck`
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 4: Jalankan full quality gate check**
+- [x] **Step 4: Jalankan full quality gate check**
 
 Run: `./gradlew check`
 Expected: BUILD SUCCESSFUL (Spotless, ArchUnit, Checkstyle, JUnit, JaCoCo threshold).

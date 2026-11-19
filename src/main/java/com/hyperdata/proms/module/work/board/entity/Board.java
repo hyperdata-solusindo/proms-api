@@ -20,6 +20,7 @@ import lombok.Setter;
 public class Board {
 
     @Id
+    @org.hibernate.annotations.UuidGenerator(style = org.hibernate.annotations.UuidGenerator.Style.VERSION_7)
     private UUID id;
 
     @Column(name = "tenant_id", nullable = false)
@@ -33,6 +34,15 @@ public class Board {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "client_name")
+    private String clientName;
+
+    @Column(name = "group_name")
+    private String groupName;
+
+    @Column(name = "board_group_id")
+    private UUID boardGroupId;
 
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;

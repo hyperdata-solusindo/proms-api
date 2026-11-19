@@ -37,7 +37,7 @@
 - Consumes: Skema tabel `proms.board_invitations`
 - Produces: `BoardInvitationRepository` untuk query invitation aktif/pending per board
 
-- [ ] **Step 1: Tulis unit test untuk BoardInvitationRepository**
+- [x] **Step 1: Tulis unit test untuk BoardInvitationRepository**
 
 ```java
 package com.hyperdata.proms.module.work.board.repository;
@@ -104,12 +104,12 @@ class BoardInvitationRepositoryTest {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.repository.BoardInvitationRepositoryTest"`
 Expected: FAIL (class `BoardInvitation` & `BoardInvitationRepository` belum ada).
 
-- [ ] **Step 3: Implementasikan BoardInvitationResult, BoardInvitation, dan BoardInvitationRepository**
+- [x] **Step 3: Implementasikan BoardInvitationResult, BoardInvitation, dan BoardInvitationRepository**
 
 Buat `BoardInvitationResult.java`:
 ```java
@@ -254,12 +254,12 @@ public interface BoardInvitationRepository extends JpaRepository<BoardInvitation
 }
 ```
 
-- [ ] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.repository.BoardInvitationRepositoryTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 1**
+- [x] **Step 5: Verifikasi deliverable Task 1**
 
 Run: `./gradlew spotlessApply`
 
@@ -282,7 +282,7 @@ Run: `./gradlew spotlessApply`
 - Consumes: YAVI validation framework
 - Produces: DTO records untuk transfer data member & hasil invite batch
 
-- [ ] **Step 1: Tulis unit test validasi InviteBoardMembersRequest**
+- [x] **Step 1: Tulis unit test validasi InviteBoardMembersRequest**
 
 ```java
 package com.hyperdata.proms.module.work.board;
@@ -324,12 +324,12 @@ class InviteBoardMembersRequestValidationTest {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.InviteBoardMembersRequestValidationTest"`
 Expected: FAIL (class `InviteBoardMembersRequest` belum ada).
 
-- [ ] **Step 3: Implementasikan seluruh DTO Member & Invitation**
+- [x] **Step 3: Implementasikan seluruh DTO Member & Invitation**
 
 Buat `InviteBoardMembersRequest.java`:
 ```java
@@ -395,12 +395,12 @@ public record InviteItemResultDto(String email, String result, UUID memberId, UU
 public record BatchInviteResultResponse(List<InviteItemResultDto> results) {}
 ```
 
-- [ ] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.InviteBoardMembersRequestValidationTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 2**
+- [x] **Step 5: Verifikasi deliverable Task 2**
 
 Run: `./gradlew spotlessApply`
 
@@ -418,7 +418,7 @@ Run: `./gradlew spotlessApply`
 - Consumes: Modul `identity.user` dan `work.task`
 - Produces: Method `findUsersByEmails` pada `UserClient` dan `unassignUserFromBoardTasks` pada `TaskClient`
 
-- [ ] **Step 1: Tambahkan method findUsersByEmails di UserClient**
+- [x] **Step 1: Tambahkan method findUsersByEmails di UserClient**
 
 Di `UserClient.java`:
 ```java
@@ -426,7 +426,7 @@ Map<String, UserSummaryDto> findUsersByEmails(Collection<String> emails);
 ```
 Implementasikan di `UserClientImpl.java` menggunakan lookup repository pengguna berdasarkan email.
 
-- [ ] **Step 2: Tambahkan method unassignUserFromBoardTasks di TaskClient**
+- [x] **Step 2: Tambahkan method unassignUserFromBoardTasks di TaskClient**
 
 Di `TaskClient.java`:
 ```java
@@ -434,7 +434,7 @@ void unassignUserFromBoardTasks(UUID boardId, UUID userId);
 ```
 Implementasikan di `TaskClientImpl.java` (mengupdate task yang ditugaskan ke user di board terkait menjadi unassigned).
 
-- [ ] **Step 3: Verifikasi kompilasi interface**
+- [x] **Step 3: Verifikasi kompilasi interface**
 
 Run: `./gradlew compileJava`
 Expected: SUCCESS
@@ -452,7 +452,7 @@ Expected: SUCCESS
 - Consumes: `BoardMemberRepository`, `BoardInvitationRepository`, `UserClient`, `TaskClient`
 - Produces: Logika bisnis `getBoardMembers`, `inviteMembers`, `updateMember`, dan `removeMember` (dengan unassign BR-DL-04)
 
-- [ ] **Step 1: Tulis unit test untuk member operations di BoardServiceTest**
+- [x] **Step 1: Tulis unit test untuk member operations di BoardServiceTest**
 
 ```java
 @Test
@@ -481,12 +481,12 @@ void removeMemberShouldDeleteAndUnassignTasks() {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.BoardServiceTest"`
 Expected: FAIL (method member belum ada).
 
-- [ ] **Step 3: Implementasikan logika bisnis di BoardService**
+- [x] **Step 3: Implementasikan logika bisnis di BoardService**
 
 Tambahkan method di `BoardService.java`:
 1. `getBoardMembers(CurrentUser user, UUID boardId)`:
@@ -505,12 +505,12 @@ Tambahkan method di `BoardService.java`:
    - Validasi `If-Match`. Hapus member dari `boardMemberRepository`.
    - Panggil `taskClient.unassignUserFromBoardTasks(boardId, member.getUserId())`.
 
-- [ ] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.BoardServiceTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 4**
+- [x] **Step 5: Verifikasi deliverable Task 4**
 
 Run: `./gradlew spotlessApply`
 
@@ -527,7 +527,7 @@ Run: `./gradlew spotlessApply`
 - Consumes: `BoardService`
 - Produces: REST Endpoints `/api/v1/boards/{boardId}/members` dan `/api/v1/boards/{boardId}/invitations`
 
-- [ ] **Step 1: Tulis MockMvc controller tests untuk member endpoints**
+- [x] **Step 1: Tulis MockMvc controller tests untuk member endpoints**
 
 Tambahkan pengujian di `BoardControllerTest.java`:
 ```java
@@ -552,12 +552,12 @@ void deleteMemberWithoutIfMatchShouldReturn428() throws Exception {
 }
 ```
 
-- [ ] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
+- [x] **Step 2: Jalankan test dan verifikasi kegagalan (Red)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.controller.BoardControllerTest"`
 Expected: FAIL (endpoints belum terdaftar di `BoardApi`).
 
-- [ ] **Step 3: Daftarkan endpoints di BoardApi dan delegasikan di BoardController**
+- [x] **Step 3: Daftarkan endpoints di BoardApi dan delegasikan di BoardController**
 
 Di `BoardApi.java`:
 ```java
@@ -592,12 +592,12 @@ RestResponse<Void> removeBoardMember(
 
 Implementasikan pada `BoardController.java`.
 
-- [ ] **Step 4: Jalankan controller test dan verifikasi kelulusan (Green)**
+- [x] **Step 4: Jalankan controller test dan verifikasi kelulusan (Green)**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.controller.BoardControllerTest"`
 Expected: PASS
 
-- [ ] **Step 5: Verifikasi deliverable Task 5**
+- [x] **Step 5: Verifikasi deliverable Task 5**
 
 Run: `./gradlew spotlessCheck`
 
@@ -609,22 +609,22 @@ Run: `./gradlew spotlessCheck`
 - Test: Seluruh unit test suite modul `work.board`
 - Test: ArchUnit architecture guardrails
 
-- [ ] **Step 1: Jalankan targeted tests untuk modul work.board**
+- [x] **Step 1: Jalankan targeted tests untuk modul work.board**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.module.work.board.*"`
 Expected: BUILD SUCCESSFUL (Semua unit tests lulus).
 
-- [ ] **Step 2: Jalankan architecture guardrail test**
+- [x] **Step 2: Jalankan architecture guardrail test**
 
 Run: `./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"`
 Expected: BUILD SUCCESSFUL (ArchUnit boundary rules lulus).
 
-- [ ] **Step 3: Jalankan format code Spotless**
+- [x] **Step 3: Jalankan format code Spotless**
 
 Run: `./gradlew spotlessApply && ./gradlew spotlessCheck`
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 4: Jalankan full quality gate check**
+- [x] **Step 4: Jalankan full quality gate check**
 
 Run: `./gradlew check`
 Expected: BUILD SUCCESSFUL

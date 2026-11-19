@@ -6,8 +6,11 @@ import com.hyperdata.proms.module.work.client.dto.BoardTaskFilterDto;
 import com.hyperdata.proms.module.work.client.dto.CreateTaskCommand;
 import com.hyperdata.proms.module.work.client.dto.TaskCreatedDto;
 import com.hyperdata.proms.module.work.client.dto.TaskSummaryDto;
+import com.hyperdata.proms.module.work.client.dto.TaskMetricsDto;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -30,5 +33,20 @@ public class TaskClientImpl implements TaskClient {
             command.columnId(),
             command.workstreamId(),
             Instant.now());
+    }
+
+    @Override
+    public Map<UUID, TaskMetricsDto> getBoardTaskMetrics(Collection<UUID> boardIds) {
+        return Map.of();
+    }
+
+    @Override
+    public Map<UUID, Long> getColumnTaskCounts(UUID boardId) {
+        return Map.of();
+    }
+
+    @Override
+    public void unassignUserFromBoardTasks(UUID boardId, UUID userId) {
+        // Stub implementation for modular monolith client boundary
     }
 }

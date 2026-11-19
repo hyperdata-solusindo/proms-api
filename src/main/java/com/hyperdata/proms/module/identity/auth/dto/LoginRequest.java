@@ -10,13 +10,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record LoginRequest(
     @Schema(
         description = "Alamat email akun terdaftar",
-        example = "admin@proms.com",
+        example = "admin@hyperdata.id",
         format = "email",
         requiredMode = REQUIRED)
     String email,
     @Schema(
         description = "Kata sandi akun pengguna",
-        example = "SecretPassword123!",
+        example = "password123",
         format = "password",
         requiredMode = REQUIRED)
     String password) {

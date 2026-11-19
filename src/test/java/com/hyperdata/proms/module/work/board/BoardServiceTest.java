@@ -16,27 +16,40 @@ import com.hyperdata.proms.module.communication.client.contract.ChatClient;
 import com.hyperdata.proms.module.communication.client.dto.ChatChannelSummaryDto;
 import com.hyperdata.proms.module.identity.client.contract.UserClient;
 import com.hyperdata.proms.module.identity.client.dto.UserSummaryDto;
+import com.hyperdata.proms.module.platform.client.contract.TenantClient;
+import com.hyperdata.proms.module.platform.client.dto.TenantDetailDto;
 import com.hyperdata.proms.module.work.board.dto.BoardDetailResponse;
 import com.hyperdata.proms.module.work.board.dto.BoardMemberCountDto;
 import com.hyperdata.proms.module.work.board.dto.BoardMemberRoleDto;
 import com.hyperdata.proms.module.work.board.dto.BoardSummaryResponse;
+import com.hyperdata.proms.module.work.board.dto.CreateBoardRequest;
 import com.hyperdata.proms.module.work.board.dto.CreateBoardTaskRequest;
+import com.hyperdata.proms.module.work.board.dto.CreateSavedViewRequest;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardRequest;
 import com.hyperdata.proms.module.work.board.entity.Board;
 import com.hyperdata.proms.module.work.board.entity.BoardColumn;
 import com.hyperdata.proms.module.work.board.entity.BoardMember;
+import com.hyperdata.proms.module.work.board.entity.BoardSavedView;
+import com.hyperdata.proms.module.work.board.entity.TemplateColumn;
+import com.hyperdata.proms.module.work.board.entity.WorkflowTemplate;
 import com.hyperdata.proms.module.work.board.entity.Workstream;
 import com.hyperdata.proms.module.work.board.mapper.BoardMapper;
 import com.hyperdata.proms.module.work.board.repository.BoardColumnRepository;
 import com.hyperdata.proms.module.work.board.repository.BoardMemberRepository;
+import com.hyperdata.proms.module.work.board.repository.BoardInvitationRepository;
+import com.hyperdata.proms.module.work.board.repository.BoardMemberWorkstreamRepository;
 import com.hyperdata.proms.module.work.board.repository.BoardRepository;
+import com.hyperdata.proms.module.work.board.repository.BoardSavedViewRepository;
+import com.hyperdata.proms.module.work.board.repository.WorkflowTemplateRepository;
 import com.hyperdata.proms.module.work.board.repository.WorkstreamRepository;
 import com.hyperdata.proms.module.work.board.service.BoardService;
 import com.hyperdata.proms.module.work.client.contract.TaskClient;
 import com.hyperdata.proms.module.work.client.dto.TaskCreatedDto;
+import com.hyperdata.proms.module.work.client.dto.TaskMetricsDto;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -53,6 +66,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -79,6 +93,21 @@ class BoardServiceTest {
 
     @Mock
     private TaskClient taskClient;
+
+    @Mock
+    private TenantClient tenantClient;
+
+    @Mock
+    private WorkflowTemplateRepository workflowTemplateRepository;
+
+    @Mock
+    private BoardInvitationRepository boardInvitationRepository;
+
+    @Mock
+    private BoardMemberWorkstreamRepository boardMemberWorkstreamRepository;
+
+    @Mock
+    private BoardSavedViewRepository boardSavedViewRepository;
 
     @Mock
     private ChatClient chatClient;
@@ -409,5 +438,171 @@ class BoardServiceTest {
                 BoardDetailResponse currentDetail = (BoardDetailResponse) sve.getCurrent();
                 assertThat(currentDetail.name()).isEqualTo("Server State Name");
             });
+    }
+
+    @Test
+    @DisplayName("GIVEN create board request WHEN created THEN board and columns from template are persisted")
+    void shouldCreateBoardWithTemplateColumnsAndAssignCreator() {
+        var req = new CreateBoardRequest(
+            "Proyek Alpha", "ALP", "Client X", "Dev", userId,
+            LocalDate.now(), LocalDate.now().plusDays(20), null, null);
+
+        var template = new WorkflowTemplate();
+        template.setId(UUID.randomUUID());
+        template.setName("Default Scrum");
+
+        var col = new TemplateColumn();
+        col.setId(UUID.randomUUID());
+        col.setTemplate(template);
+        col.setName("To do");
+        col.setCategory("todo");
+        col.setPosition("0|hzzz:");
+        template.getColumns().add(col);
+
+        given(workflowTemplateRepository.findGlobalDefaultTemplate()).willReturn(Optional.of(template));
+        given(boardRepository.saveAndFlush(any(Board.class))).willAnswer(inv -> {
+            Board b = inv.getArgument(0);
+            b.setId(UUID.randomUUID());
+            return b;
+        });
+        given(boardRepository.findActiveById(any())).willAnswer(inv -> {
+            UUID id = inv.getArgument(0);
+            Board b = new Board();
+            b.setId(id);
+            b.setTenantId(tenantId);
+            b.setName("Proyek Alpha");
+            b.setKey("ALP");
+            b.setOwnerId(userId);
+            b.setStatus("active");
+            b.setUpdatedAt(Instant.now());
+            return Optional.of(b);
+        });
+
+        BoardDetailResponse response = boardService.createBoard(currentUser, req);
+        assertThat(response).isNotNull();
+        assertThat(response.name()).isEqualTo("Proyek Alpha");
+    }
+
+    @Test
+    @DisplayName("GIVEN getBoardCards WHEN called THEN enriches task metrics, daysLeft and members")
+    void shouldEnrichBoardCardsWithMetricsAndAvatars() {
+        UUID boardId = UUID.randomUUID();
+        Board board = new Board();
+        board.setId(boardId);
+        board.setTenantId(tenantId);
+        board.setName("Proyek Alpha");
+        board.setKey("ALP");
+        board.setOwnerId(userId);
+        board.setStatus("active");
+        board.setGroupName("Dev");
+        board.setClientName("Client X");
+        board.setDueDate(LocalDate.now().plusDays(10));
+        board.setHealth("on_track");
+        board.setUpdatedAt(Instant.now());
+
+        given(boardRepository.findAll(any(Specification.class), any(Sort.class)))
+            .willReturn(List.of(board));
+        given(tenantClient.getTenantDetail(tenantId))
+            .willReturn(Optional.of(new TenantDetailDto(tenantId, "test",
+                "Tenant Test", "active", "Asia/Jakarta")));
+        given(taskClient.getBoardTaskMetrics(any()))
+            .willReturn(Map.of(boardId,
+                new TaskMetricsDto(3, 0, 0, 0, 3, 3, 0)));
+
+        var result = boardService.getBoardCards(currentUser, "mine", null, null, null, 20);
+        assertThat(result.data()).hasSize(1);
+        assertThat(result.data().get(0).taskCounts().todo()).isEqualTo(3);
+        assertThat(result.data().get(0).daysLeft()).isNotNull();
+        assertThat(result.meta()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("GIVEN member to remove WHEN removeMember called THEN deletes member and unassigns board tasks")
+    void removeMemberShouldDeleteAndUnassignTasks() {
+        UUID boardId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+        UUID targetUserId = UUID.randomUUID();
+
+        Board board = new Board();
+        board.setId(boardId);
+        board.setTenantId(tenantId);
+        board.setOwnerId(userId); // current user is owner
+
+        BoardMember member = new BoardMember();
+        member.setId(memberId);
+        member.setBoardId(boardId);
+        member.setTenantId(tenantId);
+        member.setUserId(targetUserId);
+        member.setRole("member");
+        member.setIsOwner(false);
+        Instant updatedAt = Instant.parse("2026-11-19T10:00:00Z");
+        member.setUpdatedAt(updatedAt);
+
+        given(boardRepository.findActiveById(boardId)).willReturn(Optional.of(board));
+        given(boardMemberRepository.findByIdAndBoardIdAndTenantId(memberId, boardId, tenantId))
+            .willReturn(Optional.of(member));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(HttpHeaders.IF_MATCH, "\"" + updatedAt.toEpochMilli() + "\"");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        boardService.removeMember(currentUser, boardId, memberId, "\"" + updatedAt.toEpochMilli() + "\"");
+
+        org.mockito.Mockito.verify(boardMemberRepository).delete(member);
+        org.mockito.Mockito.verify(taskClient).unassignUserFromBoardTasks(boardId, targetUserId);
+    }
+
+    @Test
+    @DisplayName("createSavedView harus mereset default flag lama jika view baru ditandai isDefault")
+    void createSavedViewShouldResetOldDefaultFlag() {
+        UUID boardId = UUID.randomUUID();
+        Board board = new Board();
+        board.setId(boardId);
+        board.setTenantId(tenantId);
+        board.setOwnerId(userId);
+
+        var req = new CreateSavedViewRequest(
+            "Default Kanban", "board", Map.of(), Map.of(), null, true);
+
+        given(boardRepository.findActiveById(boardId)).willReturn(Optional.of(board));
+        given(boardSavedViewRepository.findMaxPosition(tenantId, boardId, userId)).willReturn(2);
+        given(boardSavedViewRepository.saveAndFlush(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+        var response = boardService.createSavedView(currentUser, boardId, req);
+
+        org.mockito.Mockito.verify(boardSavedViewRepository).resetDefaultFlag(tenantId, boardId, userId);
+        assertThat(response.isDefault()).isTrue();
+        assertThat(response.position()).isEqualTo(3);
+        assertThat(response.name()).isEqualTo("Default Kanban");
+    }
+
+    @Test
+    @DisplayName("getSavedViews harus mengembalikan daftar saved views milik user atau default")
+    void getSavedViewsShouldReturnList() {
+        UUID boardId = UUID.randomUUID();
+        Board board = new Board();
+        board.setId(boardId);
+        board.setTenantId(tenantId);
+        board.setOwnerId(userId);
+
+        BoardSavedView view = BoardSavedView.builder()
+            .id(UUID.randomUUID())
+            .tenantId(tenantId)
+            .boardId(boardId)
+            .userId(userId)
+            .name("My View")
+            .viewType("list")
+            .isDefault(false)
+            .position(1)
+            .updatedAt(Instant.now())
+            .build();
+
+        given(boardRepository.findActiveById(boardId)).willReturn(Optional.of(board));
+        given(boardSavedViewRepository.findByTenantIdAndBoardIdAndUserId(tenantId, boardId, userId))
+            .willReturn(List.of(view));
+
+        var result = boardService.getSavedViews(currentUser, boardId);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).name()).isEqualTo("My View");
     }
 }

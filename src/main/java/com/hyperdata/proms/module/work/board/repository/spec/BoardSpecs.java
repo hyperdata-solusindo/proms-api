@@ -15,6 +15,10 @@ public final class BoardSpecs {
     }
 
     public static Specification<Board> withFilters(UUID tenantId, UUID userId, String tab, String q) {
+        return withFilters(tenantId, userId, tab, null, q);
+    }
+
+    public static Specification<Board> withFilters(UUID tenantId, UUID userId, String tab, String groupId, String q) {
         return (root, query, cb) -> {
             var predicates = cb.conjunction();
             if (tenantId != null) {
@@ -44,6 +48,16 @@ public final class BoardSpecs {
                 predicates = cb.and(predicates, cb.equal(root.get("status"), BoardStatus.ACTIVE));
                 memberSubquery.where(cb.equal(memberRoot.get("userId"), userId));
                 predicates = cb.and(predicates, root.get("id").in(memberSubquery));
+            }
+
+            // Filter group
+            if (groupId != null && !groupId.isBlank() && !"all".equalsIgnoreCase(groupId)) {
+                try {
+                    UUID groupUuid = UUID.fromString(groupId);
+                    predicates = cb.and(predicates, cb.equal(root.get("boardGroupId"), groupUuid));
+                } catch (IllegalArgumentException e) {
+                    predicates = cb.and(predicates, cb.equal(root.get("groupName"), groupId));
+                }
             }
 
             // Filter keyword q

@@ -5,6 +5,7 @@ import com.hyperdata.proms.module.identity.client.dto.UserMembershipDto;
 import com.hyperdata.proms.module.identity.client.dto.UserSummaryDto;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,4 +18,6 @@ public interface UserClient {
     Optional<UserMembershipDto> resolveUserMembership(UUID userId, Optional<UUID> preferredTenantId);
 
     List<UserSummaryDto> findSummariesByIds(Collection<UUID> userIds);
+
+    Map<String, UserSummaryDto> findUsersByEmails(Collection<String> emails);
 }

@@ -36,4 +36,24 @@ public interface BoardMemberRepository extends JpaRepository<BoardMember, UUID> 
         UUID userId,
         @Param("boardIds")
         Collection<UUID> boardIds);
+
+    @Query("""
+            SELECT bm FROM BoardMember bm
+            WHERE bm.boardId IN :boardIds
+            ORDER BY bm.createdAt ASC
+        """)
+    List<BoardMember> findMembersByBoardIds(@Param("boardIds")
+    Collection<UUID> boardIds);
+
+    @Query("""
+            SELECT bm FROM BoardMember bm
+            WHERE bm.id = :id AND bm.boardId = :boardId AND bm.tenantId = :tenantId
+        """)
+    Optional<BoardMember> findByIdAndBoardIdAndTenantId(
+        @Param("id")
+        UUID id,
+        @Param("boardId")
+        UUID boardId,
+        @Param("tenantId")
+        UUID tenantId);
 }

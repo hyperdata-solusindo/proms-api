@@ -13,11 +13,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.hyperdata.proms.common.exception.GlobalExceptionHandler;
 import com.hyperdata.proms.common.response.PageResponse;
+import com.hyperdata.proms.common.response.RestResponse;
 import com.hyperdata.proms.common.security.CurrentUser;
 import com.hyperdata.proms.module.communication.client.dto.ChatChannelSummaryDto;
+import com.hyperdata.proms.module.work.board.dto.BatchInviteResultResponse;
+import com.hyperdata.proms.module.work.board.dto.BoardCardResponse;
 import com.hyperdata.proms.module.work.board.dto.BoardDetailResponse;
+import com.hyperdata.proms.module.work.board.dto.BoardMemberItemDto;
+import com.hyperdata.proms.module.work.board.dto.BoardMemberListResponse;
+import com.hyperdata.proms.module.work.board.dto.BoardPageMetaDto;
 import com.hyperdata.proms.module.work.board.dto.BoardSummaryResponse;
+import com.hyperdata.proms.module.work.board.dto.BoardTaskCountsDto;
+import com.hyperdata.proms.module.work.board.dto.CreateBoardRequest;
 import com.hyperdata.proms.module.work.board.dto.CreateBoardTaskRequest;
+import com.hyperdata.proms.module.work.board.dto.CreateSavedViewRequest;
+import com.hyperdata.proms.module.work.board.dto.InviteBoardMembersRequest;
+import com.hyperdata.proms.module.work.board.dto.SavedViewResponse;
+import com.hyperdata.proms.module.work.board.dto.UpdateBoardMemberRequest;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardRequest;
 import com.hyperdata.proms.module.work.board.service.BoardService;
 import com.hyperdata.proms.module.work.client.dto.TaskCreatedDto;
@@ -40,6 +52,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @ExtendWith(MockitoExtension.class)
@@ -279,5 +292,161 @@ class BoardControllerTest {
             .andExpect(jsonPath("$.statusCode").value(200))
             .andExpect(jsonPath("$.data.name").value("Updated Board Name"))
             .andExpect(jsonPath("$.message").value("Board berhasil diperbarui"));
+    }
+
+    @Test
+    @DisplayName("GIVEN valid request WHEN POST /api/v1/boards THEN returns 201 Created")
+    void createBoardShouldReturn201() throws Exception {
+        var req = new CreateBoardRequest(
+            "Nusa Bioscience", "NB", "PT Nusa", "Dev", UUID.randomUUID(),
+            LocalDate.now(), LocalDate.now().plusDays(30), null, null);
+
+        UUID boardId = UUID.randomUUID();
+        BoardDetailResponse detail = new BoardDetailResponse(
+            boardId, "NB", "Nusa Bioscience", "active",
+            List.of(), List.of(), List.of(),
+            new BoardDetailResponse.BoardPermissionResponse(true, true, true),
+            Instant.now());
+
+        given(boardService.createBoard(any(), any())).willReturn(detail);
+
+        mockMvc.perform(post("/api/v1/boards")
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.statusCode").value(201))
+            .andExpect(jsonPath("$.data.name").value("Nusa Bioscience"));
+    }
+
+    @Test
+    @DisplayName("GIVEN request WHEN GET /api/v1/boards/cards THEN returns 200 with meta")
+    void getBoardCardsShouldReturn200WithMeta() throws Exception {
+        var meta = new BoardPageMetaDto(
+            1, null,
+            new BoardPageMetaDto.BoardSummaryMetaDto(1, 1, 0),
+            List.of(new BoardPageMetaDto.BoardGroupFilterChipDto("all", "All", 1)));
+        var card = new BoardCardResponse(
+            UUID.randomUUID(), "NB", "Nusa Bioscience", null, null,
+            "on_track", null, 0,
+            new BoardTaskCountsDto(0, 0, 0, 0),
+            0, 0, 0, LocalDate.now().plusDays(10), 10L, List.of(), 0, "\"1\"");
+
+        given(boardService.getBoardCards(any(), any(), any(), any(), any(), org.mockito.ArgumentMatchers.anyInt()))
+            .willReturn(RestResponse.ok(List.of(card), meta, "Berhasil"));
+
+        mockMvc.perform(get("/api/v1/boards/cards?tab=mine"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data").isArray())
+            .andExpect(jsonPath("$.meta.summary.onTrack").value(1));
+    }
+
+    @Test
+    @DisplayName("GIVEN valid If-Match WHEN DELETE /api/v1/boards/{id} THEN archives board successfully")
+    void deleteBoardShouldArchiveSuccessfully() throws Exception {
+        UUID boardId = UUID.randomUUID();
+
+        mockMvc
+            .perform(MockMvcRequestBuilders.delete("/api/v1/boards/{boardId}", boardId)
+                .header(HttpHeaders.IF_MATCH, "\"12345\""))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200));
+    }
+
+    @Test
+    @DisplayName("GIVEN request WHEN GET /api/v1/boards/{id}/members THEN returns 200 with members and pending invitations")
+    void getBoardMembersShouldReturn200() throws Exception {
+        UUID boardId = UUID.randomUUID();
+        BoardMemberListResponse response = new BoardMemberListResponse(List.of(), List.of());
+
+        given(boardService.getBoardMembers(any(), eq(boardId))).willReturn(response);
+
+        mockMvc.perform(get("/api/v1/boards/{boardId}/members", boardId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.data").isArray())
+            .andExpect(jsonPath("$.data.pendingInvitations").isArray());
+    }
+
+    @Test
+    @DisplayName("GIVEN valid payload WHEN POST /api/v1/boards/{id}/invitations THEN returns 200 OK")
+    void inviteMembersShouldReturn200() throws Exception {
+        UUID boardId = UUID.randomUUID();
+        var req = new InviteBoardMembersRequest(List.of("budi@contoh.id"), "member", List.of());
+        given(boardService.inviteMembers(any(), eq(boardId), any()))
+            .willReturn(new BatchInviteResultResponse(List.of()));
+
+        mockMvc.perform(post("/api/v1/boards/{boardId}/invitations", boardId)
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200));
+    }
+
+    @Test
+    @DisplayName("GIVEN valid payload and If-Match WHEN PATCH /api/v1/boards/{boardId}/members/{memberId} THEN returns 200 OK")
+    void updateBoardMemberShouldReturn200() throws Exception {
+        UUID boardId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+        var req = new UpdateBoardMemberRequest("admin", List.of());
+        var res = new BoardMemberItemDto(memberId, null, "admin", false, List.of(), "\"100\"");
+
+        given(boardService.updateBoardMember(any(), eq(boardId), eq(memberId), any(), eq("\"100\""))).willReturn(res);
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/v1/boards/{boardId}/members/{memberId}", boardId, memberId)
+            .header(HttpHeaders.IF_MATCH, "\"100\"")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data.role").value("admin"));
+    }
+
+    @Test
+    @DisplayName("GIVEN valid If-Match WHEN DELETE /api/v1/boards/{boardId}/members/{memberId} THEN returns 200 OK")
+    void removeBoardMemberShouldReturn200() throws Exception {
+        UUID boardId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/v1/boards/{boardId}/members/{memberId}", boardId, memberId)
+            .header(HttpHeaders.IF_MATCH, "\"100\""))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200));
+    }
+
+    @Test
+    @DisplayName("GIVEN valid boardId WHEN GET /api/v1/boards/{boardId}/views THEN returns 200 OK")
+    void getBoardSavedViewsShouldReturn200() throws Exception {
+        UUID boardId = UUID.randomUUID();
+        SavedViewResponse view = new SavedViewResponse(
+            UUID.randomUUID(), "My View", "list", java.util.Map.of(), java.util.Map.of(), null, true, 1, "\"100\"");
+        given(boardService.getSavedViews(any(), eq(boardId))).willReturn(List.of(view));
+
+        mockMvc.perform(get("/api/v1/boards/{boardId}/views", boardId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data[0].name").value("My View"));
+    }
+
+    @Test
+    @DisplayName("GIVEN valid payload WHEN POST /api/v1/boards/{boardId}/views THEN returns 201 Created")
+    void createBoardSavedViewShouldReturn201() throws Exception {
+        UUID boardId = UUID.randomUUID();
+        var req = new CreateSavedViewRequest("My Custom View", "list", java.util.Map.of(), java.util.Map.of(), null,
+            false);
+        SavedViewResponse res = new SavedViewResponse(
+            UUID.randomUUID(), "My Custom View", "list", java.util.Map.of(), java.util.Map.of(), null, false, 2,
+            "\"100\"");
+        given(boardService.createSavedView(any(), eq(boardId), any())).willReturn(res);
+
+        mockMvc.perform(post("/api/v1/boards/{boardId}/views", boardId)
+            .header("Idempotency-Key", UUID.randomUUID().toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.statusCode").value(201))
+            .andExpect(jsonPath("$.data.name").value("My Custom View"));
     }
 }
