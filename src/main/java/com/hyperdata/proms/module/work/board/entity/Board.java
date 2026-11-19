@@ -69,7 +69,11 @@ public class Board {
     private String healthReason;
 
     @Column(name = "progress_pct")
-    private Integer progressPct;
+    private Integer progressPct = 0;
+
+    public Integer getProgressPct() {
+        return progressPct != null ? progressPct : 0;
+    }
 
     @Column(name = "archived_at")
     private Instant archivedAt;

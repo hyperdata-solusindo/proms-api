@@ -160,7 +160,9 @@ public class BoardService {
                 board.getOwnerId().equals(currentUser.userId()) ? BoardMemberRole.OWNER : null);
 
             TaskMetricsDto metric = metricsMap.get(board.getId());
-            Integer progressPct = metric != null ? metric.progressPct() : board.getProgressPct();
+            Integer progressPct = metric != null
+                ? metric.progressPct()
+                : (board.getProgressPct() != null ? board.getProgressPct() : 0);
 
             return boardMapper.toSummaryResponse(board, pmSummary, memberCount, role, progressPct);
         }).toList();

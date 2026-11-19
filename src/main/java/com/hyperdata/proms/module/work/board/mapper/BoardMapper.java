@@ -26,7 +26,8 @@ public interface BoardMapper {
 
     default BoardSummaryResponse toSummaryResponse(Board board, BoardSummaryResponse.PmSummaryResponse pm,
         int memberCount, String myRole) {
-        return toSummaryResponse(board, pm, memberCount, myRole, board.getProgressPct());
+        Integer pct = (board != null && board.getProgressPct() != null) ? board.getProgressPct() : 0;
+        return toSummaryResponse(board, pm, memberCount, myRole, pct);
     }
 
     @Mapping(target = "taskCount", source = "taskCount")
