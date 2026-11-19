@@ -15,13 +15,13 @@
 
 ---
 
-## 2. The 14 Golden Rules (Quick Summary)
+## 2. The 16 Golden Rules (Quick Summary)
 
 1. **2-Layer Modular Monolith**: Code resides in `com.hyperdata.proms.module.<domain>.<feature>`.
 2. **Inter-Module Client Contract Rule**: Module A calling Module B **MUST** use `client/contract/<Feature>Client.java` (Interface) and `client/dto/`. Never inject foreign `Service` or `Repository`.
 3. **No JPA Entity Leakage**: Client Contract and Controller **NEVER** return JPA `@Entity`. Always return Java 21 `record` DTOs.
 4. **DTO Immutability**: All DTOs are Java 21 `record`.
-5. **No `@Data` on Entities**: JPA Entities use `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor(access = AccessLevel.PROTECTED)`.
+5. **No `@Data` on Entities & UUIDv7 Mandatory**: JPA Entities use `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor(access = AccessLevel.PROTECTED)`. All UUID-based business entities **MUST** use `@UuidGenerator(style = UuidGenerator.Style.VERSION_7)` for sequential B-tree indexing in PostgreSQL (NO `@GeneratedValue(strategy = GenerationType.UUID)`), with `@PrePersist`/`@PreUpdate` for auditing.
 6. **Constructor Injection Only**: Use `@RequiredArgsConstructor` on final fields. No `@Autowired` fields.
 7. **YAVI Validation**: Use YAVI fluent builder (`Validator<T>`) inside Request records or validator factories.
 8. **MapStruct Mapping**: Use `@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)` in `mapper/`.
@@ -33,9 +33,9 @@
 11. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`).
 12. **OpenAPI & Scalar Documentation**: All `@RestController` endpoints must have `@Tag`, `@Operation`, and `@ApiResponses`. Tags must be hierarchically organized 1:1 per `<domain>` via `x-tagGroups` in Scalar UI, and non-business controllers must use `@Hidden`.
 13. **Observability & Sensitive Data Masking**: All logs must follow SLF4J standards with zero plain credential leakage. Methods in Service and Client are auto-traced via OTel, and error responses attach an `X-Trace-Id` header.
-14. **Security & Multi-Tenancy Standards**: Tenant data isolation enforced via PostgreSQL Row Level Security (RLS) with session context (`SET LOCAL app.tenant_id`). Cache keys for tenant data must include tenant prefix (`#tenantId + ':' + #id`). Zero secret leakage (`.env`), UU PDP compliance (synthetic dummy data only), and mandatory confirmation for destructive commands and external process termination.
+14. **Security, Multi-Tenancy & Rate Limiting Standards**: Tenant data isolation enforced via PostgreSQL Row Level Security (RLS) with session context (`SET LOCAL app.tenant_id`). Cross-tenant resource queries MUST return HTTP 404 disguise (IDOR defense). Distributed 2-Tier rate limiting (Bucket4j + Redis) enforces HTTP 429 `RATE_LIMIT_EXCEEDED`. Stateful PAT authentication uses SHA-256 and sliding window expiration (`Authorization: Bearer <id>|<plainToken>`). Cache keys for tenant data must include tenant prefix (`#tenantId + ':' + #id`). Zero secret leakage (`.env`), UU PDP compliance (synthetic dummy data only), and mandatory confirmation for destructive commands.
 15. **CI/CD, Container & Deployment Standards**: Dedicated Liquibase migration runner before app booting (`LIQUIBASE_ENABLED=false` on backend server for dynamic scaling); Production zero-downtime via Nginx Blue/Green; Staging slots via PR labels (`deploy:staging-*`); Trivy container vulnerability gate exclusively during CD deployment before pushing to GHCR; and mandatory PR template compliance (`.github/pull_request_template.md`).
-16. **Zero Magic Strings (Domain Constants & Enums)**: All status, roles, tabs, and categorical state values **MUST** be declared as centralized constants in `constant/<Feature>Status.java` or `constant/<Feature>Role.java` (`public final class` with private constructor) or Enums. Strictly FORBIDDEN to write hardcoded string literals across services, entities, clients, YAVI validators, or JPA criteria specifications.
+16. **Zero Magic Strings & Localized Messages (Messages.java)**: All status, roles, tabs, and categorical state values **MUST** be declared as centralized constants in `constant/<Feature>Status.java` or `constant/<Feature>Role.java` (`public final class` with private constructor) or Enums. All user-facing response messages and exception details **MUST** be resolved via `Messages.get("message.key", args)` supporting multi-language (i18n). Strictly FORBIDDEN to write hardcoded string literals across services, controllers, entities, clients, YAVI validators, or JPA criteria specifications.
 
 ---
 
@@ -88,6 +88,7 @@ Read the specific rule file before implementing features in that domain:
 - [13. Observability, Logging & Sensitive Data Masking Standards](docs/rules/13-observability-and-logging.md)
 - [14. Security & Multi-tenancy Standards](docs/rules/14-security-and-multi-tenancy.md)
 - [15. CI/CD, Container Hardening & Deployment Standards](docs/rules/15-ci-cd-and-deployment-standards.md)
+- [16. Zero Magic Strings, Domain Constants & Messages](docs/rules/16-zero-magic-strings-and-domain-constants.md)
 
 ---
 
@@ -126,7 +127,7 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Branch Hygiene: Changes developed in dedicated feature/fix branch (`feat/*`, `fix/*`, `refactor/*`, `chore/*`), NEVER directly on `main` or `dev`.
 - [ ] Code is placed in `module.<domain>.<feature>/` or `common/`.
 - [ ] DTOs are Java 21 `record`.
-- [ ] Entity uses Lombok `@Getter`, `@Setter`, `@NoArgsConstructor`, and NOT `@Data`.
+- [ ] Entity uses Lombok `@Getter`, `@Setter`, `@NoArgsConstructor`, NOT `@Data`, and UUID business entities use `@UuidGenerator(style = UuidGenerator.Style.VERSION_7)` with `@PrePersist`/`@PreUpdate` lifecycle auditing.
 - [ ] Client public contract uses interface in `client/contract/`, DTO in `client/dto/`, and implementation in `client/impl/`.
 - [ ] No JPA `@Entity` returned from Client Contract or Controller.
 - [ ] Cross-module calls only use foreign `*Client`, not foreign `*Service` or `*Repository`.
@@ -141,8 +142,8 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Endpoints and DTOs documented with OpenAPI `@Tag`, `@Operation`, and `@Schema` with realistic `example` values`.
 - [ ] Observability: No unmasked sensitive data/credentials in logs, and masking unit tests pass.
 - [ ] Distributed Tracing: X-Trace-Id header attached and OTel context active.
-- [ ] Multi-tenancy & Security: Tenant-scoped cache keys include tenant prefix; no blind `kill -9` or unconfirmed destructive commands; no secrets or real PII committed.
-- [ ] Unit tests written with BDD `@DisplayName` format.
+- [ ] Multi-tenancy & Security: Cross-tenant queries return HTTP 404 disguise (IDOR defense); tenant-scoped cache keys include tenant prefix; rate limiting headers (`X-RateLimit-*`) respected; no blind `kill -9` or unconfirmed destructive commands; no secrets or real PII committed.
+- [ ] Unit tests written with BDD `@DisplayName` format (Controller tests use fast `standaloneSetup`, not slow `@WebMvcTest`).
 - [ ] Targeted tests pass (`./gradlew test --tests "..."`).
 - [ ] Code formatted cleanly with `./gradlew spotlessApply`.
 - [ ] Architecture tests pass (`./gradlew test --tests "*ArchitectureTest*"`).
@@ -156,4 +157,4 @@ Before finishing any task, every AI Agent MUST verify:
 
 When exploring new features, planning changes, or brainstorming architecture:
 - **Mandatory Skill**: Use `project-brainstorming` (`.agents/skills/project-brainstorming/SKILL.md`).
-- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 14 Golden Rules above, companion rules in `docs/rules/`, and Architecture Decision Records in `docs/adr/` before presenting designs or generating implementation plans.
+- **Directives-First**: Any proposal, spike, or design MUST strictly adhere to the 16 Golden Rules above, companion rules in `docs/rules/`, and Architecture Decision Records in `docs/adr/` before presenting designs or generating implementation plans.

@@ -15,22 +15,25 @@ Use this specialized skill when reviewing changes involving repositories, entiti
      ```java
      // DON'T: N+1 query vulnerability!
      for (OrderDto order : orders) {
-         UserDto user = userFacade.findById(order.userId());
+         UserDto user = userClient.findById(order.userId());
      }
 
      // DO: The Golden Stack (Batch lookup + in-memory Map)
      Set<UUID> userIds = orders.stream().map(OrderDto::userId).collect(toSet());
-     Map<UUID, UserDto> userLookups = userFacade.findByIdsIn(userIds);
+     Map<UUID, UserDto> userLookups = userClient.findByIdsIn(userIds);
      List<OrderResponse> responses = orders.stream()
          .map(o -> mapper.toResponse(o, userLookups.get(o.userId())))
          .toList();
      ```
 
-2. **JPA Entity Restrictions**:
+2. **JPA Entity & Primary Key Restrictions (Rule 5 & 9)**:
+   - **Primary Key UUIDv7**: Primary key WAJIB menggunakan UUIDv7 via Hibernate 7 `@Id @UuidGenerator(style = UuidGenerator.Style.VERSION_7)`. Dilarang menggunakan UUIDv4 acak untuk primary key database.
+   - **Entity Lifecycle Auditing**: Kolom audit (`createdAt`, `updatedAt`) dikelola secara deterministik via metode `@PrePersist` dan `@PreUpdate` pada entity.
    - **NEVER use `@Data`** on JPA Entities (causes infinite `hashCode`/`equals` loops and accidental mutation).
    - Use explicit `@Getter`, `@Setter`, and `@NoArgsConstructor(access = AccessLevel.PROTECTED)`.
    - All `@ManyToOne` or `@OneToOne` associations must specify `fetch = FetchType.LAZY`.
-   - Never expose JPA Entities to Web Controllers or Facades (Anti-Entity Leakage).
+   - Never expose JPA Entities to Web Controllers or Client Contracts (Anti-Entity Leakage).
+   - **JPA 3-Level Query Standard (Rule 9)**: Tier 1 (Derived Query) -> Tier 2 (JPQL/HQL `@Query` dengan DTO Projection) -> Tier 3 (JPA Specification `CriteriaBuilder` untuk filter dinamis).
 
 3. **Transaction Management**:
    - Read-only methods must be annotated with `@Transactional(readOnly = true)`.

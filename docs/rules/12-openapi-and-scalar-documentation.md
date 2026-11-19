@@ -246,7 +246,7 @@ public record BoardDetailResponse(
 
 ## 3. Global Bearer Security & Error Response Configuration (`OpenApiConfig`)
 
-[`OpenApiConfig.java`](../../src/main/java/com/hyperdata/proms/common/docs/OpenApiConfig.java) mengonfigurasi autentikasi Bearer JWT global dan secara otomatis melampirkan envelope error standar (`400 Bad Request` dan `500 Internal Server Error`) ke seluruh endpoint via `OperationCustomizer`:
+[`OpenApiConfig.java`](../../src/main/java/com/hyperdata/proms/common/docs/OpenApiConfig.java) mengonfigurasi skema autentikasi Bearer Personal Access Token (PAT `<tokenId>|<plainToken>`) global dan secara otomatis melampirkan envelope error standar (`400 Bad Request`, `422 Unprocessable Entity`, dan `500 Internal Server Error`) ke seluruh endpoint via `OperationCustomizer`:
 
 ```java
 package com.hyperdata.proms.common.docs;

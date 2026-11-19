@@ -1,12 +1,8 @@
 package com.hyperdata.proms.common.ratelimit.config;
 
-import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.codec.ByteArrayCodec;
-import io.lettuce.core.codec.RedisCodec;
-import io.lettuce.core.codec.StringCodec;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -53,16 +49,11 @@ public class RedisRateLimitConfig {
     }
 
     @Bean(destroyMethod = "close")
-    public StatefulRedisConnection<String, byte[]> bucketRedisConnection(RedisClient bucketRedisClient) {
-        return bucketRedisClient.connect(RedisCodec.of(StringCodec.UTF8, ByteArrayCodec.INSTANCE));
-    }
-
-    @Bean
-    public LettuceBasedProxyManager<String> bucketProxyManager(
-        StatefulRedisConnection<String, byte[]> bucketRedisConnection) {
-        return LettuceBasedProxyManager.builderFor(bucketRedisConnection)
-            .withExpirationStrategy(io.github.bucket4j.distributed.ExpirationAfterWriteStrategy
-                .basedOnTimeForRefillingBucketUpToMax(Duration.ofMinutes(10)))
-            .build();
+    public ProxyManager<String> bucketProxyManager(RedisClient bucketRedisClient) {
+        return new ResilientLettuceProxyManager(
+            bucketRedisClient,
+            Duration.ofMinutes(10),
+            redisHost,
+            redisPort);
     }
 }

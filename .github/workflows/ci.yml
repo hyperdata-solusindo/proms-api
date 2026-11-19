@@ -1,9 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
@@ -156,15 +153,15 @@ jobs:
           # 2. Context-Aware Skill Discovery based on changed files
           skill_mapping = {
               "Security & Multi-Tenancy": {
-                  "patterns": ["auth", "tenant", "security", "token", "password", ".github/workflows"],
+                  "patterns": ["auth", "tenant", "security", "token", "password", "ratelimit", ".github/workflows"],
                   "file": ".agents/skills/security-and-multi-tenancy/SKILL.md"
               },
               "The Golden Stack & JPA Performance": {
                   "patterns": ["repository", "entity", "lookup", "mapper", "src/main/resources/db"],
                   "file": ".agents/skills/the-golden-stack-performance/SKILL.md"
               },
-              "Modular Facade & Boundary": {
-                  "patterns": ["facade", "service", "architecturetest"],
+              "Modular Client Contract & Boundary": {
+                  "patterns": ["client", "contract", "facade", "service", "architecturetest"],
                   "file": ".agents/skills/modular-facade-boundary/SKILL.md"
               },
               "API Contract & YAVI": {
@@ -227,17 +224,20 @@ jobs:
 
           ---
 
-          #### 2. 🚦 Matriks Kepatuhan 14 Golden Rules
+          #### 2. 🚦 Matriks Kepatuhan 16 Golden Rules
 
           | Aturan Arsitektur | Status | Catatan Evaluasi |
           | :--- | :---: | :--- |
-          | **Batas Antar-Modul** *(Rule 1 & 2)* | 🟢 **PASS** / 🔴 **VIOLATION** | (Catatan ringkas 1 kalimat) |
+          | **Batas Antar-Modul (Client Contract)** *(Rule 1 & 2)* | 🟢 **PASS** / 🔴 **VIOLATION** | (Catatan ringkas 1 kalimat) |
           | **DTO Immutability** *(Rule 4)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
-          | **JPA Entity & Lombok** *(Rule 5)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **JPA Entity & UUIDv7 Mandatory** *(Rule 5)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
           | **Dependency Injection** *(Rule 6)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
           | **YAVI Validation** *(Rule 7)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **Testing Standards (standaloneSetup)** *(Rule 8)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **JPA 3-Level Query Standards** *(Rule 9)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
           | **The Golden Stack** *(Rule 10)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
-          | **Security & Multi-Tenancy** *(Rule 14)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **Security, Multi-Tenancy & Rate Limiting** *(Rule 14)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
+          | **Zero Magic Strings** *(Rule 16)* | 🟢 **PASS** / 🔴 **VIOLATION** / ⚪ **N/A** | (Catatan ringkas 1 kalimat) |
 
           ---
 

@@ -5,6 +5,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
 
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaField;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaParameterizedType;
 import com.tngtech.archunit.core.domain.JavaType;
@@ -89,6 +90,29 @@ public class ArchitectureTest {
         .resideInAPackage("..entity..")
         .should()
         .beAnnotatedWith("lombok.Data");
+
+    @ArchTest
+    static final ArchRule entity_fields_must_not_use_random_uuid_generation = fields()
+        .that()
+        .areDeclaredInClassesThat()
+        .resideInAPackage("..entity..")
+        .should(new ArchCondition<JavaField>("not use @GeneratedValue(strategy = GenerationType.UUID)") {
+
+            @Override
+            public void check(JavaField field, ConditionEvents events) {
+                if (field.isAnnotatedWith(jakarta.persistence.GeneratedValue.class)) {
+                    jakarta.persistence.GeneratedValue ann = field
+                        .getAnnotationOfType(jakarta.persistence.GeneratedValue.class);
+                    if (ann.strategy() == jakarta.persistence.GenerationType.UUID) {
+                        String message = String.format(
+                            "Entity field %s.%s uses @GeneratedValue(strategy = GenerationType.UUID). Standardize to Hibernate 7 @UuidGenerator(style = UuidGenerator.Style.VERSION_7) for sequential B-tree indexing in PostgreSQL.",
+                            field.getOwner().getSimpleName(),
+                            field.getName());
+                        events.add(SimpleConditionEvent.violated(field, message));
+                    }
+                }
+            }
+        });
 
     @ArchTest
     static final ArchRule controllers_must_not_be_annotated_with_transactional = noClasses()

@@ -34,13 +34,18 @@ class OtelConfigTest {
     @SuppressWarnings("unchecked")
     void shouldCreateOtlpHttpSpanExporter() {
         ObjectProvider<OtlpHttpSpanExporterBuilderCustomizer> customizers = mock(ObjectProvider.class);
-        when(customizers.orderedStream()).thenReturn(Stream.empty());
+        when(customizers.orderedStream()).thenAnswer(invocation -> Stream.empty());
 
-        OtlpHttpSpanExporter exporter = otelConfig.otlpHttpSpanExporter(
+        OtlpHttpSpanExporter exporter1 = otelConfig.otlpHttpSpanExporter(
             "http://localhost:4318",
             Duration.ofSeconds(2),
             customizers);
+        assertThat(exporter1).isNotNull();
 
-        assertThat(exporter).isNotNull();
+        OtlpHttpSpanExporter exporter2 = otelConfig.otlpHttpSpanExporter(
+            "https://otel.hyperdata.co.id/v1/traces/v1/traces",
+            Duration.ofSeconds(2),
+            customizers);
+        assertThat(exporter2).isNotNull();
     }
 }

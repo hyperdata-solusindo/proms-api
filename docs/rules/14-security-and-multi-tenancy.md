@@ -30,9 +30,9 @@ All tenant-scoped tables in schemas `platform` and `proms` have Row Level Securi
   platform.current_workspace_role() -- coalesces current_setting('app.workspace_role', true)
   ```
 
-### 2.2. Tenant Context Lifecycle & Session Injection
+#### 2.2. Tenant Context Lifecycle & Session Injection
 For RLS policies to evaluate correctly, every database transaction executing tenant-scoped operations **MUST** configure the PostgreSQL session settings:
-1. **Extraction**: The active tenant is extracted from the authenticated user's session (`CurrentUser.activeTenantId()`) verified via `TokenAuthenticationFilter` and `AuthFacade`.
+1. **Extraction**: The active tenant is extracted from the authenticated user's session (`CurrentUser.activeTenantId()`) verified via `TokenAuthenticationFilter` and `AuthClient`.
 2. **Session Variable Injection**: Before executing queries in a transaction, the connection must execute:
    ```sql
    SET LOCAL app.tenant_id = '<activeTenantId>';
@@ -48,7 +48,7 @@ For RLS policies to evaluate correctly, every database transaction executing ten
 ### 2.4. Penerapan Anotasi `@TenantScoped` & `TenantRlsAspect`
 Untuk menjamin prinsip Fail-Closed dan integrasi session PostgreSQL RLS berjalan otomatis tanpa boilerplate:
 1. **Kewajiban Penggunaan `@TenantScoped`**:
-   - Seluruh class `Service` atau `Facade` yang mengelola entitas ber-tenant (contoh: `EmployeeService`, `ProductService`, `BoardService`) **WAJIB dianotasi `@TenantScoped`** (di level class atau method).
+   - Seluruh class `Service` atau `Client` implementation yang mengelola entitas ber-tenant (contoh: `EmployeeService`, `ProductService`, `BoardService`) **WAJIB dianotasi `@TenantScoped`** (di level class atau method).
    ```java
    @Service
    @TenantScoped
@@ -66,6 +66,12 @@ Untuk menjamin prinsip Fail-Closed dan integrasi session PostgreSQL RLS berjalan
      Parameter di-scope per transaksi dan flag `PROMS_RLS_APPLIED_TX` memastikan perintah ini hanya dieksekusi 1 kali per transaksi.
 3. **Pengecualian**:
    - Class/method publik atau cross-tenant tanpa konteks tenant (misal: `AuthService#login`, endpoint registrasi) **DILARANG** menggunakan `@TenantScoped`.
+
+### 2.5. Cross-Tenant IDOR Disguise (404 Not Found Standard)
+- **Zero Information Leakage**: Saat mengambil atau memutasi resource spesifik berdasarkan ID, service layer **WAJIB** memvalidasi bahwa `entity.getTenantId().equals(currentUser.activeTenantId())`.
+- **404 (Disguise)**: Jika resource dengan ID tersebut ada di database tetapi milik tenant lain, sistem **WAJIB melempar `ResourceNotFoundException(entityName, id)` (HTTP 404)**.
+- ❌ **DILARANG melempar HTTP 403 Forbidden untuk akses resource lintas-tenant**. Melempar 403 bertindak sebagai *Oracle* yang membocorkan keberadaan ID valid milik tenant lain kepada penyerang (*IDOR probing / enumeration attack*).
+- **HTTP 403 Forbidden Standar**: HTTP 403 **hanya digunakan untuk otorisasi internal di dalam tenant yang sama** (contoh: user sudah berada di tenant yang benar, namun bukan member board, bukan owner, atau memiliki role `VIEWER` saat mencoba operasi create/update).
 
 ---
 
@@ -110,7 +116,7 @@ In-memory L1 cache (Caffeine) and distributed L2 cache (Redis) operate in applic
 ### 4.1. Endpoint Authorization
 - Every endpoint in `<Feature>Api` or `<Feature>Controller` must explicitly declare security requirements:
   - Public endpoints: Explicitly configured in `SecurityConfig` (`permitAll()`) and marked with appropriate documentation.
-  - Authenticated endpoints: Require valid authentication and verify tenant membership via `UserFacade.resolveUserMembership(userId, tenantId)`.
+  - Authenticated endpoints: Require valid authentication and verify tenant membership via `UserClient.resolveUserMembership(userId, Optional.of(tenantId))`.
   - Role-restricted endpoints: Enforce role requirements (e.g. `owner`, `admin`, `finance`, `member`) before executing domain logic.
 
 ### 4.2. Input Validation & SQL Injection Prevention
@@ -150,3 +156,45 @@ AI Agent **DILARANG** menjalankan perintah destruktif berikut secara otomatis ta
 2. Perintah Liquibase rollback atau `DROP TABLE` / `DROP DATABASE`.
 3. Perintah SQL `TRUNCATE` atau `DELETE FROM ...` dalam jumlah besar.
 4. Perintah `git reset --hard` atau `git clean -fd` yang berpotensi menghapus pekerjaan developer.
+
+---
+
+## 6. Distributed Rate Limiting & Throttling (Bucket4j + Redis)
+
+Untuk melindungi infrastruktur dari serangan brute-force, DoS, serta efek *noisy neighbor* antar-tenant, PROMS API menerapkan sistem pembatasan laju trafik terdistribusi 2-Tier:
+
+### 6.1. Tier 1: Edge Pre-Auth Rate Limiting (`PreAuthRateLimitingFilter`)
+- Berjalan sebelum rantai autentikasi (`LogoutFilter.class`).
+- **Resolusi Klien IP**: Mendukung deteksi header edge reverse proxy/Cloudflare (`CF-Connecting-IP`, `X-Forwarded-For`).
+- **Global IP Limiting**: Membatasi laju per IP klien (`rl:edge:ip:<ip>`).
+- **Brute-Force Auth Protection**: Endpoint login (`POST /api/v1/auth/login`) memiliki bucket pembatasan ketat tersendiri (`rl:auth:ip:<ip>`).
+
+### 6.2. Tier 2: Post-Auth Rate Limiting (`PostAuthRateLimitingFilter`)
+- Berjalan setelah `TokenAuthenticationFilter` terverifikasi.
+- **User-Level Limiting**: Membatasi laju request per pengguna terautentikasi (`rl:user:<userId>`).
+- **Tenant Anti-Noisy-Neighbor**: Mengisolasi kapasitas agregat per workspace (`rl:tenant:<tenantId>`) sehingga aktivitas lonjakan request satu tenant tidak menghabiskan kuota atau merusak performa tenant lain.
+- **In-Flight Concurrency Guard**: Membatasi jumlah request bersamaan (*max concurrent*) yang sedang dieksekusi via `releaseInFlight` pada blok `finally`.
+
+### 6.3. Kontrak Respon HTTP 429
+Saat kuota token bucket terlampaui, filter langsung memutus filter chain dan mengembalikan respon JSON standar:
+- HTTP Status: `429 Too Many Requests`
+- Error Code: `CommonErrorCode.RATE_LIMIT_EXCEEDED`
+- Header Wajib:
+  - `Retry-After`: Jumlah detik klien harus menunggu sebelum mencoba kembali.
+  - `X-RateLimit-Limit`: Kapasitas maksimum bucket.
+  - `X-RateLimit-Remaining`: Sisa token yang tersedia (bernilai `0`).
+
+---
+
+## 7. Personal Access Token (PAT) Architecture & Sliding Window Expiration
+
+Sistem autentikasi PROMS API menggunakan **Stateful Personal Access Token (PAT)** berbasis basis data (`platform.personal_access_tokens`), bukan Stateless JWT:
+
+### 7.1. Format & Hashing Token
+- **Format Header**: `Authorization: Bearer <tokenId>|<plainToken>` (pola pipe-delimited).
+- **Keamanan Hashing**: Token mentah (*plainToken*) hanya ditampilkan 1 kali ke user saat login/generasi token. Di database, nilai token disimpan dalam bentuk hash kriptografis **SHA-256** (`pat.setToken(hashToken(plainToken))`).
+- **Resolusi Cepat**: `<tokenId>` digunakan sebagai index pencarian utama, lalu hash dicocokkan via `tokenRepository.findByIdAndToken(tokenId, hashed)`.
+
+### 7.2. Sliding Window Expiration
+- **TTL Default**: Token memiliki masa aktif `app.security.token.ttl-days` (default 30 hari).
+- **Perpanjangan Otomatis (Sliding Window)**: Setiap request valid memicu `authClient.recordTokenUsage(tokenId)`. Jika sisa waktu aktif token kurang dari `app.security.token.sliding-window-days` (default 7 hari), tanggal kedaluwarsa (`expires_at`) otomatis diperpanjang 30 hari ke depan, menjaga sesi pengguna aktif tanpa memaksa re-login berulang.

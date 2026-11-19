@@ -43,3 +43,13 @@ Setiap image kontainer aplikasi wajib memenuhi kriteria berikut:
 2. **Non-Root Execution**: Aplikasi wajib dijalankan menggunakan user dan group non-root (`appuser:appgroup`). Dilarang menjalankan aplikasi Java sebagai user `root`.
 3. **Container Healthcheck**: Dockerfile wajib mendeklarasikan directive `HEALTHCHECK` yang memantau Spring Boot Actuator probe (`curl -f http://localhost:8080/actuator/health/liveness`).
 4. **JVM Memory Tuning**: JVM options wajib menyertakan flag container cgroup awareness (misal: `-XX:MaxRAMPercentage=75.0` dan `-XX:+ExitOnOutOfMemoryError`).
+
+---
+
+## 5. Pipeline Triggers & Job Guards Architecture
+- **CI Pipeline (`ci.yml`)**:
+  - Dibatasi secara eksklusif pada event `pull_request` (target branch `dev` dan `main`). Trigger `push to main` ditiadakan agar tidak terjadi eksekusi build redundan setelah merge PR.
+  - Memiliki 2 job utama: `verify` (Java checks + ArchUnit + Redis service container) dan `ai-review` (evaluasi otomatis The 16 Golden Rules via Gemini).
+- **CD Pipeline (`cd.yml`)**:
+  - Event `pull_request` dibatasi secara ketat hanya pada `types: [labeled]`. Event `synchronize` ditiadakan agar push commit reguler ke PR tidak memicu workflow deployment kosong.
+  - Job `resolve-intent` diproteksi guard `startsWith(github.event.label.name, 'deploy:staging-')`, sehingga penambahan label non-deploy (seperti `bug`, `wip`, `enhancement`) langsung diabaikan tanpa menyalakan runner virtual machine.

@@ -54,7 +54,7 @@ Aplikasi PROMS API mengadopsi prinsip *12-Factor App*. Konfigurasi diatur sepenu
 | Variabel | Tipe / Format | Default | Staging / Prod | Fungsi |
 | :--- | :--- | :--- | :--- | :--- |
 | `OTEL_TRACING_ENABLED` | Boolean (`true`/`false`) | `true` | `true` | Mengaktifkan/menonaktifkan instrumentasi tracing. |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | URL | `https://otel.hyperdata.co.id/v1/traces` | `https://otel.hyperdata.co.id/v1/traces` | Endpoint OTLP/HTTP untuk pengiriman traces ke Grafana Tempo. |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | URL | `https://otel.hyperdata.co.id` | `https://otel.hyperdata.co.id` | Endpoint OTLP/HTTP base root domain untuk pengiriman traces (Spring Boot otomatis menambahkan path `/v1/traces`). |
 | `OTEL_SAMPLING_PROBABILITY` | Float (`0.0` - `1.0`) | `1.0` | `1.0` (Staging)<br>`0.1`–`0.2` (Prod) | Rasio tracing. Nilai `1.0` merekam 100% request. Untuk production dengan beban tinggi, disarankan `0.1` (10%) untuk menghemat storage Tempo. |
 | `OTEL_TIMEOUT_SECONDS` | Durasi | `2s` | `2s` | Batas waktu tunggu pengiriman batch OTLP ke collector. |
 | `OTEL_METRICS_EXPORT_ENABLED` | Boolean (`true`/`false`) | `true` | `true` | Mengaktifkan pengiriman OTLP metrics langsung ke Grafana LGTM. |
@@ -78,7 +78,7 @@ APP_VERSION=1.0.0-rc1
 # OpenTelemetry (Traces & Metrics ke Grafana LGTM)
 OTEL_TRACING_ENABLED=true
 OTEL_SAMPLING_PROBABILITY=1.0
-OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.hyperdata.co.id/v1/traces
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.hyperdata.co.id
 OTEL_TIMEOUT_SECONDS=2s
 OTEL_METRICS_EXPORT_ENABLED=true
 OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://otel.hyperdata.co.id/v1/metrics
@@ -103,7 +103,7 @@ APP_VERSION=1.0.0
 # OpenTelemetry (Traces 10% sampling & Metrics 1m ke Grafana LGTM)
 OTEL_TRACING_ENABLED=true
 OTEL_SAMPLING_PROBABILITY=0.1
-OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.hyperdata.co.id/v1/traces
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.hyperdata.co.id
 OTEL_TIMEOUT_SECONDS=2s
 OTEL_METRICS_EXPORT_ENABLED=true
 OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://otel.hyperdata.co.id/v1/metrics

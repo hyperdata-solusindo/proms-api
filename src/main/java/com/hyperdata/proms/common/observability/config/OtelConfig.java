@@ -55,6 +55,9 @@ public class OtelConfig {
 
         String normalized = (endpoint != null && !endpoint.isBlank()) ? endpoint.trim() : "http://localhost:4318";
         normalized = normalized.replaceAll("/+$", "");
+        while (normalized.endsWith("/v1/traces/v1/traces")) {
+            normalized = normalized.substring(0, normalized.length() - "/v1/traces".length());
+        }
         if (!normalized.endsWith("/v1/traces")) {
             normalized = normalized + "/v1/traces";
         }

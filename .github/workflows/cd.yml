@@ -3,7 +3,7 @@ name: CD - Label & Tag Based Deployment
 on:
   # 1. Trigger via Pull Request Labels (Branch-Agnostic Staging Preview)
   pull_request:
-    types: [labeled, synchronize]
+    types: [labeled]
 
   # 2. Trigger via Tag Release (Production Deployment)
   push:
@@ -49,6 +49,9 @@ jobs:
   # ============================================================================
   resolve-intent:
     name: Resolve Target Environment
+    if: |
+      github.event_name != 'pull_request' ||
+      startsWith(github.event.label.name, 'deploy:staging-')
     runs-on: ubuntu-latest
     outputs:
       should_deploy: ${{ steps.resolve.outputs.should_deploy }}

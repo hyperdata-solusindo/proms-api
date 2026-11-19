@@ -94,6 +94,7 @@ Kolom `code` di bawah dibaca dari `error.code`.
 | 422 | `BR-WF-09` | Sheet meminta alasan Blocked |
 | 422 | `VALIDATION` | Pesan per field dari `error.fields` |
 | 428 | `IF_MATCH_REQUIRED` | Bug di app; tidak ditampilkan ke user |
+| 429 | `RATE_LIMIT_EXCEEDED` | Banner/Toast batas permintaan terlampaui (mengikuti header `Retry-After`) |
 
 ### Malformed Request Body (400 Bad Request)
 ```json
@@ -123,6 +124,20 @@ Kolom `code` di bawah dibaca dari `error.code`.
         "message": "Wajib diisi"
       }
     ]
+  }
+}
+```
+
+### Rate Limit Exceeded (429 Too Many Requests)
+Headers: `Retry-After: 30`, `X-RateLimit-Limit: 60`, `X-RateLimit-Remaining: 0`
+```json
+{
+  "statusCode": 429,
+  "message": "Terlalu banyak permintaan. Silakan coba lagi nanti.",
+  "data": null,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "detail": "Batas permintaan terlampaui. Silakan tunggu 30 detik sebelum mencoba kembali."
   }
 }
 ```
@@ -234,7 +249,7 @@ src/main/resources/messages/
 
 ### 7.2 Dynamic Message Resolution via `Messages.get(...)`
 - `LocalizationConfig` memuat seluruh resource bundle secara otomatis melalui pola `classpath*:messages/**/*.properties` menggunakan `ReloadableResourceBundleMessageSource`.
-- Seluruh pengambilan pesan di Controller, Service, Facade, dan Exception **WAJIB** menggunakan helper terpusat:
+- Seluruh pengambilan pesan di Controller, Service, Client Contract, dan Exception **WAJIB** menggunakan helper terpusat:
   ```java
   // Mengambil pesan sesuai header HTTP "Accept-Language" (default: id-ID, en)
   String msg = Messages.get("product.deleted.success");

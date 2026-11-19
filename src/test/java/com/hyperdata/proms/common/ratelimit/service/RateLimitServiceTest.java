@@ -9,7 +9,7 @@ import com.hyperdata.proms.common.ratelimit.model.RateLimitResult;
 import com.hyperdata.proms.common.ratelimit.model.RateLimitTarget;
 import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.distributed.BucketProxy;
-import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +24,7 @@ import org.springframework.data.redis.core.ValueOperations;
 class RateLimitServiceTest {
 
     @Mock
-    private LettuceBasedProxyManager<String> proxyManager;
+    private ProxyManager<String> proxyManager;
 
     @Mock
     private StringRedisTemplate redisTemplate;

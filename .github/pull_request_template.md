@@ -19,18 +19,21 @@
 Wajib diverifikasi sebelum meminta review:
 - [ ] **Struktur & Penempatan**: Kode diletakkan di `module.<domain>.<feature>/` atau `common/`.
 - [ ] **DTO Immutability**: Seluruh request & response DTO menggunakan Java 21 `record`.
-- [ ] **JPA Entities**: Menggunakan Lombok `@Getter`, `@Setter`, `@NoArgsConstructor`, dan **TIDAK menggunakan `@Data`**.
+- [ ] **JPA Entities & UUIDv7**: Menggunakan Lombok `@Getter`, `@Setter`, `@NoArgsConstructor`, **TIDAK menggunakan `@Data`**, dan primary key UUID wajib menggunakan `@UuidGenerator(style = UuidGenerator.Style.VERSION_7)`.
 - [ ] **Dependency Injection**: Menggunakan Constructor Injection (`@RequiredArgsConstructor` pada field `final`), tidak ada `@Autowired` pada field.
-- [ ] **Batas Modularitas & Facade**:
-  - Modul lain hanya mengimpor interface di `facade/` dan DTO di `facade/dto/`.
-  - Tidak ada import langsung ke `service/`, `repository/`, `entity/`, atau `constant/` modul lain.
-  - Implementasi Facade berada di `facade.internal/` dan beranotasi `@Component`.
-- [ ] **Anti-Entity Leakage**: Controller dan Facade tidak mengembalikan entity JPA `@Entity`.
+- [ ] **Batas Modularitas & Client Contract**:
+  - Modul lain hanya mengimpor interface di `client/contract/<Feature>Client.java` dan DTO di `client/dto/`.
+  - Tidak ada import langsung ke `service/`, `repository/`, `entity/`, `constant/`, atau `client/impl/` modul lain.
+  - Implementasi Client berada di `client/impl/` dan beranotasi `@Component`.
+- [ ] **Anti-Entity Leakage**: Controller dan Client tidak mengembalikan entity JPA `@Entity`.
 - [ ] **Cross-Module Enrichment**: Menggunakan **The Golden Stack** (L1 Cache + `Lookups` in-memory + MapStruct) tanpa SQL JOIN lintas modul atau query di dalam loop.
-- [ ] **Multi-Tenancy & Cache**: Cache key untuk data tenant menyertakan tenant prefix (`#tenantId + ':' + #id`).
+- [ ] **Multi-Tenancy, IDOR & Rate Limiting**:
+  - Cache key untuk data tenant menyertakan tenant prefix (`#tenantId + ':' + #id`).
+  - Akses resource spesifik lintas-tenant wajib menyamar sebagai HTTP 404 (`ResourceNotFoundException`, IDOR defense).
+  - Header pembatasan laju (`X-RateLimit-*`, `Retry-After`) dan error `RATE_LIMIT_EXCEEDED` dipatuhi.
 - [ ] **Validasi YAVI**: Input divalidasi menggunakan YAVI dengan konvensi nama `public static final Validator<T> validator`.
 - [ ] **Testing & Quality Gates**:
-  - [ ] Unit test ditulis dengan format BDD `@DisplayName`.
+  - [ ] Unit test ditulis dengan format BDD `@DisplayName` (Controller test menggunakan fast `standaloneSetup`, bukan slow `@WebMvcTest`).
   - [ ] Format kode rapi via `./gradlew spotlessApply`.
   - [ ] Semua pengujian & guardrail arsitektur lolos: `./gradlew check`.
 - [ ] **Keamanan & Kebersihan**:
