@@ -20,8 +20,14 @@ public interface BoardMapper {
     @Mapping(target = "pm", source = "pm")
     @Mapping(target = "memberCount", source = "memberCount")
     @Mapping(target = "myRole", source = "myRole")
+    @Mapping(target = "progressPct", source = "progressPct")
     BoardSummaryResponse toSummaryResponse(Board board, BoardSummaryResponse.PmSummaryResponse pm, int memberCount,
-        String myRole);
+        String myRole, Integer progressPct);
+
+    default BoardSummaryResponse toSummaryResponse(Board board, BoardSummaryResponse.PmSummaryResponse pm,
+        int memberCount, String myRole) {
+        return toSummaryResponse(board, pm, memberCount, myRole, board.getProgressPct());
+    }
 
     @Mapping(target = "taskCount", source = "taskCount")
     BoardDetailResponse.BoardColumnResponse toColumnResponse(BoardColumn column, Integer taskCount);

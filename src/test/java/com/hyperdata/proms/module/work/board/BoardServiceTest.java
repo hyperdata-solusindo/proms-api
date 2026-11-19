@@ -165,6 +165,9 @@ class BoardServiceTest {
         given(boardMemberRepository.findRolesByUserAndBoardIds(userId, Set.of(boardId)))
             .willReturn(List.of(new BoardMemberRoleDto(boardId, "owner")));
 
+        given(taskClient.getBoardTaskMetrics(Set.of(boardId)))
+            .willReturn(Map.of(boardId, new TaskMetricsDto(5, 2, 0, 1, 3, 2, 40)));
+
         PageResponse<BoardSummaryResponse> result = boardService.listBoards(currentUser, "mine", null, pageable);
 
         assertThat(result.items()).hasSize(1);
@@ -174,6 +177,7 @@ class BoardServiceTest {
         assertThat(item.pm().fullName()).isEqualTo("Fariz PM");
         assertThat(item.memberCount()).isEqualTo(5);
         assertThat(item.myRole()).isEqualTo("owner");
+        assertThat(item.progressPct()).isEqualTo(40);
     }
 
     @Test

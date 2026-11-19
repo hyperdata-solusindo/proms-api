@@ -145,6 +145,8 @@ public class BoardService {
             BoardMemberRoleDto::boardId,
             BoardMemberRoleDto::role);
 
+        Map<UUID, TaskMetricsDto> metricsMap = taskClient.getBoardTaskMetrics(boardIds);
+
         List<BoardSummaryResponse> items = page.getContent().stream().map(board -> {
             BoardSummaryResponse.PmSummaryResponse pmSummary = null;
             if (board.getPmId() != null && pmMap.containsKey(board.getPmId())) {
@@ -157,7 +159,10 @@ public class BoardService {
             String role = myRoles.getOrDefault(board.getId(),
                 board.getOwnerId().equals(currentUser.userId()) ? BoardMemberRole.OWNER : null);
 
-            return boardMapper.toSummaryResponse(board, pmSummary, memberCount, role);
+            TaskMetricsDto metric = metricsMap.get(board.getId());
+            Integer progressPct = metric != null ? metric.progressPct() : board.getProgressPct();
+
+            return boardMapper.toSummaryResponse(board, pmSummary, memberCount, role, progressPct);
         }).toList();
 
         return PageResponse.from(page, items);
