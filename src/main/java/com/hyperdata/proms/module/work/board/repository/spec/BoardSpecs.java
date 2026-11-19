@@ -46,8 +46,11 @@ public final class BoardSpecs {
             } else { // default "mine"
                 predicates = cb.and(predicates, cb.isNull(root.get("archivedAt")));
                 predicates = cb.and(predicates, cb.equal(root.get("status"), BoardStatus.ACTIVE));
-                memberSubquery.where(cb.equal(memberRoot.get("userId"), userId));
-                predicates = cb.and(predicates, root.get("id").in(memberSubquery));
+                predicates = cb.and(
+                    predicates,
+                    cb.or(
+                        cb.equal(root.get("createdBy"), userId),
+                        cb.equal(root.get("ownerId"), userId)));
             }
 
             // Filter group

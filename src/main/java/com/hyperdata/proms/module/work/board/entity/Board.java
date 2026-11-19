@@ -77,6 +77,9 @@ public class Board {
     @Column(name = "archived_by")
     private UUID archivedBy;
 
+    @Column(name = "created_by")
+    private UUID createdBy;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 

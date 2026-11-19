@@ -387,6 +387,7 @@ public class BoardService {
         board.setClientName(request.clientName());
         board.setGroupName(request.groupName());
         board.setOwnerId(currentUser.userId());
+        board.setCreatedBy(currentUser.userId());
         board.setPmId(request.pmId() != null ? request.pmId() : currentUser.userId());
         board.setStartDate(request.startDate());
         board.setDueDate(request.dueDate());
