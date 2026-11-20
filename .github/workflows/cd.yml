@@ -235,9 +235,8 @@ jobs:
           scanners: 'vuln'
           vuln-type: 'os,library'
           severity: 'CRITICAL'
-        env:
-          TRIVY_NO_PROGRESS: 'true'
-          TRIVY_SKIP_DB_UPDATE: 'false'
+          cache: 'false'
+          hide-progress: 'true'
 
       - name: Push Docker image to GHCR
         env:
