@@ -256,6 +256,6 @@ public interface BoardApi {
     @Operation(
         summary = "Daftar Template Alur Kerja",
         description = "Mengambil daftar preset template alur kerja (workflow templates) beserta susunan kolom kanban untuk inisiasi board.")
-    @GetMapping(path = {"/workflow-templates", "/api/v1/workflow-templates"})
+    @GetMapping(path = {"/workflow-templates"})
     RestResponse<List<WorkflowTemplateResponse>> getWorkflowTemplates();
 }
