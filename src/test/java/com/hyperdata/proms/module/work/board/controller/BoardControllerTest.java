@@ -105,6 +105,7 @@ class BoardControllerTest {
             boardId,
             "PRJ",
             "Project Alpha",
+            null,
             "active",
             "on_track",
             null,
