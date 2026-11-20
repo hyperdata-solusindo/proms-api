@@ -18,6 +18,9 @@ public interface BoardMapper {
     @Mapping(target = "id", source = "board.id")
     @Mapping(target = "version", source = "board.updatedAt")
     @Mapping(target = "pm", source = "pm")
+    @Mapping(
+        target = "group",
+        expression = "java(board.getGroupName() != null ? new com.hyperdata.proms.module.work.board.dto.BoardGroupDto(board.getBoardGroupId(), board.getGroupName()) : null)")
     @Mapping(target = "memberCount", source = "memberCount")
     @Mapping(target = "myRole", source = "myRole")
     @Mapping(target = "progressPct", source = "progressPct")

@@ -166,6 +166,33 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref || github.event.pull_request.head.sha || github.ref }}
 
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Build and Extract Spring Boot Application Layers
+        run: |
+          echo "🔨 Building executable Spring Boot JAR..."
+          ./gradlew bootJar -x test --no-daemon
+
+          echo "📦 Extracting Spring Boot layers with layertools..."
+          UBER_JAR=$(find build/libs -maxdepth 1 -name "*.jar" ! -name "*-plain.jar" | head -n 1)
+          java -Djarmode=tools -jar "$UBER_JAR" extract \
+            --layers dependencies,spring-boot-loader,snapshot-dependencies,application \
+            --launcher \
+            --destination build/extracted \
+            --force
+
+          echo "✅ Layers successfully extracted to build/extracted:"
+          ls -lh build/extracted/
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -189,7 +216,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/Dockerfile
+          file: docker/Dockerfile.fast
           load: true
           tags: |
             proms-api-deploy-scan:inspect
@@ -205,8 +232,11 @@ jobs:
           format: 'table'
           exit-code: '1' # Enterprise Blocking Gate: Blokir deploy jika ada CRITICAL vulnerability yang ada fix-nya
           ignore-unfixed: true
+          scanners: 'vuln'
           vuln-type: 'os,library'
           severity: 'CRITICAL'
+          cache: 'false'
+          hide-progress: 'true'
 
       - name: Push Docker image to GHCR
         env:
