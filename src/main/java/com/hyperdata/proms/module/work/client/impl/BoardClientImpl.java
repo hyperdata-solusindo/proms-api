@@ -3,10 +3,12 @@ package com.hyperdata.proms.module.work.client.impl;
 import com.hyperdata.proms.common.exception.BusinessException;
 import com.hyperdata.proms.common.exception.CommonErrorCode;
 import com.hyperdata.proms.common.exception.ResourceNotFoundException;
+import com.hyperdata.proms.common.util.Lookups;
 import com.hyperdata.proms.common.util.Messages;
 import com.hyperdata.proms.module.work.board.constant.BoardMemberRole;
 import com.hyperdata.proms.module.work.board.constant.BoardStatus;
 import com.hyperdata.proms.module.work.board.entity.Board;
+import com.hyperdata.proms.module.work.board.entity.BoardColumn;
 import com.hyperdata.proms.module.work.board.entity.BoardMember;
 import com.hyperdata.proms.module.work.board.repository.BoardColumnRepository;
 import com.hyperdata.proms.module.work.board.repository.BoardMemberRepository;
@@ -15,6 +17,8 @@ import com.hyperdata.proms.module.work.board.repository.WorkstreamRepository;
 import com.hyperdata.proms.module.work.client.contract.BoardClient;
 import com.hyperdata.proms.module.work.client.dto.BoardPermissionDto;
 import com.hyperdata.proms.module.work.client.dto.BoardSummaryDto;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -88,5 +92,16 @@ public class BoardClientImpl implements BoardClient {
     public Optional<BoardSummaryDto> findById(UUID boardId) {
         return boardRepository.findActiveById(boardId)
             .map(b -> new BoardSummaryDto(b.getId(), b.getKey(), b.getName(), b.getStatus()));
+    }
+
+    @Override
+    public Map<UUID, String> getColumnCategories(Collection<UUID> boardIds) {
+        if (boardIds == null || boardIds.isEmpty()) {
+            return Map.of();
+        }
+        return Lookups.toMap(
+            boardColumnRepository.findActiveColumnsByBoardIds(boardIds),
+            BoardColumn::getId,
+            BoardColumn::getCategory);
     }
 }

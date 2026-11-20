@@ -2,6 +2,8 @@ package com.hyperdata.proms.module.work.client.contract;
 
 import com.hyperdata.proms.module.work.client.dto.BoardPermissionDto;
 import com.hyperdata.proms.module.work.client.dto.BoardSummaryDto;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,4 +16,6 @@ public interface BoardClient {
     void validateForTaskCreation(UUID boardId, UUID workstreamId, UUID columnId);
 
     Optional<BoardSummaryDto> findById(UUID boardId);
+
+    Map<UUID, String> getColumnCategories(Collection<UUID> boardIds);
 }
