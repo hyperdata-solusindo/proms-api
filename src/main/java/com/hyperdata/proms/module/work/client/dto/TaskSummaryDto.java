@@ -16,6 +16,7 @@ public record TaskSummaryDto(
     String priority,
     LocalDate dueDate,
     String dueState,
+    int daysLate,
     List<AssigneeRefDto> assignees,
     boolean isBlocked,
     int subtaskDone,
@@ -23,6 +24,6 @@ public record TaskSummaryDto(
     int commentCount,
     Instant version) {
 
-    public record AssigneeRefDto(UUID id, String fullName, String initials) {
+    public record AssigneeRefDto(UUID id, String fullName, String initials, String avatarUrl) {
     }
 }

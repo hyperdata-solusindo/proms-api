@@ -1,6 +1,7 @@
 package com.hyperdata.proms.module.work.board.repository;
 
 import com.hyperdata.proms.module.work.board.entity.BoardColumn;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,4 +29,12 @@ public interface BoardColumnRepository extends JpaRepository<BoardColumn, UUID> 
     Optional<BoardColumn> findActiveColumnById(@Param("id")
     UUID id, @Param("boardId")
     UUID boardId);
+
+    @Query("""
+            SELECT c FROM BoardColumn c
+            WHERE c.boardId IN :boardIds
+            AND c.deletedAt IS NULL
+        """)
+    List<BoardColumn> findActiveColumnsByBoardIds(@Param("boardIds")
+    Collection<UUID> boardIds);
 }
