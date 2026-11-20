@@ -31,6 +31,7 @@ import com.hyperdata.proms.module.work.board.dto.InviteBoardMembersRequest;
 import com.hyperdata.proms.module.work.board.dto.SavedViewResponse;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardMemberRequest;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardRequest;
+import com.hyperdata.proms.module.work.board.dto.WorkflowTemplateResponse;
 import com.hyperdata.proms.module.work.board.service.BoardService;
 import com.hyperdata.proms.module.work.client.dto.TaskCreatedDto;
 import com.hyperdata.proms.module.work.client.dto.TaskSummaryDto;
@@ -448,5 +449,23 @@ class BoardControllerTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.statusCode").value(201))
             .andExpect(jsonPath("$.data.name").value("My Custom View"));
+    }
+
+    @Test
+    @DisplayName("GIVEN request to /workflow-templates WHEN requested THEN returns 200 OK with templates list")
+    void getWorkflowTemplatesShouldReturn200() throws Exception {
+        var template = new WorkflowTemplateResponse(
+            UUID.randomUUID(),
+            "Default Workflow",
+            "Standar 4 kolom",
+            true,
+            List.of(new WorkflowTemplateResponse.WorkflowTemplateColumnDto("Backlog", "not_started", "#1E293B")));
+        given(boardService.getWorkflowTemplates(any())).willReturn(List.of(template));
+
+        mockMvc.perform(get("/api/v1/boards/workflow-templates"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.statusCode").value(200))
+            .andExpect(jsonPath("$.data[0].name").value("Default Workflow"))
+            .andExpect(jsonPath("$.data[0].columns[0].name").value("Backlog"));
     }
 }

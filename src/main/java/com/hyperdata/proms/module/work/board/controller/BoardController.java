@@ -20,6 +20,7 @@ import com.hyperdata.proms.module.work.board.dto.InviteBoardMembersRequest;
 import com.hyperdata.proms.module.work.board.dto.SavedViewResponse;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardMemberRequest;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardRequest;
+import com.hyperdata.proms.module.work.board.dto.WorkflowTemplateResponse;
 import com.hyperdata.proms.module.work.board.service.BoardService;
 import com.hyperdata.proms.module.work.client.dto.BoardTaskFilterDto;
 import com.hyperdata.proms.module.work.client.dto.TaskCreatedDto;
@@ -157,5 +158,11 @@ public class BoardController implements BoardApi {
         CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
         SavedViewResponse response = boardService.createSavedView(currentUser, boardId, request);
         return RestResponse.created(response, "Saved view berhasil dibuat");
+    }
+
+    @Override
+    public RestResponse<List<WorkflowTemplateResponse>> getWorkflowTemplates() {
+        CurrentUser currentUser = SecurityContextHelper.getRequiredCurrentUser();
+        return RestResponse.ok(boardService.getWorkflowTemplates(currentUser), "Template workflow berhasil diambil");
     }
 }

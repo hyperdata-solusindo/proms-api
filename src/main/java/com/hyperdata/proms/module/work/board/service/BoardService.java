@@ -43,6 +43,7 @@ import com.hyperdata.proms.module.work.board.dto.SavedViewResponse;
 import com.hyperdata.proms.module.work.board.dto.CreateSavedViewRequest;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardMemberRequest;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardRequest;
+import com.hyperdata.proms.module.work.board.dto.WorkflowTemplateResponse;
 import com.hyperdata.proms.module.work.board.entity.Board;
 import com.hyperdata.proms.module.work.board.entity.BoardColumn;
 import com.hyperdata.proms.module.work.board.entity.BoardInvitation;
@@ -852,6 +853,29 @@ public class BoardService {
 
         BoardSavedView saved = boardSavedViewRepository.saveAndFlush(view);
         return boardMapper.toSavedViewResponse(saved);
+    }
+
+    public List<WorkflowTemplateResponse> getWorkflowTemplates(CurrentUser currentUser) {
+        List<WorkflowTemplate> templates = workflowTemplateRepository.findAllAvailable(currentUser.activeTenantId());
+        return templates.stream().map(t -> {
+            boolean isDefault = t.getTenantId() == null;
+            List<WorkflowTemplateResponse.WorkflowTemplateColumnDto> columns = t.getColumns() != null
+                ? t.getColumns()
+                    .stream()
+                    .map(c -> new WorkflowTemplateResponse.WorkflowTemplateColumnDto(
+                        c.getName(),
+                        c.getCategory(),
+                        c.getColor()))
+                    .toList()
+                : List.of();
+
+            return new WorkflowTemplateResponse(
+                t.getId(),
+                t.getName(),
+                null,
+                isDefault,
+                columns);
+        }).toList();
     }
 
     public void checkBoardAccess(UUID boardId, CurrentUser currentUser) {

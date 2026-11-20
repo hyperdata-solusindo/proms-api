@@ -609,4 +609,27 @@ class BoardServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).name()).isEqualTo("My View");
     }
+
+    @Test
+    @DisplayName("getWorkflowTemplates harus mengembalikan daftar template beserta kolomnya")
+    void getWorkflowTemplatesShouldReturnAvailableTemplates() {
+        WorkflowTemplate template = new WorkflowTemplate();
+        template.setName("Standard Scrum");
+        template.setTenantId(null);
+
+        TemplateColumn col = new TemplateColumn();
+        col.setName("Backlog");
+        col.setCategory("not_started");
+        col.setColor("#1E293B");
+        template.setColumns(List.of(col));
+
+        given(workflowTemplateRepository.findAllAvailable(tenantId)).willReturn(List.of(template));
+
+        var results = boardService.getWorkflowTemplates(currentUser);
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).name()).isEqualTo("Standard Scrum");
+        assertThat(results.get(0).isDefault()).isTrue();
+        assertThat(results.get(0).columns()).hasSize(1);
+        assertThat(results.get(0).columns().get(0).name()).isEqualTo("Backlog");
+    }
 }

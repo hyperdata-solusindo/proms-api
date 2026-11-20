@@ -55,5 +55,8 @@ class WorkflowTemplateRepositoryTest {
         assertThat(found).isPresent();
         assertThat(found.get().getName()).isEqualTo("Agile Kanban");
         assertThat(found.get().getColumns()).hasSize(2);
+
+        var allAvailable = templateRepository.findAllAvailable(tenantId);
+        assertThat(allAvailable).isNotEmpty();
     }
 }

@@ -19,6 +19,7 @@ import com.hyperdata.proms.module.work.board.dto.InviteBoardMembersRequest;
 import com.hyperdata.proms.module.work.board.dto.SavedViewResponse;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardMemberRequest;
 import com.hyperdata.proms.module.work.board.dto.UpdateBoardRequest;
+import com.hyperdata.proms.module.work.board.dto.WorkflowTemplateResponse;
 import com.hyperdata.proms.module.work.client.dto.BoardTaskFilterDto;
 import com.hyperdata.proms.module.work.client.dto.TaskCreatedDto;
 import com.hyperdata.proms.module.work.client.dto.TaskSummaryDto;
@@ -251,4 +252,10 @@ public interface BoardApi {
         UUID idempotencyKey,
         @RequestBody
         CreateSavedViewRequest request);
+
+    @Operation(
+        summary = "Daftar Template Alur Kerja",
+        description = "Mengambil daftar preset template alur kerja (workflow templates) beserta susunan kolom kanban untuk inisiasi board.")
+    @GetMapping(path = {"/workflow-templates", "/api/v1/workflow-templates"})
+    RestResponse<List<WorkflowTemplateResponse>> getWorkflowTemplates();
 }

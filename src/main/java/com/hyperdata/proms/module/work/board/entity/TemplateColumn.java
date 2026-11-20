@@ -34,6 +34,9 @@ public class TemplateColumn {
     @Column(name = "category", nullable = false)
     private String category;
 
+    @Column(name = "color")
+    private String color;
+
     @Column(name = "wip_limit")
     private Integer wipLimit;
 
