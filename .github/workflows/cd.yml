@@ -193,14 +193,6 @@ jobs:
           echo "✅ Layers successfully extracted to build/extracted:"
           ls -lh build/extracted/
 
-      - name: Cache Trivy Vulnerability Database
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/trivy
-          key: trivy-db-${{ runner.os }}-${{ hashFiles('**/build.gradle.kts') }}
-          restore-keys: |
-            trivy-db-${{ runner.os }}-
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -243,6 +235,9 @@ jobs:
           scanners: 'vuln'
           vuln-type: 'os,library'
           severity: 'CRITICAL'
+        env:
+          TRIVY_NO_PROGRESS: 'true'
+          TRIVY_SKIP_DB_UPDATE: 'false'
 
       - name: Push Docker image to GHCR
         env:
