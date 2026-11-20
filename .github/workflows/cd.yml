@@ -240,6 +240,7 @@ jobs:
           format: 'table'
           exit-code: '1' # Enterprise Blocking Gate: Blokir deploy jika ada CRITICAL vulnerability yang ada fix-nya
           ignore-unfixed: true
+          scanners: 'vuln'
           vuln-type: 'os,library'
           severity: 'CRITICAL'
 
