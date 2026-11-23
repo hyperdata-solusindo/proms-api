@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "gradle-build-classes (Manual Reload)",
+      "label": "maven-compile (Manual Reload)",
       "type": "shell",
-      "command": "./gradlew classes",
+      "command": "./mvnw compile -DskipTests",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -16,6 +16,28 @@
         "clear": false
       },
       "problemMatcher": []
+    },
+    {
+      "label": "mvnw spring-boot:run",
+      "type": "shell",
+      "command": "set -a && [ -f .env ] && . ./.env; set +a && ./mvnw spring-boot:run",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "spring",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*Starting ApiApplication.*",
+          "endsPattern": ".*Started ApiApplication in.*"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      }
     }
   ]
 }

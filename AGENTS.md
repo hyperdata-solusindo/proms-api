@@ -8,7 +8,7 @@
 
 - **Runtime**: Java 21 (Eclipse Temurin 21)
 - **Framework**: Spring Boot 4.1.x
-- **Build Tool**: Gradle Wrapper (`./gradlew`) with Kotlin DSL (`build.gradle.kts`)
+- **Build Tool**: Apache Maven (`./mvnw`) with `pom.xml`
 - **Database**: PostgreSQL 16 (Port 5432/5443)
 - **Migration**: Liquibase (Containerized & CLI changelogs)
 - **Root Package**: `com.hyperdata.proms`
@@ -30,7 +30,7 @@
    - **Level 2 (Explicit `@Query` JPQL)**: MANDATORY for any query involving `deletedAt IS NULL`, fixed business sorting, >2 filter criteria, or `JOIN FETCH`. MUST use Java Text Blocks `"""..."""` and Ubiquitous Language domain names (e.g. `findActiveColumnsByBoardId`, NOT SQL technical soup).
    - **Level 3 (`JpaSpecificationExecutor`)**: MANDATORY for dynamic multi-filter ERP search tables.
 10. **The Golden Stack (Anti-N+1 In-Memory Datatables)**: Datatables and cross-module enrichment **MUST** use the Golden Stack (L1 Cache + Variable-Based `Lookups` 3-step pattern: `extractIds` -> `client call` -> `toMap` + MapStruct assembly). Client batch lookups must accept `Collection<ID> ids`. Repositories must NEVER return raw `Object[]` (use Java 21 Record DTO projections with `SELECT new ...`). Never write cross-module SQL joins or call clients inside loops.
-11. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"`).
+11. **Targeted Inner-Loop Testing**: During development, only run the test for your module (`./mvnw test -Dtest="com.hyperdata.proms.module.<domain>.<feature>.*Test"`).
 12. **OpenAPI & Scalar Documentation**: All `@RestController` endpoints must have `@Tag`, `@Operation`, and `@ApiResponses`. Tags must be hierarchically organized 1:1 per `<domain>` via `x-tagGroups` in Scalar UI, and non-business controllers must use `@Hidden`.
 13. **Observability & Sensitive Data Masking**: All logs must follow SLF4J standards with zero plain credential leakage. Methods in Service and Client are auto-traced via OTel, and error responses attach an `X-Trace-Id` header.
 14. **Security, Multi-Tenancy & Rate Limiting Standards**: Tenant data isolation enforced via PostgreSQL Row Level Security (RLS) with session context (`SET LOCAL app.tenant_id`). Cross-tenant resource queries MUST return HTTP 404 disguise (IDOR defense). Distributed 2-Tier rate limiting (Bucket4j + Redis) enforces HTTP 429 `RATE_LIMIT_EXCEEDED`. Stateful PAT authentication uses SHA-256 and sliding window expiration (`Authorization: Bearer <id>|<plainToken>`). Cache keys for tenant data must include tenant prefix (`#tenantId + ':' + #id`). Zero secret leakage (`.env`), UU PDP compliance (synthetic dummy data only), and mandatory confirmation for destructive commands.
@@ -101,19 +101,19 @@ git checkout -b feat/<feature-name>   # for new features (e.g. feat/endpoint-boa
 # or: git checkout -b fix/<bug-name>  # for bug fixes (e.g. fix/unauthenticated-security-context)
 
 # 1. Run targeted unit test during task implementation (FAST feedback < 5s)
-./gradlew test --tests "com.hyperdata.proms.module.<domain>.<feature>.*"
+./mvnw test -Dtest="com.hyperdata.proms.module.<domain>.<feature>.*Test"
 
 # 2. Run architecture guardrail test
-./gradlew test --tests "com.hyperdata.proms.architecture.ArchitectureTest"
+./mvnw test -Dtest="ArchitectureTest"
 
 # 3. Format code with Spotless
-./gradlew spotlessApply
+./mvnw spotless:apply
 
 # 4. Check formatting without modifying
-./gradlew spotlessCheck
+./mvnw spotless:check
 
 # 5. Full project verification (Definition of Done: Spotless, ArchUnit, JUnit, JaCoCo)
-./gradlew check
+./mvnw clean verify
 
 # 6. Create Pull Request using official repository template
 gh pr create --template .github/pull_request_template.md
@@ -144,10 +144,10 @@ Before finishing any task, every AI Agent MUST verify:
 - [ ] Distributed Tracing: X-Trace-Id header attached and OTel context active.
 - [ ] Multi-tenancy & Security: Cross-tenant queries return HTTP 404 disguise (IDOR defense); tenant-scoped cache keys include tenant prefix; rate limiting headers (`X-RateLimit-*`) respected; no blind `kill -9` or unconfirmed destructive commands; no secrets or real PII committed.
 - [ ] Unit tests written with BDD `@DisplayName` format (Controller tests use fast `standaloneSetup`, not slow `@WebMvcTest`).
-- [ ] Targeted tests pass (`./gradlew test --tests "..."`).
-- [ ] Code formatted cleanly with `./gradlew spotlessApply`.
-- [ ] Architecture tests pass (`./gradlew test --tests "*ArchitectureTest*"`).
-- [ ] Full quality gate passes (`./gradlew check` including JaCoCo coverage threshold).
+- [ ] Targeted tests pass (`./mvnw test -Dtest="..."`).
+- [ ] Code formatted cleanly with `./mvnw spotless:apply`.
+- [ ] Architecture tests pass (`./mvnw test -Dtest="*ArchitectureTest*"`).
+- [ ] Full quality gate passes (`./mvnw clean verify` including JaCoCo coverage threshold).
 - [ ] Pull Request (PR) description strictly adheres to `.github/pull_request_template.md` with all DoD checklist items marked.
 - [ ] Process & Disk Hygiene: Verified with `git status`/`git diff`, no stale daemon cache, and no leftover background processes on ports.
 

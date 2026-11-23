@@ -6,7 +6,14 @@
       "name": "ApiApplication",
       "request": "launch",
       "mainClass": "com.hyperdata.proms.ApiApplication",
-      "projectName": "api",
+      "projectName": "api"
+    },
+    {
+      "type": "java",
+      "name": "ApiApplication",
+      "request": "launch",
+      "mainClass": "com.hyperdata.proms.ApiApplication",
+      "projectName": "proms-api",
       "envFile": "${workspaceFolder}/.env",
       "console": "internalConsole"
     }
