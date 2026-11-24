@@ -3,18 +3,42 @@
   "configurations": [
     {
       "type": "java",
-      "name": "ApiApplication",
+      "name": "Spring Boot - Launch",
       "request": "launch",
+      "cwd": "${workspaceFolder}",
       "mainClass": "com.hyperdata.proms.ApiApplication",
-      "projectName": "api"
+      "projectName": "proms-api",
+      "javaExec": "/home/kholifan/.sdkman/candidates/java/25-tem/bin/java",
+      "args": "--spring.profiles.active=local",
+      "env": {
+        "SERVER_PORT": "8080"
+      },
+      "envFile": "${workspaceFolder}/.env",
+      "vmArgs": "-Xmx512m",
+      "classPaths": [
+        "$Auto",
+        "${workspaceFolder}/target/classes"
+      ],
+      "console": "internalConsole"
     },
     {
       "type": "java",
-      "name": "ApiApplication",
+      "name": "Spring Boot - Launch (api)",
       "request": "launch",
+      "cwd": "${workspaceFolder}",
       "mainClass": "com.hyperdata.proms.ApiApplication",
-      "projectName": "proms-api",
+      "projectName": "api",
+      "javaExec": "/home/kholifan/.sdkman/candidates/java/25-tem/bin/java",
+      "args": "--spring.profiles.active=local",
+      "env": {
+        "SERVER_PORT": "8080"
+      },
       "envFile": "${workspaceFolder}/.env",
+      "vmArgs": "-Xmx512m",
+      "classPaths": [
+        "$Auto",
+        "${workspaceFolder}/target/classes"
+      ],
       "console": "internalConsole"
     }
   ]
