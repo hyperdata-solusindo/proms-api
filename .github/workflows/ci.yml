@@ -42,18 +42,14 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: 'maven'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: false
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
 
       - name: Run verification (Spotless, JUnit, ArchUnit, JaCoCo)
         id: verification
-        run: ./gradlew check --build-cache
+        run: ./mvnw clean verify
 
       - name: Post Verification Status Comment to PR
         if: always() && github.event_name == 'pull_request' && !github.event.pull_request.draft
@@ -76,9 +72,8 @@ jobs:
         with:
           name: verification-and-coverage-reports
           path: |
-            build/reports/tests/
-            build/reports/jacoco/test/html/
-            build/reports/problems/
+            target/surefire-reports/
+            target/site/jacoco/
           retention-days: 14
 
   ai-review:

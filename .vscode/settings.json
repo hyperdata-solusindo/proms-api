@@ -1,15 +1,10 @@
 {
   "java.settings.url": ".vscode/org.eclipse.jdt.core.prefs",
-  "java.configuration.runtimes": [
-    {
-      "name": "JavaSE-21",
-      "path": "/home/kholifan/.jdks/temurin-21",
-      "default": true
-    }
-  ],
   "java.autobuild.enabled": true,
   "java.debug.settings.hotCodeReplace": "never",
   "java.debug.settings.console": "internalConsole",
+  "java.debug.settings.forceBuildBeforeLaunch": false,
+  "java.configuration.updateBuildConfiguration": "interactive",
   "java.compile.nullAnalysis.mode": "disabled",
   "files.watcherExclude": {
     "**/.git/objects/**": true,

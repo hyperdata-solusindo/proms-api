@@ -1,0 +1,184 @@
+# ===================================================================
+# Core Spring Configuration
+# ===================================================================
+spring:
+  application:
+    name: ${PROJECT_NAME:proms-api}
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # DataSource & Connection Pool
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:proms_db}?currentSchema=${DB_SCHEMA:public}
+    username: ${DB_USER:${DB_USERNAME:postgres}}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:2}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT:30000}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT:20000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME:1800000}
+
+  # JPA & Hibernate
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: false
+        default_schema: ${DB_SCHEMA:public}
+
+  # Liquibase
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: ${DB_SCHEMA:public}
+    liquibase-schema: ${DB_SCHEMA:public}
+    enabled: ${LIQUIBASE_ENABLED:true}
+
+  # Redis & Cache
+  cache:
+    type: caffeine
+  data:
+    redis:
+      repositories:
+        enabled: false
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:platform_redis_pass}
+      timeout: 2000ms
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ""
+
+# ===================================================================
+# Application Custom Configuration
+# ===================================================================
+app:
+  security:
+    token:
+      ttl-days: ${AUTH_TOKEN_TTL_DAYS:30}
+      sliding-window-days: ${AUTH_TOKEN_SLIDING_WINDOW_DAYS:7}
+  cache:
+    caffeine:
+      ttl-minutes: ${CACHE_TTL_MINUTES:10}
+      max-size: ${CACHE_MAX_SIZE:5000}
+  masking:
+    enabled: ${MASKING_ENABLED:true}
+    additional-keys: ${MASKING_ADDITIONAL_KEYS:}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    edge:
+      ip-capacity: 100
+      ip-refill-tokens: 100
+      ip-refill-duration: 1s
+      ip-max-concurrent: 20
+    auth:
+      ip-capacity: 15
+      ip-refill-tokens: 15
+      ip-refill-duration: 1m
+      account-capacity: 5
+      account-refill-tokens: 5
+      account-refill-duration: 1m
+    user:
+      capacity: 60
+      refill-tokens: 60
+      refill-duration: 1m
+      max-concurrent: 10
+    tenant:
+      capacity: 1000
+      refill-tokens: 1000
+      refill-duration: 1m
+      max-concurrent: 50
+    public-general:
+      capacity: 30
+      refill-tokens: 30
+      refill-duration: 1m
+
+# ===================================================================
+# Actuator, Metrics & Observability
+# ===================================================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${SPRING_PROFILES_ACTIVE:local}
+  tracing:
+    enabled: ${OTEL_TRACING_ENABLED:true}
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:${OTEL_TRACING_PROBABILITY:1.0}}
+    export:
+      otlp:
+        enabled: ${OTEL_TRACING_ENABLED:true}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
+          transport: http
+          timeout: ${OTEL_TIMEOUT_SECONDS:2s}
+    resource-attributes:
+      service:
+        name: ${spring.application.name}
+        version: ${APP_VERSION:0.0.1}
+      deployment:
+        environment: ${SPRING_PROFILES_ACTIVE:local}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+      timeout: ${OTEL_TIMEOUT_SECONDS:2s}
+    metrics:
+      export:
+        enabled: ${OTEL_METRICS_EXPORT_ENABLED:false}
+
+# ===================================================================
+# Sentry Error Reporting
+# ===================================================================
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:${SPRING_PROFILES_ACTIVE:local}}
+  server-name: ${spring.application.name}
+  release: ${spring.application.name}@${APP_VERSION:0.0.1}
+  traces-sample-rate: ${SENTRY_TRACES_SAMPLE_RATE:1.0}
+  send-default-pii: false
+  exception-resolver-order: -2147483648
+
+# ===================================================================
+# OpenAPI / Swagger
+# ===================================================================
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+
+# ===================================================================
+# Logging
+# ===================================================================
+logging:
+  level:
+    root: INFO
+    com.hyperdata.proms: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    liquibase: INFO
